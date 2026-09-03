@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="320"
+        x:Class="ScreenCaptureTool.Windows.StickerWindow"
+        Title="贴图"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        SizeToContent="WidthAndHeight">
+    <!-- 用 Grid 分层：阴影层（带近透明背景以触发阴影渲染）+ 内容层（Image）。
+         阴影画在 ShadowBorder 上，ShadowBorder 与 Image 同尺寸但通过 Grid 叠在 Image 后。
+         窗口比 Image 大出一圈 Padding，给阴影留渲染空间。 -->
+    <Grid x:Name="RootGrid"
+          Margin="16">
+        <Border x:Name="ShadowBorder"
+                Background="#01000000"
+                CornerRadius="2"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                IsHitTestVisible="False" />
+        <Border x:Name="RootBorder"
+                Background="Transparent"
+                BorderBrush="#B43C3C3C"
+                BorderThickness="1"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                PointerPressed="OnRootPointerPressed"
+                PointerWheelChanged="OnRootPointerWheelChanged">
+            <Border.ContextMenu>
+                <ContextMenu x:Name="StickerContextMenu">
+                    <MenuItem x:Name="MenuSelectableText" Header="文本可选择" Click="OnSelectableTextClick" IsVisible="False" />
+                    <Separator x:Name="MenuSeparator" IsVisible="False" />
+                    <MenuItem Header="复制图片" Click="OnCopyImageClick" />
+                    <MenuItem Header="另存为..." Click="OnSaveImageClick" />
+                    <Separator />
+                    <MenuItem Header="关闭" Click="OnCloseClick" />
+                </ContextMenu>
+            </Border.ContextMenu>
+
+            <Panel>
+                <Image x:Name="StickerImage"
+                       Stretch="Fill" />
+                <SelectableTextBlock x:Name="StickerTextBlock"
+                                     TextWrapping="NoWrap"
+                                     SelectionBrush="#400078D7"
+                                     SelectionForegroundBrush="{x:Null}"
+                                     Background="Transparent"
+                                     FontFamily="Consolas, Courier New, Microsoft YaHei UI, monospace"
+                                     FontSize="18"
+                                     Padding="16"
+                                     IsVisible="False"
+                                     IsHitTestVisible="False" />
+            </Panel>
+        </Border>
+    </Grid>
+</Window>

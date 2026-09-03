@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ScreenCaptureTool.LongScroll.Controls"
+        x:Class="ScreenCaptureTool.LongScroll.Windows.LongScrollMaskWindow"
+        Title="LongScrollMask"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowStartupLocation="Manual">
+    <controls:SelectionLayer x:Name="SelectionLayer"
+                             ShowMask="True"
+                             ShowBorderAndHandles="False"
+                             IsHitTestVisible="False" />
+</Window>

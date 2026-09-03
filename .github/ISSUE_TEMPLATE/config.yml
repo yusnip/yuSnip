@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 社区讨论区 (Discussions)
+    url: https://github.com/yusnip/yuSnip/discussions
+    about: 欢迎在讨论区交流使用心得、技巧与日常提问
+  - name: QQ 交流群
+    url: https://yusnip.top
+    about: 欢迎加入 Quicker地球村 (QQ群: 453478357) 实时交流

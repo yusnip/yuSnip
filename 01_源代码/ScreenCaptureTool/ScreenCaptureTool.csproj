@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+    <RootNamespace>ScreenCaptureTool</RootNamespace>
+    <AssemblyName>yuSnip</AssemblyName>
+    <Product>yuSnip</Product>
+    <Title>yuSnip</Title>
+    <ApplicationIcon>Assets\tray.ico</ApplicationIcon>
+
+    <!--
+      代码保护 / 原生编译：发布时使用 NativeAOT，把 C# 编译为 x64 原生机器码，
+      产物 exe 中不含 .NET IL，ILSpy/dnSpy 无法还原为 C# 源码。
+      这些属性只在 `dotnet publish` 时生效，不影响日常 `dotnet build` / 调试。
+      - PublishAot：开启 NativeAOT（需 VS C++ 工具链 link.exe，已随 VS 一起安装）。
+      - RunIdentifier：发布时固定 win-x64，与 Platforms=x64 / PlatformTarget=x64 对齐。
+      - IlcOptimizationPreference：速度优先；如要更小体积可改为 Size。
+      注意：PublishAot 与 PublishSingleFile 互斥，AOT 本身已是单文件原生 exe，不要叠加。
+    -->
+    <PublishAot>true</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <RunIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RunIdentifier>
+    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+
+    <!--
+      抑制 NativeAOT 下两个已确认无害的警告：
+      - IL2104：dll 级"曾产生 trim 警告"汇总标记。具体源 (IL2050 MSAA COM) 已用
+        [UnconditionalSuppressMessage] 在 NativeMethods.cs 精准抑制，并经 AOT 实测运行正常。
+      - IL3000：OpenCvSharp4 内部 WindowsLibraryLoader 读取 Assembly.Location 的提示。
+        该库非我们源码，单文件下虽返回空字符串，但 OpenCvSharp 实际能正常加载 native dll
+        （长截图/OCR 实测跑通）。纯信息性，不影响功能。
+    -->
+    <NoWarn>IL2104;IL3000</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.2.8">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <!-- 已移除 SkiaSharp：全代码库无任何实际 API 调用（仅一处历史注释提及），属僵尸依赖。 -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenCaptureTool.Core\ScreenCaptureTool.Core.csproj" />
+    <ProjectReference Include="..\ScreenCaptureTool.Platform\ScreenCaptureTool.Platform.csproj" />
+    <ProjectReference Include="..\ScreenCaptureTool.LongScroll\ScreenCaptureTool.LongScroll.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+</Project>

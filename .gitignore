@@ -1,0 +1,20 @@
+# Visual Studio / IDE
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs (C# / .NET)
+[Bb]in/
+[Oo]bj/
+
+# Project-specific exclusions
+/03_运行程序本体/
+/04_系统运行日志/
+/RapidOCR文字识别引擎/.cache/
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store

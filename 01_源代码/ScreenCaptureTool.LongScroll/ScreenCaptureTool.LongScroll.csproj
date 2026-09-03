@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenCaptureTool.Core\ScreenCaptureTool.Core.csproj" />
+    <ProjectReference Include="..\ScreenCaptureTool.Platform\ScreenCaptureTool.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Windows\LongScrollBorderWindow.axaml.cs;Windows\LongScrollMaskWindow.axaml.cs" />
+    <AvaloniaXaml Remove="Windows\LongScrollBorderWindow.axaml;Windows\LongScrollMaskWindow.axaml" />
+    <AvaloniaResource Remove="Windows\LongScrollBorderWindow.axaml;Windows\LongScrollMaskWindow.axaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.8" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.27" />
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+    <DefineConstants>$(DefineConstants);LONGSCROLL_SELECTION_LAYER</DefineConstants>
+  </PropertyGroup>
+
+</Project>

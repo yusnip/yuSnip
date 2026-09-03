@@ -1,0 +1,156 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="44"
+        x:Class="ScreenCaptureTool.LongScroll.Windows.LongScrollControlWindow"
+        Title="InfinityScroll 2026"
+        Width="440" Height="44"
+        MinWidth="0" MaxWidth="520"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        WindowStartupLocation="Manual"
+        SizeToContent="Width"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="12">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="SubtleBackgroundBrush" Color="#FFF0F0F0" />
+        <SolidColorBrush x:Key="TextBrush" Color="#FF2B2F36" />
+        <SolidColorBrush x:Key="IconBrush" Color="#FF2B2F36" />
+        <SolidColorBrush x:Key="BarBorderBrush" Color="#FFD0D0D0" />
+        <SolidColorBrush x:Key="SeparatorBrush" Color="#FFE0E0E0" />
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#FFEAEAEA" />
+        <SolidColorBrush x:Key="ButtonPressedBrush" Color="#FFDCDCDC" />
+    </Window.Resources>
+
+    <Border x:Name="MainBorder"
+            Background="{DynamicResource PanelBackgroundBrush}"
+            BorderBrush="{DynamicResource BarBorderBrush}"
+            BorderThickness="0"
+            CornerRadius="10"
+            Padding="8,4"
+            Height="44">
+        <Grid ColumnDefinitions="Auto,Auto">
+            <StackPanel Orientation="Vertical" VerticalAlignment="Center" MaxWidth="190" Margin="0,0,6,0">
+                <TextBlock x:Name="TxtStatus"
+                           Text="初始化中..."
+                           Foreground="{DynamicResource TextBrush}"
+                           FontSize="12"
+                           FontWeight="Bold"
+                           TextTrimming="CharacterEllipsis"
+                           MaxWidth="190" />
+                <TextBlock x:Name="TxtMetrics"
+                           Text=""
+                           IsVisible="False"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontSize="10"
+                           Opacity="0.7"
+                           TextTrimming="CharacterEllipsis"
+                           MaxWidth="190" />
+                <TextBlock x:Name="TxtHint" IsVisible="False" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Rectangle Width="1" Height="20" Fill="{DynamicResource SeparatorBrush}" Margin="6,0" />
+
+                <Button x:Name="BtnAutoScroll"
+                        ToolTip.Tip="自动滚动"
+                        MinWidth="64"
+                        Height="28"
+                        Padding="6,0"
+                        Margin="4,0"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        VerticalContentAlignment="Center"
+                        HorizontalContentAlignment="Center"
+                        Click="OnAutoScrollClick">
+                    <TextBlock x:Name="TxtAutoScroll"
+                               Text="自动滚动"
+                               Foreground="{DynamicResource TextBrush}"
+                               VerticalAlignment="Center"
+                               TextAlignment="Center" />
+                </Button>
+
+                <Border x:Name="AutoScrollFreqBox"
+                        IsVisible="False"
+                        Background="{DynamicResource SubtleBackgroundBrush}"
+                        BorderBrush="{DynamicResource SeparatorBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Margin="6,0,0,0"
+                        Padding="8,2"
+                        Height="28"
+                        VerticalAlignment="Center"
+                        PointerWheelChanged="OnAutoScrollIntervalWheel">
+                    <TextBlock x:Name="TxtAutoScrollFreq"
+                               Text="频率：160ms"
+                               Foreground="{DynamicResource TextBrush}"
+                               FontSize="13"
+                               VerticalAlignment="Center" />
+                </Border>
+
+                <Rectangle Width="1" Height="20" Fill="{DynamicResource SeparatorBrush}" Margin="6,0" />
+
+                <Button x:Name="BtnSaveAs"
+                        ToolTip.Tip="另存为"
+                        Width="28"
+                        Height="28"
+                        Padding="0"
+                        Margin="6,0,0,0"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        Click="OnSaveAsClick">
+                    <Path Data="M15,9H5V5H15M12,19A3,3,0,0,1,9,16A3,3,0,0,1,12,13A3,3,0,0,1,15,16A3,3,0,0,1,12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2,0,0,0,5,21H19A2,2,0,0,0,21,19V7L17,3Z"
+                          Fill="{DynamicResource IconBrush}"
+                          Stretch="Uniform"
+                          Width="16"
+                          Height="16" />
+                </Button>
+
+                <Button x:Name="BtnStop"
+                        ToolTip.Tip="取消"
+                        Width="28"
+                        Height="28"
+                        Padding="0"
+                        Margin="8,0,0,0"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        Click="OnCancelClick">
+                    <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                          Fill="#FF5555"
+                          Stretch="Uniform"
+                          Width="16"
+                          Height="16" />
+                </Button>
+
+                <Button x:Name="BtnFinish"
+                        ToolTip.Tip="完成"
+                        Width="28"
+                        Height="28"
+                        Padding="0"
+                        Margin="8,0,0,0"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        Click="OnFinishClick">
+                    <Path Data="M9,16.17 L4.83,12 L3.41,13.41 L9,19 L21,7 L19.59,5.59 Z"
+                          Fill="#FF07C160"
+                          Stretch="Uniform"
+                          Width="18"
+                          Height="18" />
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
