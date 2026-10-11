@@ -1,0 +1,343 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
+        x:Class="ScreenCaptureTool.Windows.SettingsWindow"
+        Icon="/Assets/tray.ico"
+        Title="设置 - yuSnip"
+        Width="900" Height="700"
+        MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13">
+
+    <Window.Styles>
+        <!-- 设置项标题 -->
+        <Style Selector="TextBlock.cardTitle">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <!-- 设置行：左标题 + 右控件，整齐对齐 -->
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="TextBlock.fieldHint">
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style Selector="Border.fieldRow">
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+        <Style Selector="Border.softDivider">
+            <Setter Property="Background" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+    </Window.Styles>
+
+    <Border Background="{DynamicResource SctPanelBrush}"
+            CornerRadius="10"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}"
+            BorderThickness="1"
+            Margin="16"
+            BoxShadow="0 4 24 0 #40000000"
+            ClipToBounds="True">
+        <Grid RowDefinitions="48,*,60">
+            <!-- 标题栏 -->
+            <Border Grid.Row="0"
+                    Background="Transparent"
+                    PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0" Spacing="10">
+                        <TextBlock Text="⚙" FontSize="15" VerticalAlignment="Center" Foreground="{DynamicResource SctTextSecondaryBrush}" />
+                        <TextBlock Text="设置" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0" Spacing="2">
+                        <Button Classes="titleIcon" Content="—" ToolTip.Tip="最小化" Click="OnMinimizeClick" />
+                        <Button Classes="titleIcon" Content="✕" ToolTip.Tip="关闭" Click="OnCancelClick" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 主体：左导航 + 右内容（Win11 风：无分隔线，用背景色区分） -->
+            <Grid Grid.Row="1" ColumnDefinitions="200,*">
+                <Border Grid.Column="0"
+                        Background="Transparent">
+                    <StackPanel Margin="10,16" Spacing="4">
+                        <Button x:Name="BtnNavGeneral" Classes="nav active" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnNavGeneralClick">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource SctIconBrush}" Data="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+                                <TextBlock Text="通用" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavCapture" Classes="nav" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnNavCaptureClick">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource SctIconBrush}" Data="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" />
+                                <TextBlock Text="截图" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavHotKey" Classes="nav" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnNavHotKeyClick">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource SctIconBrush}" Data="M6,4H18A2,2 0 0,1 20,6V18A2,2 0 0,1 18,20H6A2,2 0 0,1 4,18V6A2,2 0 0,1 6,4M6,6V18H18V6H6M8,8H10V10H8V8M8,11H10V13H8V11M8,14H10V16H8V14M11,8H13V10H11V8M11,11H13V13H11V11M11,14H16V16H11V14M14,8H16V10H14V8M14,11H16V13H14V11Z" />
+                                <TextBlock Text="热键" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavAbout" Classes="nav" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnNavAboutClick">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource SctIconBrush}" Data="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z" />
+                                <TextBlock Text="关于" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Column="1">
+                    <!-- ============ 通用 ============ -->
+                    <ScrollViewer x:Name="ScrollGeneral"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Padding="32,24">
+                        <StackPanel x:Name="PanelGeneral" Spacing="20">
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="保存" Classes="cardTitle" />
+
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="保存目录" Classes="secondary" />
+                                        <Grid ColumnDefinitions="*,Auto,Auto">
+                                            <TextBox x:Name="TxtSaveDirectory"
+                                                     Grid.Column="0"
+                                                     Watermark="例如：C:\Users\你\Pictures\Screenshots" />
+                                            <Button Grid.Column="1" Content="浏览…" MinWidth="76" Margin="8,0,0,0" Click="OnBrowseSaveDirectoryClick" />
+                                            <Button Grid.Column="2" Content="打开" MinWidth="64" Margin="8,0,0,0" Click="OnOpenSaveDirectoryClick" />
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="文件名模板" Classes="secondary" />
+                                        <TextBox x:Name="TxtFileNameTemplate" Watermark="Screenshot_{yyyyMMdd_HHmmss}" />
+                                        <TextBlock Text="支持 {yyyyMMdd_HHmmss} 这类时间占位符。" Classes="fieldHint" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="启动与通知" Classes="cardTitle" />
+
+                                    <Grid Classes="fieldRow" ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="开机启动" Classes="fieldLabel" />
+                                            <TextBlock Text="通过当前用户注册表 Run 项实现。" Classes="fieldHint" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="ChkRunOnStartup" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" />
+                                    </Grid>
+                                    <Border Classes="softDivider" />
+
+                                    <Grid Classes="fieldRow" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Text="保存成功后显示通知" Classes="fieldLabel" />
+                                        <ToggleSwitch x:Name="ChkShowSaveNotification" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" />
+                                    </Grid>
+                                    <Border Classes="softDivider" />
+
+                                    <Grid Classes="fieldRow" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Text="启动时显示提示" Classes="fieldLabel" />
+                                        <ToggleSwitch x:Name="ChkShowStartupNotification" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" />
+                                    </Grid>
+                                    <Border Classes="softDivider" />
+
+                                    <Grid Classes="fieldRow" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Text="保存时播放提示音" Classes="fieldLabel" />
+                                        <ToggleSwitch x:Name="ChkPlaySaveSound" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ============ 截图 ============ -->
+                    <ScrollViewer x:Name="ScrollCapture"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Padding="32,24"
+                                  IsVisible="False">
+                        <StackPanel x:Name="PanelCapture" Spacing="20">
+
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="截图行为" Classes="cardTitle" />
+
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="自动检测模式" Classes="secondary" />
+                                        <ComboBox x:Name="CmbAutoDetectMode" HorizontalAlignment="Stretch">
+                                            <ComboBoxItem Content="检测元素" />
+                                            <ComboBoxItem Content="仅窗口" />
+                                            <ComboBoxItem Content="不检测" />
+                                        </ComboBox>
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="6">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="延迟截图" Classes="secondary" />
+                                            <TextBlock Grid.Column="1" x:Name="TxtDelayValue" Text="0 秒" FontWeight="SemiBold" />
+                                        </Grid>
+                                        <Slider x:Name="SliderDelaySeconds" Classes="compactSlider" Minimum="0" Maximum="10" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" />
+                                        <TextBlock Text="触发热键后等待指定秒数再进入截图。" Classes="fieldHint" />
+                                    </StackPanel>
+
+                                    <Border Classes="softDivider" />
+
+                                    <Grid Classes="fieldRow" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Text="截图保存后复制到剪贴板" Classes="fieldLabel" />
+                                        <ToggleSwitch x:Name="ChkCopyToClipboard" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ============ 热键 ============ -->
+                    <ScrollViewer x:Name="ScrollHotKey"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Padding="32,24"
+                                  IsVisible="False">
+                        <StackPanel x:Name="PanelHotKey" Spacing="20">
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="截图热键" Classes="cardTitle" />
+                                    <TextBlock Text="点击下方按钮后按下组合键或单个功能键（如 F1）。" Classes="fieldHint" Margin="0" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Border Grid.Column="0"
+                                                x:Name="HotKeyDisplayBorder"
+                                                Background="{DynamicResource SctSubtleBrush}"
+                                                BorderBrush="{DynamicResource SctBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                MinHeight="40"
+                                                Padding="14,0">
+                                            <TextBlock x:Name="TxtHotKey"
+                                                       Text="Ctrl+Alt+A"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                        <Button x:Name="BtnRecordHotKey"
+                                                Grid.Column="1"
+                                                Content="录制"
+                                                MinWidth="96"
+                                                Margin="10,0,0,0"
+                                                Click="OnRecordHotKeyClick" />
+                                    </Grid>
+                                    <TextBlock x:Name="TxtHotKeyTip" Classes="fieldHint" Margin="0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="快速贴图" Classes="cardTitle" />
+                                    <TextBlock Text="按下组合键或单个功能键（如 F3）。可将截图选区、剪贴板图片或文本快速转为贴图。" Classes="fieldHint" Margin="0" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Border Grid.Column="0"
+                                                x:Name="StickerHotKeyDisplayBorder"
+                                                Background="{DynamicResource SctSubtleBrush}"
+                                                BorderBrush="{DynamicResource SctBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                MinHeight="40"
+                                                Padding="14,0">
+                                            <TextBlock x:Name="TxtStickerHotKey"
+                                                       Text="F3"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                        <Button x:Name="BtnRecordStickerHotKey"
+                                                Grid.Column="1"
+                                                Content="录制"
+                                                MinWidth="96"
+                                                Margin="10,0,0,0"
+                                                Click="OnRecordStickerHotKeyClick" />
+                                    </Grid>
+                                    <TextBlock x:Name="TxtStickerHotKeyTip" Classes="fieldHint" Margin="0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="贴图阴影切换提示" Classes="cardTitle" />
+                                    <ToggleSwitch x:Name="ChkShowStickerShadowToast" IsChecked="True" />
+                                    <TextBlock Text="按 Y 键切换焦点贴图阴影时，在屏幕中央显示“贴图阴影：开/关”提示。" Classes="fieldHint" Margin="0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ============ 关于 ============ -->
+                    <ScrollViewer x:Name="ScrollAbout"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Padding="32,24"
+                                  IsVisible="False">
+                        <StackPanel x:Name="PanelAbout" Spacing="20">
+                            <Border Classes="card">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="关于" Classes="cardTitle" />
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="软件名称" Classes="secondary" Width="92" />
+                                        <TextBlock x:Name="TxtAppName" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="配置文件" Classes="secondary" />
+                                        <TextBlock x:Name="TxtSettingsPath" Classes="muted" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="开机启动注册项" Classes="secondary" />
+                                        <TextBlock x:Name="TxtStartupValueName" Classes="muted" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button Content="打开配置目录" HorizontalAlignment="Left" Margin="0,4,0,0" Click="OnOpenConfigDirectoryClick" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="重置" Classes="cardTitle" />
+                                    <TextBlock Text="将所有设置恢复为默认值（需点击保存后生效）。" Classes="fieldHint" Margin="0" />
+                                    <Button Content="恢复默认设置" HorizontalAlignment="Left" Click="OnRestoreDefaultsClick" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+
+            <!-- 底部操作区 -->
+            <Border Grid.Row="2"
+                    BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                <DockPanel LastChildFill="False" Margin="22,0,22,0">
+                    <TextBlock x:Name="TxtStatus"
+                               DockPanel.Dock="Left"
+                               Classes="muted"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button Content="取消" MinWidth="96" Click="OnCancelClick" />
+                        <Button Classes="primary" Content="保存" MinWidth="96" Click="OnSaveClick" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

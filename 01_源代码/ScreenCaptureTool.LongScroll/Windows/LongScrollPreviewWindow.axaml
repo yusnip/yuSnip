@@ -1,0 +1,97 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ScreenCaptureTool.LongScroll.Windows.LongScrollPreviewWindow"
+        Title="LongScrollPreview"
+        Width="340" Height="420"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowStartupLocation="Manual">
+    <Canvas x:Name="HostCanvas"
+            Background="Transparent"
+            ClipToBounds="True"
+            IsHitTestVisible="False">
+        <Image x:Name="PreviewImage"
+               Stretch="Fill"
+               IsHitTestVisible="False"
+               ZIndex="1" />
+        <Border x:Name="PreviewMaskTop"
+                Background="#4A000000"
+                IsHitTestVisible="False"
+                ZIndex="5" />
+        <Border x:Name="PreviewMaskBottom"
+                Background="#4A000000"
+                IsHitTestVisible="False"
+                ZIndex="5" />
+        <Border x:Name="PreviewMaskLeft"
+                Background="#4A000000"
+                IsHitTestVisible="False"
+                ZIndex="5" />
+        <Border x:Name="PreviewMaskRight"
+                Background="#4A000000"
+                IsHitTestVisible="False"
+                ZIndex="5" />
+        <Border x:Name="OuterBlueBorder"
+                Background="Transparent"
+                BorderBrush="#B8669DFF"
+                BorderThickness="1.5"
+                CornerRadius="1"
+                ClipToBounds="False"
+                IsHitTestVisible="False"
+                ZIndex="10" />
+        <Border x:Name="CurrentViewportBorder"
+                Background="#0A00D26A"
+                BorderBrush="#F000D26A"
+                BorderThickness="2"
+                CornerRadius="1"
+                IsHitTestVisible="False"
+                ZIndex="20" />
+        <Border x:Name="TopTailShadow"
+                Height="42"
+                IsHitTestVisible="False"
+                Opacity="0"
+                ZIndex="30">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Color="#5C000000" Offset="0" />
+                    <GradientStop Color="#22000000" Offset="0.55" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+        <Border x:Name="BottomTailShadow"
+                Height="42"
+                IsHitTestVisible="False"
+                Opacity="0"
+                ZIndex="30">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Color="#00000000" Offset="0" />
+                    <GradientStop Color="#22000000" Offset="0.45" />
+                    <GradientStop Color="#5C000000" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+        <TextBlock x:Name="TopTailArrow"
+                   Text="▲"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   Foreground="#D8669DFF"
+                   IsHitTestVisible="False"
+                   Opacity="0"
+                   ZIndex="40" />
+        <TextBlock x:Name="BottomTailArrow"
+                   Text="▼"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   Foreground="#D8669DFF"
+                   IsHitTestVisible="False"
+                   Opacity="0"
+                   ZIndex="40" />
+    </Canvas>
+</Window>

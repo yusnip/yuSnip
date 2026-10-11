@@ -1,0 +1,233 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ScreenCaptureTool.Windows.ColorPickerWindow"
+        Title="颜色选择器"
+        Width="288"
+        Height="432"
+        CanResize="False"
+        SystemDecorations="None"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        FontSize="12">
+    <Window.Styles>
+        <Style Selector="Button.pickerSwatch">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="MinWidth" Value="20" />
+            <Setter Property="MinHeight" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="BorderBrush" Value="#FFD1D5DB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+    <Border Background="White"
+            BorderBrush="#FFE5E7EB"
+            BorderThickness="1"
+            CornerRadius="10">
+        <Grid Margin="12,10,12,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="28" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="120" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="15" />
+                <RowDefinition Height="42" />
+                <RowDefinition Height="15" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="6" />
+                <RowDefinition Height="78" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="36" />
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0" Height="28" PointerPressed="OnTitlePointerPressed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="调色盘"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="#FF111827"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Width="24"
+                        Height="24"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        Click="OnCancelClick">
+                    <TextBlock Text="✕" FontSize="13" Foreground="#FF111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="2" Height="120">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="20" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="SvPanel"
+                        Grid.Column="0"
+                        CornerRadius="3"
+                        ClipToBounds="True"
+                        Background="Red"
+                        PointerPressed="OnSvPointer"
+                        PointerMoved="OnSvPointerMoved"
+                        PointerReleased="OnPickerPointerReleased">
+                    <Grid>
+                        <Rectangle>
+                            <Rectangle.Fill>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                    <GradientStop Color="White" Offset="0" />
+                                    <GradientStop Color="Transparent" Offset="1" />
+                                </LinearGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                        <Rectangle>
+                            <Rectangle.Fill>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                    <GradientStop Color="Transparent" Offset="0" />
+                                    <GradientStop Color="Black" Offset="1" />
+                                </LinearGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                        <Grid x:Name="SvSelector" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
+                            <Ellipse Stroke="#AA000000" StrokeThickness="3" Fill="Transparent" />
+                            <Ellipse Stroke="White" StrokeThickness="2" Fill="Transparent" Margin="1" />
+                        </Grid>
+                    </Grid>
+                </Border>
+                <Border Grid.Column="2" ClipToBounds="False">
+                    <Grid>
+                        <Border CornerRadius="3" ClipToBounds="True" PointerPressed="OnHuePointer" PointerMoved="OnHuePointerMoved" PointerReleased="OnPickerPointerReleased">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                    <GradientStop Color="#FFFF0000" Offset="0" />
+                                    <GradientStop Color="#FFFFFF00" Offset="0.167" />
+                                    <GradientStop Color="#FF00FF00" Offset="0.333" />
+                                    <GradientStop Color="#FF00FFFF" Offset="0.5" />
+                                    <GradientStop Color="#FF0000FF" Offset="0.667" />
+                                    <GradientStop Color="#FFFF00FF" Offset="0.833" />
+                                    <GradientStop Color="#FFFF0000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Border x:Name="HueSelector"
+                                Width="24"
+                                Height="6"
+                                Background="White"
+                                BorderBrush="#FF6B7280"
+                                BorderThickness="1"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                IsHitTestVisible="False" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="AlphaPanel" Grid.Row="4" Height="18" ClipToBounds="False">
+                <Border x:Name="AlphaTrack" CornerRadius="3" ClipToBounds="True" PointerPressed="OnAlphaPointer" PointerMoved="OnAlphaPointerMoved" PointerReleased="OnPickerPointerReleased" />
+                <Border x:Name="AlphaSelector"
+                        Width="8"
+                        Height="18"
+                        Background="White"
+                        BorderBrush="#FF6B7280"
+                        BorderThickness="1"
+                        HorizontalAlignment="Left"
+                        IsHitTestVisible="False" />
+            </Grid>
+
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="42" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="PreviewBorder"
+                        Width="42"
+                        Height="42"
+                        CornerRadius="4"
+                        BorderBrush="#FFD1D5DB"
+                        BorderThickness="1" />
+
+                <Grid Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.1*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="1.8*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="HEX" FontSize="11" Foreground="#FF111827" Margin="0,0,0,3" />
+                        <Border Height="30" BorderBrush="#FFD1D5DB" BorderThickness="1" CornerRadius="3" Padding="8,0" Background="#FFF9FAFB">
+                            <TextBox x:Name="HexBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="12"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="OnHexTextChanged" />
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="RGB" FontSize="11" Foreground="#FF111827" Margin="0,0,0,3" />
+                        <UniformGrid Columns="3" Height="30">
+                            <Border BorderBrush="#FFD1D5DB" BorderThickness="1" CornerRadius="3" Margin="0,0,2,0" Background="#FFF9FAFB">
+                                <TextBox x:Name="RBox" BorderThickness="0" Background="Transparent" FontSize="11" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="OnRgbTextChanged" />
+                            </Border>
+                            <Border BorderBrush="#FFD1D5DB" BorderThickness="1" CornerRadius="3" Margin="1,0" Background="#FFF9FAFB">
+                                <TextBox x:Name="GBox" BorderThickness="0" Background="Transparent" FontSize="11" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="OnRgbTextChanged" />
+                            </Border>
+                            <Border BorderBrush="#FFD1D5DB" BorderThickness="1" CornerRadius="3" Margin="2,0,0,0" Background="#FFF9FAFB">
+                                <TextBox x:Name="BBox" BorderThickness="0" Background="Transparent" FontSize="11" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="OnRgbTextChanged" />
+                            </Border>
+                        </UniformGrid>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <TextBlock Grid.Row="8" Text="快速选择" FontSize="11" Foreground="#FF111827" VerticalAlignment="Top" />
+            <WrapPanel Grid.Row="10" ItemWidth="26" ItemHeight="26">
+                <Button Classes="pickerSwatch" Tag="#FFEF4444" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFEF4444" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFF97316" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFF97316" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFF59E0B" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFF59E0B" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFEAB308" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFEAB308" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF84CC16" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF84CC16" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF22C55E" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF22C55E" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF10B981" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF10B981" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF14B8A6" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF14B8A6" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF06B6D4" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF06B6D4" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF0EA5E9" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF0EA5E9" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF3B82F6" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF3B82F6" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF6366F1" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF6366F1" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF8B5CF6" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF8B5CF6" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFA855F7" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFA855F7" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFD946EF" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFD946EF" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFEC4899" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFEC4899" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFF43F5E" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFF43F5E" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF000000" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF000000" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FF6B7280" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FF6B7280" /></Button>
+                <Button Classes="pickerSwatch" Tag="#FFFFFFFF" Click="OnPresetClick"><Border Width="20" Height="20" CornerRadius="3" Background="#FFFFFFFF" BorderBrush="#FFD1D5DB" BorderThickness="1" /></Button>
+            </WrapPanel>
+
+            <Grid Grid.Row="12" Height="36" VerticalAlignment="Bottom">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Height="36" MinWidth="112" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Padding="0" Background="Transparent" BorderBrush="#FFE5E7EB" BorderThickness="1" CornerRadius="6" Click="OnCancelClick">
+                    <TextBlock Text="取消" Foreground="#FF111827" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                </Button>
+                <Button Height="36" MinWidth="112" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Padding="0" Background="#FF2563EB" BorderBrush="#FF2563EB" BorderThickness="0" CornerRadius="6" Click="OnOkClick">
+                    <TextBlock Text="确定" Foreground="White" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                </Button>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

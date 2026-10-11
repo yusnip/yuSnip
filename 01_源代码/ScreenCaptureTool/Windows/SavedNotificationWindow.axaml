@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="110"
+        x:Class="ScreenCaptureTool.Windows.SavedNotificationWindow"
+        Title="截图已保存"
+        Width="620"
+        SizeToContent="Height"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Microsoft YaHei UI"
+        PointerPressed="OnRootPointerPressed"
+        PointerEntered="OnRootPointerEntered"
+        PointerExited="OnRootPointerExited"
+        KeyDown="OnWindowKeyDown">
+    <Border Margin="10"
+            Padding="18,14"
+            Background="{DynamicResource SctPanelBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="16"
+            BoxShadow="0 4 18 0 #26000000">
+        <Grid ColumnDefinitions="Auto,*">
+            <Border Grid.Column="0"
+                    Width="10"
+                    Height="10"
+                    CornerRadius="5"
+                    Background="{DynamicResource SctAccentBrush}"
+                    VerticalAlignment="Top"
+                    Margin="0,5,12,0" />
+
+            <StackPanel Grid.Column="1" Spacing="5">
+                <TextBlock Text="截图已保存"
+                           Foreground="{DynamicResource SctTextPrimaryBrush}"
+                           FontSize="17"
+                           FontWeight="SemiBold" />
+
+                <TextBlock x:Name="TxtSavedPath"
+                           Foreground="{DynamicResource SctTextSecondaryBrush}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           MaxHeight="38" />
+
+                <TextBlock Text="点击打开所在位置 · 悬停暂停关闭"
+                           Foreground="{DynamicResource SctAccentBrush}"
+                           FontSize="11" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

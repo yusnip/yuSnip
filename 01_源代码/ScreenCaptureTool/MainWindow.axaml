@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="260"
+        x:Class="ScreenCaptureTool.MainWindow"
+        Icon="/Assets/tray.ico"
+        Title="yuSnip 启动菜单（临时）"
+        Width="360" Height="260"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False">
+
+    <!--
+        T5.3 临时启动菜单：用来手动测试。
+        T4.7-1 加 "截图（最小宿主）" 按钮：调用 CaptureSession.RunAsync 跑完整截图流程。
+        TODO[阶段5 T5.2]: 由 TrayIcon + NativeMenu 替代，本窗口届时删除。
+    -->
+    <StackPanel Margin="20" Spacing="10" VerticalAlignment="Center">
+        <TextBlock Text="yuSnip" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
+        <TextBlock Text="临时启动菜单（阶段 5 后由托盘图标替代）"
+                   Classes="secondary"
+                   FontSize="12" HorizontalAlignment="Center" />
+
+        <Button x:Name="BtnRunCapture"
+                Content="截图（最小宿主）"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Padding="0,10"
+                Click="OnRunCaptureClick" />
+
+        <Button x:Name="BtnOpenCapture"
+                Content="仅打开遮罩（不接业务）"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Padding="0,8"
+                Click="OnOpenCaptureClick" />
+
+        <TextBlock x:Name="LblStatus"
+                   Classes="muted"
+                   FontSize="11" HorizontalAlignment="Center"
+                   TextWrapping="Wrap" TextAlignment="Center" />
+
+        <Button x:Name="BtnExit"
+                Content="退出"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Padding="0,8"
+                Click="OnExitClick" />
+    </StackPanel>
+</Window>

@@ -1,0 +1,105 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- ============ 浅色（Win11 风格：柔和灰白） ============ -->
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="SystemAccentColor">#1A1A1A</Color>
+                    <Color x:Key="SctAccentColor">#1A1A1A</Color>
+                    <Color x:Key="SctBackgroundColor">#F3F3F3</Color>
+                    <Color x:Key="SctCardColor">#FFFFFF</Color>
+                    <Color x:Key="SctPanelColor">#FFFFFF</Color>
+                    <Color x:Key="SctCardFillColor">#F9F9F9</Color>
+                    <Color x:Key="SctSubtleColor">#EFEFEF</Color>
+                    <Color x:Key="SctNavBackgroundColor">#ECECEC</Color>
+                    <Color x:Key="SctNavActiveColor">#E5E5E5</Color>
+                    <Color x:Key="SctNavActiveTextColor">#1E1E1E</Color>
+                    <Color x:Key="SctBorderColor">#D1D1D1</Color>
+                    <Color x:Key="SctSoftBorderColor">#E6E6E6</Color>
+                    <Color x:Key="SctTextPrimaryColor">#1E1E1E</Color>
+                    <Color x:Key="SctTextSecondaryColor">#5B5B5B</Color>
+                    <Color x:Key="SctTextMutedColor">#8A8A8A</Color>
+                    <Color x:Key="SctDangerColor">#555555</Color>
+                    <Color x:Key="SctButtonHoverColor">#0A000000</Color>
+                    <Color x:Key="SctButtonPressedColor">#14000000</Color>
+                    <Color x:Key="SctControlBarOuterColor">#30000000</Color>
+                    <Color x:Key="SctSeparatorColor">#20000000</Color>
+                    <Color x:Key="SctSizeLabelBackgroundColor">#1A1A1A</Color>
+                </ResourceDictionary>
+
+                <!-- ============ 深色（Win11 风格：真正的深底浅字） ============ -->
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="SystemAccentColor">#EAEAEA</Color>
+                    <Color x:Key="SctAccentColor">#EAEAEA</Color>
+                    <Color x:Key="SctBackgroundColor">#202020</Color>
+                    <Color x:Key="SctCardColor">#2B2B2B</Color>
+                    <Color x:Key="SctPanelColor">#2B2B2B</Color>
+                    <Color x:Key="SctCardFillColor">#333333</Color>
+                    <Color x:Key="SctSubtleColor">#383838</Color>
+                    <Color x:Key="SctNavBackgroundColor">#1C1C1C</Color>
+                    <Color x:Key="SctNavActiveColor">#3A3A3A</Color>
+                    <Color x:Key="SctNavActiveTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctBorderColor">#404040</Color>
+                    <Color x:Key="SctSoftBorderColor">#3A3A3A</Color>
+                    <Color x:Key="SctTextPrimaryColor">#FFFFFF</Color>
+                    <Color x:Key="SctTextSecondaryColor">#C5C5C5</Color>
+                    <Color x:Key="SctTextMutedColor">#8A8A8A</Color>
+                    <Color x:Key="SctDangerColor">#AAAAAA</Color>
+                    <Color x:Key="SctButtonHoverColor">#14FFFFFF</Color>
+                    <Color x:Key="SctButtonPressedColor">#20FFFFFF</Color>
+                    <Color x:Key="SctControlBarOuterColor">#60000000</Color>
+                    <Color x:Key="SctSeparatorColor">#30FFFFFF</Color>
+                    <Color x:Key="SctSizeLabelBackgroundColor">#EAEAEA</Color>
+                </ResourceDictionary>
+
+                <!-- ============ 默认（沿用深色） ============ -->
+                <ResourceDictionary x:Key="Default">
+                    <Color x:Key="SystemAccentColor">#EAEAEA</Color>
+                    <Color x:Key="SctAccentColor">#EAEAEA</Color>
+                    <Color x:Key="SctBackgroundColor">#202020</Color>
+                    <Color x:Key="SctCardColor">#2B2B2B</Color>
+                    <Color x:Key="SctPanelColor">#2B2B2B</Color>
+                    <Color x:Key="SctCardFillColor">#333333</Color>
+                    <Color x:Key="SctSubtleColor">#383838</Color>
+                    <Color x:Key="SctNavBackgroundColor">#1C1C1C</Color>
+                    <Color x:Key="SctNavActiveColor">#3A3A3A</Color>
+                    <Color x:Key="SctNavActiveTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctBorderColor">#404040</Color>
+                    <Color x:Key="SctSoftBorderColor">#3A3A3A</Color>
+                    <Color x:Key="SctTextPrimaryColor">#FFFFFF</Color>
+                    <Color x:Key="SctTextSecondaryColor">#C5C5C5</Color>
+                    <Color x:Key="SctTextMutedColor">#8A8A8A</Color>
+                    <Color x:Key="SctDangerColor">#AAAAAA</Color>
+                    <Color x:Key="SctButtonHoverColor">#14FFFFFF</Color>
+                    <Color x:Key="SctButtonPressedColor">#20FFFFFF</Color>
+                    <Color x:Key="SctControlBarOuterColor">#60000000</Color>
+                    <Color x:Key="SctSeparatorColor">#30FFFFFF</Color>
+                    <Color x:Key="SctSizeLabelBackgroundColor">#EAEAEA</Color>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <SolidColorBrush x:Key="SctAccentBrush" Color="{DynamicResource SctAccentColor}" />
+            <SolidColorBrush x:Key="SctBackgroundBrush" Color="{DynamicResource SctBackgroundColor}" />
+            <SolidColorBrush x:Key="SctCardBrush" Color="{DynamicResource SctCardColor}" />
+            <SolidColorBrush x:Key="SctPanelBrush" Color="{DynamicResource SctPanelColor}" />
+            <SolidColorBrush x:Key="SctCardFillBrush" Color="{DynamicResource SctCardFillColor}" />
+            <SolidColorBrush x:Key="SctSubtleBrush" Color="{DynamicResource SctSubtleColor}" />
+            <SolidColorBrush x:Key="SctNavBackgroundBrush" Color="{DynamicResource SctNavBackgroundColor}" />
+            <SolidColorBrush x:Key="SctNavActiveBrush" Color="{DynamicResource SctNavActiveColor}" />
+            <SolidColorBrush x:Key="SctNavActiveTextBrush" Color="{DynamicResource SctNavActiveTextColor}" />
+            <SolidColorBrush x:Key="SctBorderBrush" Color="{DynamicResource SctBorderColor}" />
+            <SolidColorBrush x:Key="SctSoftBorderBrush" Color="{DynamicResource SctSoftBorderColor}" />
+            <SolidColorBrush x:Key="SctTextPrimaryBrush" Color="{DynamicResource SctTextPrimaryColor}" />
+            <SolidColorBrush x:Key="SctTextSecondaryBrush" Color="{DynamicResource SctTextSecondaryColor}" />
+            <SolidColorBrush x:Key="SctTextMutedBrush" Color="{DynamicResource SctTextMutedColor}" />
+            <SolidColorBrush x:Key="SctDangerBrush" Color="{DynamicResource SctDangerColor}" />
+            <SolidColorBrush x:Key="SctIconBrush" Color="{DynamicResource SctTextPrimaryColor}" />
+            <SolidColorBrush x:Key="SctButtonHoverBrush" Color="{DynamicResource SctButtonHoverColor}" />
+            <SolidColorBrush x:Key="SctButtonPressedBrush" Color="{DynamicResource SctButtonPressedColor}" />
+            <SolidColorBrush x:Key="SctControlBarOuterBrush" Color="{DynamicResource SctControlBarOuterColor}" />
+            <SolidColorBrush x:Key="SctSeparatorBrush" Color="{DynamicResource SctSeparatorColor}" />
+            <SolidColorBrush x:Key="SctSizeLabelBackgroundBrush" Color="{DynamicResource SctSizeLabelBackgroundColor}" />
+        </ResourceDictionary>
+    </Styles.Resources>
+</Styles>

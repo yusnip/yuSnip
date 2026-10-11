@@ -1,0 +1,32 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.App"
+             RequestedThemeVariant="Light">
+             <!-- 固定 Light：旧版 UI 是浅色基准，不能跟随系统深色模式，否则工具栏/设置窗口会变回深色。 -->
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://yuSnip/Themes/Colors.axaml" />
+        <StyleInclude Source="avares://yuSnip/Themes/Controls.axaml" />
+    </Application.Styles>
+
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/tray.ico"
+                      ToolTipText="yuSnip"
+                      Clicked="OnTrayClicked">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="截图"
+                                        Click="OnMenuCaptureClick" />
+                        <NativeMenuItem Header="设置..."
+                                        Click="OnMenuSettingsClick" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="退出"
+                                        Click="OnMenuExitClick" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
+</Application>

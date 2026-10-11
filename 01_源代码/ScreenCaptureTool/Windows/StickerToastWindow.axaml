@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ScreenCaptureTool.Windows.StickerToastWindow"
+        Title="StickerToast"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        IsHitTestVisible="False">
+    <Border CornerRadius="8"
+            Padding="20,10"
+            Background="#E6000000">
+        <TextBlock x:Name="TxtMessage"
+                   Foreground="White"
+                   FontSize="14"
+                   HorizontalAlignment="Center" />
+    </Border>
+</Window>
