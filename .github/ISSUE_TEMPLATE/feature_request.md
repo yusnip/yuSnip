@@ -1,12 +1,12 @@
 ---
 name: 功能建议 (Feature Request)
-about: 为 yuSnip 提出新功能或改进建议
+about: 为当前 yuSnip 发行版提出新功能或改进建议
 title: '[Feature] '
 labels: enhancement
 assignees: ''
 ---
 
-本模板默认针对当前第二阶段闭源软件；若涉及第一阶段历史源码，请在标题与正文注明。
+本模板面向当前第二阶段发行版。第一阶段源码已归档且停止维护，不再接受该版本的功能请求。
 
 ### 当前软件版本
 请填写关于页中的完整版本号。
