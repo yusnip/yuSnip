@@ -4,9 +4,9 @@
 
 yuSnip 将区域截图、图像标注、滚动长截图、本地文字识别和贴图钉屏集中在一个桌面工具中。截图后可以直接标注说明、提取文字，或把画面钉在屏幕上作为参考。
 
-本仓库公开第一阶段源码，采用 MIT 许可，欢迎学习、修改、再分发和商业使用。**以下功能与特点均以本仓库源码已有的实现为准。**
+本仓库公开 yuSnip 第一阶段源码，采用 MIT 许可，允许学习、修改、再分发和商业使用。**此版本现已归档，停止维护，不再更新，也不会修复其缺陷或继续增加功能。**
 
-[构建运行](#源码与开发) · [开源许可](LICENSE) · [交流反馈](https://github.com/yusnip/yuSnip/issues) · [官方网站](https://yusnip.top)
+[构建运行](#源码与开发) · [开源许可](LICENSE) · [当前软件与下载](https://yusnip.top) · [反馈入口](#下载与反馈)
 
 支持 Windows 10（19041+）／Windows 11 x64。
 
@@ -39,9 +39,9 @@ yuSnip 将区域截图、图像标注、滚动长截图、本地文字识别和�
 
 ## 下载与反馈
 
-当前软件下载见[官方网站](https://yusnip.top)。当前发行版为独立维护的第二阶段闭源软件，未来是否开源尚未决定；其功能与本仓库历史源码不同。
+yuSnip 当前版本与下载信息请见[官方网站](https://yusnip.top)。当前发行版属于第二阶段闭源软件，与本仓库的第一阶段源码是两个不同版本；第二阶段未来是否开源尚未决定。
 
-[Issues](https://github.com/yusnip/yuSnip/issues) 默认接收当前发行版的 Bug 反馈与功能建议。**本仓库源码的构建或学习问题请注明「第一阶段源码」并提供提交号；当前软件问题请提供关于页中的完整版本号。** 使用交流可前往[讨论区](https://github.com/yusnip/yuSnip/discussions)。
+[Issues](https://github.com/yusnip/yuSnip/issues) 默认用于收集当前发行版的 Bug 反馈与功能建议，请提供关于页中的完整版本号。第一阶段源码已归档，针对该版本的缺陷和功能请求不再处理；学习交流可前往[讨论区](https://github.com/yusnip/yuSnip/discussions)。
 
 公开反馈前请对截图及日志中的个人信息进行脱敏。安全问题请遵循[安全反馈说明](SECURITY.md)。
 
@@ -73,7 +73,7 @@ dotnet run --project ScreenCaptureTool/ScreenCaptureTool.csproj -c Debug -p:Plat
 
 NativeAOT 发布所需环境、命令和分发注意事项见[构建说明](docs/build-and-release.md)。源码与通用构建不需要作者的私人服务器、账号或密钥。
 
-目前暂不接受外部代码合并，欢迎通过 Issues 和 Discussions 反馈源码问题与交流学习心得。
+第一阶段源码已停止维护，未来不会更新或修复。
 
 </details>
 
