@@ -9,12 +9,7 @@ shortcuts.ini
 .env
 
 # 维护者本地发布工具与产物
-/02_构建工具/CompileStandalone.ps1
-/02_构建工具/PublishRelease.ps1
-/02_构建工具/deploy.ps1
-/02_构建工具/sync_changelog.ps1
-/02_构建工具/编译并发布.bat
-/02_构建工具/同步更新日志到官网.bat
+/02_构建工具/
 /03_软件本体/
 /log/
 /Temp/
