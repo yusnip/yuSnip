@@ -2,64 +2,93 @@
 
 **简体中文** · [English](README.en.md)
 
-yuSnip 是一款免费开源的 Windows 截图与贴图工具，适合用截图写教程、记录问题、整理资料和对照设计稿。框选之后，你可以直接编辑画面、提取文字，或者把它留在屏幕上继续用。
+yuSnip 是一款免费开源的 Windows 截图、贴图与录屏工具。它适合经常用截图写教程、记录问题或对照设计稿的人。框选之后，你可以直接标注、取字、录屏，也可以把结果钉在屏幕上接着用。开发者可以用同一仓库构建软件，或把截图、OCR 和贴图接进自己的自动化流程。
 
-[下载最新版](https://github.com/yusnip/yuSnip/releases/latest) · [官方网站](https://yusnip.top/) · [反馈问题](https://github.com/yusnip/yuSnip/issues)
+[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · **[官网用户文档](https://yusnip.top/docs.html)** · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
 
 支持 Windows 10 版本 2004（内部版本 19041）及以上和 Windows 11 x64。
 
-## 用 yuSnip 能做什么
+## 快速上手
 
-### 把操作步骤直接标在截图上
+下载并运行 `yuSnip.exe` 后，在任务栏右下角的系统托盘找到 yuSnip。右键托盘图标可进入截图、历史记录和设置。第一次可以截一张参考图，画个箭头，再选「复制」或「贴图」。
 
-只想截一个按钮或一个弹窗时，可以让选框吸附到界面元素或窗口。形状不规则的内容也能用钢笔圈出。选好区域后，直接加箭头、文字和步骤编号，用聚光灯标出重点，或用马赛克遮住不该出现在成品里的区域。标注可以回选、移动和撤销，处理好就能复制、保存或贴到桌面。
+| 默认快捷键 | 操作 |
+| --- | --- |
+| `Ctrl+Alt+A` | 区域截图 |
+| `F3` | 把剪贴板图片或文字贴到屏幕上 |
+| `Ctrl+Alt+O` | 截图并识别文字 |
+| `Ctrl+Alt+F` | 截图翻译并贴到屏幕上 |
+| `Shift+F3` | 显示或隐藏全部贴图 |
 
-### 长网页和宽表格都能拼成一张图
+快捷键可在「设置 → 快捷键与动作」修改。第一次用 OCR、抠图或部分录屏功能时，可在「设置 → 依赖运行」安装所需组件。 [快速入门](https://yusnip.top/docs.html#sec-01) · [常见问题](https://yusnip.top/docs.html#sec-15)
 
-网页和文档可以上下滚动，超出窗口的表格可以左右滚动。支持手动或自动滚动，边截边看拼接预览，起点选偏了还可以往回补。拼接时会识别重复出现的固定栏，尽量只保留一份。结束后可以裁掉多余的首尾，或把整张长图直接钉在屏幕上。
+## 使用场景
 
-### 把参考图留在手边，随时接着用
+### 截图后直接做完标注
 
-截图、剪贴板图片和文字都可以贴在桌面上。对照设计稿时，可以调低贴图的不透明度，打开鼠标穿透后直接操作下面的窗口。需要补个标记时，选中贴图按 `Space` 就能继续标注。正常退出再打开 yuSnip，之前打开的贴图和标注可以恢复。
+截一个弹窗或按钮时，可以让选框吸附到窗口或界面元素。遇到不规则轮廓，可以用钢笔圈出；需要对齐细边时，可以用放大镜和方向键逐像素调整。反复截同一处，还可以恢复上次选区的位置和大小。
 
-### 从图片里只复制你要的那句话
+做教程时，在图上画箭头、加步骤序号，用聚光灯标出当前区域；做工单配图时，用马赛克或模糊遮盖不宜分享的内容。已有标注可以回选、移动和撤销。成品可以直接复制、保存或贴图。 [截图](https://yusnip.top/docs.html#sec-02) · [标注](https://yusnip.top/docs.html#sec-03)
 
-图片贴在桌面上，按住 `Alt` 拖选，就能像选普通文本一样复制图片里的文字。遇到排版复杂的图片，也可以打开 OCR 窗口对照原图、校对识别结果，再复制全文或导出文本。文字识别和智能抠图在本机处理。
+### 横向和纵向长截图都能从中间开始
 
-### 录下问题发生的过程
+竖向可截网页和长列表，横向可截宽表格或时间线。手动或自动滚动时，可以边截边看全景预览。起点选在中间，可以向两头补齐；内容截多了，可以裁掉首尾。遇到反复出现的页眉或侧栏，拼接会尝试在成图里只保留一份。长图完成后也可以直接贴到屏幕上。 [长截图](https://yusnip.top/docs.html#sec-09)
 
-从同一个截图选区开始录屏，只录需要展示的范围。录制时可以暂停和继续，结束后先预览再导出。经常用到的截图、贴图或录屏工具可以放到顺手的位置，各场景的工具栏和快捷键都能按自己的习惯调整。
+### 把参考图留在屏幕上继续用
 
-### 把反复做的操作合成一个动作
+截图、剪贴板内容和历史图片都能贴在其他窗口上方。对照设计稿时，可以降低不透明度并打开鼠标穿透，直接操作下方窗口。需要补说明时，选中贴图按 `Space` 进入标注。还可以把多张图片合到同一画布，各自移动和缩放，适合并排放改动前后的画面。正常退出后重新打开 yuSnip，活跃贴图可以随会话恢复。 [贴图与画布](https://yusnip.top/docs.html#sec-05)
 
-如果经常截一段文字来翻译，可以把「区域截图 → 识别文字 → 翻译」编排成一个动作，再给它设一个快捷键。也可以直接翻译截图，生成带译文的图片。翻译、AI 和云同步按需配置，启用相关功能时，内容会发送给所选服务。
+### 在图片上选字，也能整理整页识别结果
 
-## 开始使用
+图片贴在桌面上时，按住 `Alt` 拖选，就能只复制想要的几字。处理整页截图时，可以在 OCR 窗口对照原图定位识别结果，调整行顺序、改错字、清理多余字符，再复制或导出文本。人像和通用抠图也在本机处理，结果可以带透明背景继续贴图或复制。 [OCR](https://yusnip.top/docs.html#sec-06) · [智能抠图](https://yusnip.top/docs.html#sec-matting)
 
-1. 从发布页下载并运行 `yuSnip.exe`。 [下载最新版](https://github.com/yusnip/yuSnip/releases/latest)
-2. 在「设置 → 快捷键与动作」查看区域截图的快捷键，用它截一张参考图。
-3. 点截图工具栏上的「贴图」。可以拖到手边作对照，或者在贴图上继续加标注。
-4. 想试图片取字、抠图或需要额外组件的录屏功能时，在「设置 → 依赖运行」安装对应组件。
+### 录下一个问题是怎么发生的
+
+框住需要演示的区域再录屏，可以暂停和继续，也可以显示鼠标点击效果、按键提示，或在录制过程中加标注。系统声音和麦克风可以独立控制，MP4 可保留分离音轨供后期剪辑。结束后先预览，再导出 MP4 或 GIF。 [录屏与导出](https://yusnip.top/docs.html#sec-record)
+
+### 把高频操作做成一个快捷动作
+
+可以分别调整截图、贴图、长截图和录屏的工具栏。经常摘录资料时，可以设一个动作，框选一次就把原图贴到屏幕上，同时把识别的文字复制到剪贴板。开了截图历史后，还可以按时间或图里的文字找回旧截图。
+
+截图可输出文字译文或译文图片。也可以配置 AI 服务，对截图里的错误提示、图表或界面继续提问。翻译、AI 和云同步属于按需使用的联网功能，相关内容会按你的配置发送给所选服务。 [快捷键与动作](https://yusnip.top/docs.html#sec-11) · [截图历史](https://yusnip.top/docs.html#sec-10) · [翻译](https://yusnip.top/docs.html#sec-07)
 
 ## 从源码构建
 
-下载或克隆源码，在 Windows x64 上安装 .NET 10 SDK，然后从仓库根目录运行公开构建脚本。 [build.ps1](build.ps1) · [SDK 版本](01_源码/global.json)
+项目使用 .NET 10 与 Avalonia。下载或克隆仓库后，在 Windows x64 安装 .NET 10 SDK，从仓库根目录执行。 [build.ps1](build.ps1) · [SDK 版本](01_源码/global.json)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-开发构建输出到 `artifacts/debug/`。需要 NativeAOT 时，安装 Visual Studio 或 Build Tools 的「使用 C++ 的桌面开发」工作负载和 Windows SDK，在命令末尾加 `-NativeAot`，输出到 `artifacts/win-x64/`。运行时请保留输出目录中的依赖文件。
+开发构建输出到 `artifacts/debug/`。从该目录启动 `yuSnip.exe`，并保留同目录的依赖文件。需要 NativeAOT 时，先安装 Visual Studio 或 Build Tools 的「使用 C++ 的桌面开发」工作负载和 Windows SDK，再在命令末尾加 `-NativeAot`。输出在 `artifacts/win-x64/`。
+
+### 源码导航
+
+| 项目 | 从这里找什么 |
+| --- | --- |
+| [ScreenCaptureTool](01_源码/ScreenCaptureTool/) | 桌面应用、窗口与交互 |
+| [ScreenCaptureTool.Core](01_源码/ScreenCaptureTool.Core/) | 截图处理、OCR、抠图、录屏和其他核心功能 |
+| [ScreenCaptureTool.LongScroll](01_源码/ScreenCaptureTool.LongScroll/) | 长截图采集、拼接和预览 |
+| [ScreenCaptureTool.Platform](01_源码/ScreenCaptureTool.Platform/) | Windows API 与平台互操作 |
+| [ScreenCaptureTool.Ocr](01_源码/ScreenCaptureTool.Ocr/) | 可选的 Windows OCR 验证入口 |
+
+完整解决方案位于 [ScreenCaptureTool.sln](01_源码/ScreenCaptureTool.sln)。
+
+### 在脚本中调用
+
+可以从命令行触发已配置的动作。下面的命令启动名为「区域截图」的动作，动作名称须与本机列表一致。也可以从动作编辑器复制对应命令。 [脚本与自动化](https://yusnip.top/docs.html#sec-12)
+
+```powershell
+.\yuSnip.exe -a "区域截图"
+```
 
 ## 反馈与贡献
 
-欢迎提交问题或 Pull Request。反馈时请附上 yuSnip 版本、Windows 版本和复现步骤，分享截图或日志前请遮盖私人信息。安全漏洞请走私下报告入口。 [Issues](https://github.com/yusnip/yuSnip/issues) · [安全报告](SECURITY.md)
+欢迎提 Issue 或 Pull Request。报告问题时请附上 yuSnip 版本、Windows 版本和复现步骤，分享截图或日志前请遮盖私人信息。安全漏洞请通过私下渠道报告。 [Issues](https://github.com/yusnip/yuSnip/issues) · [安全报告](SECURITY.md)
 
-## 许可与致谢
+## 许可与赞赏
 
-yuSnip 由北京林或西维护。项目自有源码采用 MIT 许可，允许使用、修改、分发和商业使用，须保留版权与许可声明。第三方库、模型和组件沿用各自许可。 [MIT 许可证](LICENSE) · [第三方许可](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
-
-## 赞赏
+yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](LICENSE) · [第三方许可](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
 
 yuSnip 免费使用。如果它帮你节省了时间，欢迎通过微信赞赏支持后续维护。
 
