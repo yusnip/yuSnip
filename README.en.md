@@ -1,3 +1,5 @@
+<img src="assets/yusnip-logo.png" alt="yuSnip logo" width="72" height="72">
+
 # yuSnip
 
 **Take a screenshot, draw a circle, write a line. Leave your ideas on the image.**

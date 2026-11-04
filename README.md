@@ -1,3 +1,5 @@
+<img src="assets/yusnip-logo.png" alt="yuSnip 标志" width="72" height="72">
+
 # yuSnip
 
 **截一张图，画一个圈，写一句话——把想法留在画面上。**
