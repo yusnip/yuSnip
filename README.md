@@ -110,10 +110,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 欢迎提 Issue 或 Pull Request。报告问题时请附上 yuSnip 版本、Windows 版本和复现步骤，分享截图或日志前请遮盖私人信息。安全漏洞请通过私下渠道报告。 [Issues](https://github.com/yusnip/yuSnip/issues) · [安全报告](SECURITY.md)
 
-## 许可与赞赏
+## 开源许可
 
 yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](LICENSE) · [第三方许可](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
 
-yuSnip 免费使用。如果它帮你节省了时间，欢迎通过微信赞赏支持后续维护。
+## 支持 yuSnip
 
-<img src="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="微信赞赏码" width="200">
+如果 yuSnip 已经成了你日常截图、标注或提取文字的顺手工具，欢迎请我喝杯咖啡。你的赞赏支持我继续打磨界面和交互、修复问题。yuSnip 免费使用，赞赏随心。
+
+**微信赞赏** · 用微信「扫一扫」识别下方赞赏码。点击图片可查看原图。
+
+<a href="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="yuSnip 作者的微信赞赏码" width="220"></a>

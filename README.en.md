@@ -110,10 +110,14 @@ The command line can trigger a configured action. This example starts the action
 
 Issues and pull requests are welcome. Include your yuSnip version, Windows version and steps to reproduce. Redact private information before sharing screenshots or logs, and report security vulnerabilities privately. [Issues](https://github.com/yusnip/yuSnip/issues) · [Security reporting](SECURITY.md)
 
-## License and support
+## License
 
 yuSnip is maintained by 北京林或西. Its own source code is available under the MIT License, which allows use, modification and redistribution, including commercial use, with the copyright and license notices retained. Third-party libraries, models and components keep their own licenses. [MIT License](LICENSE) · [Third-party licenses](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
 
-yuSnip is free to use. If it saves you time, you can support ongoing maintenance through WeChat.
+## Support yuSnip
 
-<img src="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="WeChat donation QR code" width="200">
+If yuSnip has become part of your daily routine for capturing, marking up or extracting text from screenshots, you're welcome to buy me a coffee. Your support helps me refine the interface and fix bugs. yuSnip is free to use, and donations are optional.
+
+**Support via WeChat** · Scan the code below in WeChat. Click the image to view it at full size.
+
+<a href="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="WeChat appreciation code for the creator of yuSnip" width="220"></a>
