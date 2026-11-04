@@ -1,10 +1,12 @@
 # yuSnip
 
+**Take a screenshot, draw a circle, write a line. Leave your ideas on the image.**
+
 [简体中文](README.md) · **English**
 
 yuSnip is a free, open-source screenshot, pinning and screen recording tool for Windows, built from a designer's perspective. It is for people who use screenshots to write tutorials, document bugs or keep a design reference in view. After selecting an area, you can annotate it, extract its text, record it or pin the result for further work. Developers can build the application from source or integrate capture, OCR and pinning into their own workflows.
 
-[Download yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · **[User guide (Chinese)](USER_GUIDE.md)** · [Changelog](CHANGELOG.md) · [Build from source](#build-from-source) · [Report an issue](https://github.com/yusnip/yuSnip/issues)
+[Download yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [Official website](https://yusnip.top/) · **[User guide (Chinese)](USER_GUIDE.md)** · [Changelog](CHANGELOG.md) · [Build from source](#build-from-source) · [Report an issue](https://github.com/yusnip/yuSnip/issues)
 
 Supports Windows 10 version 2004 (build 19041) or later and Windows 11 on x64.
 

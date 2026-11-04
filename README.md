@@ -1,10 +1,12 @@
 # yuSnip
 
+**截一张图，画一个圈，写一句话——把想法留在画面上。**
+
 **简体中文** · [English](README.en.md)
 
 yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图与录屏工具。它适合经常用截图写教程、记录问题或对照设计稿的人。框选之后，你可以直接标注、取字、录屏，也可以把结果钉在屏幕上接着用。开发者可以从源码构建，或把截图、OCR 和贴图接进自己的自动化流程。
 
-[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · **[用户文档](USER_GUIDE.md)** · [更新记录](CHANGELOG.md) · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
+[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [官方网站](https://yusnip.top/) · **[用户文档](USER_GUIDE.md)** · [更新记录](CHANGELOG.md) · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
 
 支持 Windows 10 版本 2004（内部版本 19041）及以上和 Windows 11 x64。
 
