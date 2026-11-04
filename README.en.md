@@ -10,9 +10,27 @@ Supports Windows 10 version 2004 (build 19041) or later and Windows 11 on x64.
 
 ## Interface and interaction
 
-Preview selection size, rounded corners, borders and shadows as you adjust them. A magnifier and one-pixel adjustments are available while you frame the image. Capture, pinning, scrolling capture and recording have toolbars suited to their tasks, with room to arrange the tools you use most.
+### Capture interface
 
-Settings are organized by category and searchable, with light, dark and system themes. Controls stay in the same place across themes. To compare a design on screen, adjust a pin's opacity or zoom, and enable click-through to keep working in the window below. [Settings reference](USER_GUIDE.md#sec-13)
+The magnifier follows the cursor as you frame the image. Once you select an area, its size, corners, border and shadow controls stay by the selection. Annotation tools sit along its lower edge, close to the image you are working on.
+
+<details>
+<summary>Show the capture demo (GIF, about 22 MB)</summary>
+
+![yuSnip capture demo showing the magnifier, area selection and annotation toolbar](assets/showcase/capture-interface.gif)
+
+</details>
+
+### Settings interface
+
+The overview and toolbar editor share the same navigation, search and muted violet palette. Select either image to see it at full size.
+
+| Overview | Toolbars and styles |
+| --- | --- |
+| [![yuSnip settings overview with weather, usage trends and component status](assets/showcase/settings-overview.png)](assets/showcase/settings-overview.png) | [![yuSnip toolbar editor with a layout preview, groups and available tools](assets/showcase/settings-toolbar.png)](assets/showcase/settings-toolbar.png) |
+| Usage trends and component status are visible as soon as you open settings. | The preview, groups and available tools each have a place, so you can see the current layout as you rearrange it. |
+
+[Settings reference](USER_GUIDE.md#sec-13)
 
 ## Quick start
 
