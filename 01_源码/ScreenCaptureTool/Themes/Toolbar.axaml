@@ -1,0 +1,36 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <!-- 工具栏按子树接入，只统一绘制与状态；尺寸、内距、字号和键盘焦点继续由原控件样式负责。 -->
+    <Styles.Resources>
+        <SolidColorBrush x:Key="SctPanelBrush" Color="{DynamicResource SctWorkspaceCardColor}" />
+        <SolidColorBrush x:Key="SctControlBarOuterBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctSeparatorBrush" Color="{DynamicResource SctWorkspaceDividerColor}" />
+        <SolidColorBrush x:Key="SctIconBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctTextPrimaryBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctTextSecondaryBrush" Color="{DynamicResource SctWorkspaceSecondaryColor}" />
+        <SolidColorBrush x:Key="SctTextMutedBrush" Color="{DynamicResource SctWorkspaceMutedColor}" />
+        <SolidColorBrush x:Key="SctInputBgBrush" Color="{DynamicResource SctWorkspaceFieldColor}" />
+        <SolidColorBrush x:Key="SctButtonHoverBrush" Color="{DynamicResource SctWorkspaceHoverColor}" />
+        <SolidColorBrush x:Key="SctButtonPressedBrush" Color="{DynamicResource SctWorkspaceSelectedColor}" />
+    </Styles.Resources>
+    <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+    <!-- 连续 Presenter 直接消费 Button 的状态属性，不依赖原生模板部件类型。基础态先于变体。 -->
+    <Style Selector="Button:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+    </Style>
+    <Style Selector="Button:pressed">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+    <Style Selector="Button.tool.active:pointerover, Button.toolIcon.active:pointerover,
+                     Button.tool.active:pressed, Button.toolIcon.active:pressed">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+    <Style Selector="Button.tool.primary:pointerover, Button.toolIcon.primary:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SctAccentHoverBrush}" />
+    </Style>
+    <Style Selector="Button.tool.primary:pressed, Button.toolIcon.primary:pressed">
+        <Setter Property="Background" Value="{DynamicResource SctAccentPressedBrush}" />
+    </Style>
+</Styles>

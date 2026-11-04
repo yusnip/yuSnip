@@ -1,0 +1,264 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="520"
+        x:Class="ScreenCaptureTool.Windows.TranslationResultWindow"
+        Icon="/Assets/Black.ico"
+        Title="翻译 - yuSnip"
+        Width="760" Height="520"
+        MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14">
+
+    <!-- 窗口专属样式：本窗口只写「译文为主 · 原文抽屉」版式自身的标签与正文排印。
+         标题栏按钮（titleIcon titleBarBtn / closeBtn）、文本链接（Button.link）、
+         图标按钮（Button.sctIconBtn，含分割线中央那枚箭头）、主/次按钮（primary / secondary）、
+         徽标（Border.badge + badgeText）、骨架条（Border.skeleton）、ComboBox / TextBox / GridSplitter
+         一律复用 Controls.axaml 与 Fluent 主题自带样式，此处不得重复定义 -->
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <!-- 双语下拉：只给 MinWidth 兜底，宽度上限交给内容；写死 Width 会把选中文本裁掉 -->
+        <Style Selector="ComboBox.trLang">
+            <Setter Property="MinWidth" Value="132" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- 原文抽屉：卡片底 + 裁剪（收起时列宽归 0，内容不外溢） -->
+        <Style Selector="Border.trDrawer">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+
+        <!-- 侧别 / 栏头标签：12px 灰字，层级只靠字色，不加字距也不压透明度（设计规范 §4.2 §4.3） -->
+        <Style Selector="TextBlock.trLab">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <!-- 原文超出字数上限：标签转警告色 -->
+        <Style Selector="TextBlock.trLab.warn">
+            <Setter Property="Foreground" Value="{DynamicResource SctWarnBrush}" />
+        </Style>
+
+        <!-- 译文正文：整篇占满余下宽度，13.5px / 行高 28 -->
+        <Style Selector="SelectableTextBlock.trBody">
+            <Setter Property="SelectionBrush" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="SelectionForegroundBrush" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="LineHeight" Value="28" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        </Style>
+
+        <!-- 原文正文：与译文同字号，主次靠抽屉卡片底与发丝线区分，不用透明度造假层级 -->
+        <Style Selector="TextBox.trSource">
+            <Setter Property="SelectionBrush" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="SelectionForegroundBrush" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="LineHeight" Value="22" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBox.trSource /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.trSource:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.trSource:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- 状态栏文字与状态点：颜色一律 DynamicResource，代码只增删 warn / busy 修饰 class -->
+        <Style Selector="TextBlock.trStatus">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+        <Style Selector="TextBlock.trStatus.warn">
+            <Setter Property="Foreground" Value="{DynamicResource SctWarnBrush}" />
+        </Style>
+        <Style Selector="Ellipse.status">
+            <Setter Property="Fill" Value="{DynamicResource SctBadgeTextBrush}" />
+        </Style>
+        <Style Selector="Ellipse.status.busy">
+            <Setter Property="Fill" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="36,46,*,24">
+
+        <!-- ══════ 标题栏（自绘，36px，按钮 44×36 直角贴死右上角） ══════ -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource SctTitleBarBrush}"
+                Padding="0"
+                PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Path x:Name="IconTitle" Classes="sctIcon brand" />
+                    <TextBlock Text="翻译" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Stretch" Margin="0" Spacing="0">
+                    <Button Classes="titleIcon titleBarBtn" ToolTip.Tip="最小化" AutomationProperties.Name="最小化" Click="OnMinimizeClick">
+                        <Path x:Name="IconMinimize" Classes="workspaceIcon" Width="12" Height="1" Fill="{DynamicResource SctTextMutedBrush}" StrokeThickness="0" />
+                    </Button>
+                    <Button Classes="titleIcon titleBarBtn" ToolTip.Tip="最大化" AutomationProperties.Name="最大化或还原" Click="OnMaximizeClick">
+                        <Path x:Name="IconMaximize" Classes="workspaceIcon" Width="12" Height="12" Fill="{DynamicResource SctTextMutedBrush}" StrokeThickness="0" />
+                    </Button>
+                    <Button Classes="titleIcon titleBarBtn closeBtn" ToolTip.Tip="关闭" AutomationProperties.Name="关闭翻译窗口" Click="OnCloseClick">
+                        <Path x:Name="IconClose" Classes="workspaceIcon" Width="12" Height="12" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Rectangle Grid.Row="0" VerticalAlignment="Bottom" Height="1" Fill="{DynamicResource SctSoftBorderBrush}" />
+
+        <!-- ══════ 工具栏（46px）：复制 · 源语言 · 交换 · 译语言 ──推右── 重新翻译 / 翻译 ══════ -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource SctBackgroundBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,0,12,0">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                <Button Grid.Column="0" x:Name="BtnCopy" Classes="primary"
+                        Content="复制"
+                        ToolTip.Tip="复制译文，有选区时优先复制选区（Ctrl+Shift+C）" Click="OnCopyClick" />
+                <ComboBox Grid.Column="1" x:Name="CmbSourceLang" Classes="trLang" Margin="16,0,0,0"
+                          SelectionChanged="OnSourceLangChanged" />
+                <Button Grid.Column="2" x:Name="BtnSwap" Classes="sctIconBtn" Margin="8,0"
+                        ToolTip.Tip="交换语言（Ctrl+S）" Click="OnSwapClick">
+                    <Path x:Name="IconSwap" Classes="sctIcon" />
+                </Button>
+                <ComboBox Grid.Column="3" x:Name="CmbTargetLang" Classes="trLang"
+                          SelectionChanged="OnTargetLangChanged" />
+                <Button Grid.Column="5" x:Name="BtnReTranslate" Classes="secondary" Margin="10,0,0,0"
+                        ToolTip.Tip="重新翻译（Ctrl+R）" Click="OnReTranslateClick">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Path x:Name="IconRefresh" Classes="sctIcon" Width="13" Height="13" />
+                        <TextBlock Text="重新翻译" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="6" x:Name="BtnTranslate" Classes="primary" Margin="8,0,0,0"
+                        Content="翻译" ToolTip.Tip="翻译（Ctrl+Enter）" Click="OnTranslateClick" />
+            </Grid>
+        </Border>
+
+        <!-- ══════ 主体：左原文抽屉（默认 200px，可拖可收起）‖ 8px 分割带 ‖ 右译文整篇 ══════ -->
+        <Grid Grid.Row="2" x:Name="BodyGrid" ColumnDefinitions="200,8,*" RowDefinitions="*">
+
+            <!-- ─── 原文抽屉：卡片底，体内直接是可编辑正文，收起时列宽归 0 ─── -->
+            <Border Grid.Column="0" x:Name="SrcPane" Classes="trDrawer">
+                <Grid x:Name="SrcHost" RowDefinitions="Auto,*" Margin="12,10,12,12">
+                    <TextBlock Grid.Row="0" x:Name="TxtSourceLab" Classes="trLab" Text="原文" Margin="0,0,0,8" />
+                    <ScrollViewer Grid.Row="1" x:Name="SrcScroll"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  PointerEntered="OnSourcePanePointerEntered"
+                                  ScrollChanged="OnSourceScrollChanged">
+                        <TextBox x:Name="TxtSource" Classes="trSource"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 TextChanged="OnSourceTextChanged" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- ─── 译文：整篇只读可选中，空态与骨架屏同处正文区（先声明，才不会被溢出到本列的箭头遮住） ─── -->
+            <Grid Grid.Column="2" x:Name="TgtPane" RowDefinitions="Auto,*" Margin="18,12,18,14">
+                <TextBlock Grid.Row="0" x:Name="TxtTargetLab" Classes="trLab" Text="译文" Margin="0,0,0,8" />
+                <Grid Grid.Row="1">
+                    <ScrollViewer x:Name="TgtScroll"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  PointerEntered="OnTargetPanePointerEntered"
+                                  ScrollChanged="OnTargetScrollChanged">
+                        <SelectableTextBlock x:Name="TxtTarget" Classes="trBody" />
+                    </ScrollViewer>
+                    <!-- 加载态：译文骨架屏，原文整篇立即可见 -->
+                    <StackPanel x:Name="SkeletonPanel" IsVisible="False" Spacing="14">
+                        <Grid ColumnDefinitions="0.88*,0.12*"><Border Grid.Column="0" Classes="skeleton" /></Grid>
+                        <Grid ColumnDefinitions="0.96*,0.04*"><Border Grid.Column="0" Classes="skeleton" /></Grid>
+                        <Grid ColumnDefinitions="0.72*,0.28*"><Border Grid.Column="0" Classes="skeleton" /></Grid>
+                        <Grid ColumnDefinitions="0.90*,0.10*"><Border Grid.Column="0" Classes="skeleton" /></Grid>
+                        <Grid ColumnDefinitions="0.54*,0.46*"><Border Grid.Column="0" Classes="skeleton" /></Grid>
+                    </StackPanel>
+                    <!-- 空态：合并进译文区，一行灰字 + 图标 -->
+                    <StackPanel x:Name="EmptyPanel" IsVisible="False" Spacing="10"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path x:Name="IconEmpty" Classes="sctIcon" Width="18" Height="18"
+                              HorizontalAlignment="Center" />
+                        <TextBlock Classes="trLab" Text="在左侧原文栏输入或粘贴文本 · Ctrl+Enter 翻译"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- ─── 统一分割带：1px 发丝线 + 居中矩形握条，整体可拖拽 / 可点击收展 / 双击复位 ─── -->
+            <Border Grid.Column="1" x:Name="DividerGrip"
+                    Background="Transparent"
+                    PointerEntered="OnDividerGripPointerEntered"
+                    PointerPressed="OnDividerGripPressed"
+                    PointerMoved="OnDividerGripMoved"
+                    PointerReleased="OnDividerGripReleased"
+                    PointerExited="OnDividerGripExited"
+                    ToolTip.Tip="拖动调整宽度 · 点击收展原文 · 双击复位">
+                <Rectangle x:Name="DividerGripBar" Width="3" Height="28" RadiusX="1.5" RadiusY="1.5"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Fill="{DynamicResource SctSoftBorderBrush}" />
+            </Border>
+
+        </Grid>
+
+        <!-- ══════ 状态栏（24px）：状态点 + 文案 · 引擎徽标（常驻）· 同步滚动 · 一句快捷键提示 ══════ -->
+        <Border Grid.Row="3"
+                Background="{DynamicResource SctTitleBarBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,0">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" VerticalAlignment="Center">
+                <Ellipse Grid.Column="0" x:Name="StatusDot" Classes="status" Width="5" Height="5" />
+                <TextBlock Grid.Column="1" x:Name="TxtStatus" Classes="trStatus" Margin="7,0,8,0" TextTrimming="CharacterEllipsis" />
+                <round:ContinuousBorder Grid.Column="3" x:Name="StatusEngineBadge" CornerRadius="{DynamicResource SctRadiusSmall}" Classes="badge" Margin="0,0,10,0" IsVisible="False">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Path x:Name="IconStatusEngineSpark" Classes="sctIcon" Width="11" Height="11" />
+                        <TextBlock x:Name="TxtStatusEngine" Classes="badgeText" />
+                    </StackPanel>
+                </round:ContinuousBorder>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="10" Margin="0,0,10,0">
+                    <CheckBox x:Name="ChkSentenceLink" Classes="toolCheck" Content="逐句联动" FontSize="12"
+                              Height="20" Padding="6,0,0,0" Focusable="True"
+                              IsCheckedChanged="OnSentenceLinkChanged"
+                              ToolTip.Tip="仅切换已有原文与译文的定位高亮，不重新翻译；无可靠句对时保留原文与译文。" />
+                    <TextBlock x:Name="TxtSyncScroll" Classes="trStatus" VerticalAlignment="Center" Text="同步滚动 开" />
+                </StackPanel>
+                <TextBlock Grid.Column="5" x:Name="TxtHint" Classes="trStatus" Text="Ctrl+Enter 翻译" />
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

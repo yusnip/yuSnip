@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.SpotlightOptionsControl">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Button x:Name="RectButton" Classes="toolIcon" ToolTip.Tip="矩形" Click="OnRectClick">
+            <Path Classes="icon" Data="M5,6 H19 V18 H5 Z" Width="14" Height="14" />
+        </Button>
+        <Button x:Name="CircleButton" Classes="toolIcon" ToolTip.Tip="圆形" Click="OnCircleClick">
+            <Path Classes="icon" Data="M12,2 A10,10 0 1 1 12,22 A10,10 0 1 1 12,2 Z" Width="14" Height="14" />
+        </Button>
+        <TextBlock Text="不透明度" VerticalAlignment="Center" Classes="secondary" Margin="4,0,3,0" />
+        <Slider x:Name="DarknessSlider" Classes="compactSlider" Width="76" Minimum="0" Maximum="100" Value="55" TickFrequency="1" IsSnapToTickEnabled="True" />
+        <!-- 取值到 100，预留三位数容量，同 BrushOpacityControl 的 OpacityText -->
+        <TextBlock x:Name="DarknessText" Text="55" MinWidth="32" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+        <!-- 圆角滑块已拆除（2026-09-12「圆角滑块退役」）：圆角一律在画布上拖四角手柄调整，参数条不再留滑块 -->
+        <Border Classes="toolOptionHost" Width="74" Margin="0" VerticalAlignment="Center" PointerWheelChanged="OnStrokeWheel" ToolTip.Tip="描边粗细（滚轮调整）">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Ellipse x:Name="StrokeCircle" Width="8" Height="8" Fill="{DynamicResource SctIconBrush}" VerticalAlignment="Center" />
+                <TextBlock x:Name="StrokeText" Text="3" Margin="6,0,0,0" Width="24" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="13" />
+            </StackPanel>
+        </Border>
+        <Slider x:Name="StrokeSlider" Width="0" Height="0" Opacity="0" Minimum="0" Maximum="30" Value="3" TickFrequency="1" IsSnapToTickEnabled="True" />
+    </StackPanel>
+</UserControl>

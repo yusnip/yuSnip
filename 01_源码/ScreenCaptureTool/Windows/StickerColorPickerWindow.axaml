@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ScreenCaptureTool.Windows.StickerColorPickerWindow"
+        Title="StickerColorPicker"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        SizeToContent="WidthAndHeight"
+        IsHitTestVisible="False">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+    </Window.Styles>
+    <!-- 贴图 Shift 取色器（2026-09-29）：与截图放大镜（CaptureWindow.axaml 的 MagnifierHost）同构同 Token，
+         独立成无激活、鼠标穿透的置顶小窗，免得小贴图把放大镜裁掉 -->
+    <round:ContinuousBorder Width="152"
+            CornerRadius="{DynamicResource SctRadiusControl}"
+            BorderThickness="0"
+            Background="{DynamicResource SctCardBorderBrush}"
+            Padding="1"
+            UseLayoutRounding="True">
+        <round:ContinuousBorder CornerRadius="{DynamicResource SctRadiusSegmentInner}"
+                BorderThickness="0"
+                Background="{DynamicResource SctCardFillBrush}"
+                UseLayoutRounding="True">
+            <Grid Margin="6" RowDefinitions="Auto,Auto">
+                <round:ContinuousBorder Grid.Row="0" Width="140" Height="140" BorderThickness="1"
+                        BorderBrush="{DynamicResource SctBorderBrush}" CornerRadius="{DynamicResource SctRadiusControl}"
+                        ClipToBounds="True" HorizontalAlignment="Center">
+                    <Grid>
+                        <Image x:Name="ZoomImage" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" />
+                        <Line x:Name="CrossLineH" StartPoint="0,70" EndPoint="140,70"
+                              Stroke="{DynamicResource SctMagnifierCrossLightBrush}" StrokeThickness="1"
+                              StrokeDashArray="4,2" Opacity="0.9" />
+                        <Line x:Name="CrossLineV" StartPoint="70,0" EndPoint="70,140"
+                              Stroke="{DynamicResource SctMagnifierCrossLightBrush}" StrokeThickness="1"
+                              StrokeDashArray="4,2" Opacity="0.9" />
+                    </Grid>
+                </round:ContinuousBorder>
+
+                <round:ContinuousBorder Grid.Row="1" Background="{DynamicResource SctInputBgBrush}"
+                        CornerRadius="{DynamicResource SctRadiusControl}" Margin="0,6,0,0" Padding="6,3">
+                    <StackPanel>
+                        <TextBlock x:Name="CoordText" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="10" />
+                        <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                            <round:ContinuousBorder Width="12" Height="12" CornerRadius="{DynamicResource SctRadiusSmall}" BorderThickness="1"
+                                    BorderBrush="{DynamicResource SctBorderBrush}" Margin="0,1,6,0">
+                                <Rectangle x:Name="ColorSwatch" Fill="Transparent" />
+                            </round:ContinuousBorder>
+                            <TextBlock x:Name="ColorText" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="10" />
+                        </StackPanel>
+                        <TextBlock x:Name="HintText" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="10" Opacity="0.7"
+                                   Margin="0,1,0,0" />
+                    </StackPanel>
+                </round:ContinuousBorder>
+            </Grid>
+        </round:ContinuousBorder>
+    </round:ContinuousBorder>
+</Window>

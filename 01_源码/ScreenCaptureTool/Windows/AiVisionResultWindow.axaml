@@ -1,0 +1,555 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:ScreenCaptureTool.Controls"
+        xmlns:ai="clr-namespace:ScreenCaptureTool.Core.Ai;assembly=ScreenCaptureTool.Core"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="640"
+        x:Class="ScreenCaptureTool.Windows.AiVisionResultWindow"
+        Icon="/Assets/Black.ico"
+        Title="AI 识图 - yuSnip"
+        Width="480" Height="640"
+        MinWidth="480" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctTitleBarBrush}"
+        FontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', Roboto, sans-serif"
+        FontSize="14">
+
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceAi.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToggleButtons.axaml" />
+        <!-- 标题栏右上角窗口按钮：几何与关闭红态统一走全局 Button.titleIcon.titleBarBtn / .closeBtn
+             （见 Themes/Controls.axaml），本窗不再私有重定义，与设置窗口完全一致 -->
+
+        <!-- 快捷胶囊按钮 -->
+        <Style Selector="Button.quickPill">
+            <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.quickPill:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+
+        <!-- 幽灵操作胶囊（停止生成 / 复制） -->
+        <Style Selector="Button.chipGhost">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.chipGhost:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+
+        <!-- 品牌高亮操作胶囊（复制图片） -->
+        <Style Selector="Button.chipAccent">
+            <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctCardTitleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctChatBubbleUserBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <!-- 悬停时底色加深一档（SctAccentSoftBrush），文字图标保持品牌靛蓝，两主题均可读 -->
+        <Style Selector="Button.chipAccent:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctAccentSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctCardTitleBrush}" />
+        </Style>
+
+        <!-- 圆形发送按钮（光学质心严格居中） -->
+        <Style Selector="Button.sendRound">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="28" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Background" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.sendRound /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.sendRound:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctAccentHoverBrush}" />
+        </Style>
+        <Style Selector="Button.sendRound:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctAccentPressedBrush}" />
+        </Style>
+
+        <!-- 联网搜索芯片开关（默认幽灵边框，选中品牌高亮） -->
+        <Style Selector="ToggleButton.webChip">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ToggleButton.webChip /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ToggleButton.webChip:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctChatListBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.webChip:checked">
+            <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctCardTitleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctChatBubbleUserBorder}" />
+        </Style>
+        <Style Selector="ToggleButton.webChip:checked /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctChatBubbleUserBorder}" />
+        </Style>
+        <Style Selector="ToggleButton.webChip:checked:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctAccentSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctCardTitleBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.webChip:checked Path">
+            <Setter Property="Fill" Value="{DynamicResource SctCardTitleBrush}" />
+        </Style>
+
+        <!-- 胶囊式模型下拉菜单（限高但给足可视行数，支持滚轮滚动）。
+             160px 只放得下 4~5 行，首行还是服务商分组标题，默认模型常落在可视区之外，观感就是"没显示全"。 -->
+        <Style Selector="ComboBox.modelPillSelect">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="MaxDropDownHeight" Value="320" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,0,8,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="ComboBox.modelPillSelect:pointerover /template/ Border#Background">
+            <Setter Property="Background" Value="{DynamicResource SctChatListBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        </Style>
+        <Style Selector="ComboBox.modelPillSelect:focus /template/ Border#Background">
+            <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+
+        <!-- 空状态快捷指令卡 -->
+        <Style Selector="Button.sugCard">
+            <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.sugCard:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+
+        <!-- 输入框与下拉菜单 -->
+
+        <!-- 现代化极细高级滚动条样式 (6px 超细精致悬浮) -->
+        <Style Selector="ScrollBar">
+            <Setter Property="AllowAutoHide" Value="True" />
+        </Style>
+        <Style Selector="ScrollBar:vertical">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="MinWidth" Value="6" />
+        </Style>
+        <Style Selector="ScrollBar:horizontal">
+            <Setter Property="Height" Value="6" />
+            <Setter Property="MinHeight" Value="6" />
+        </Style>
+        <Style Selector="ScrollBar /template/ Track">
+            <Setter Property="Minimum" Value="0" />
+        </Style>
+        <Style Selector="ScrollBar /template/ Thumb">
+            <Setter Property="Background" Value="{DynamicResource SctScrollThumbBrush}" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+        <Style Selector="ScrollBar /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SctScrollThumbHoverBrush}" />
+        </Style>
+
+        <!-- 原生 SelectableTextBlock 样式 -->
+        <Style Selector="SelectableTextBlock">
+            <Setter Property="SelectionBrush" Value="{DynamicResource SctOcrSelectionBrush}" />
+        </Style>
+
+        <!-- 浮动胶囊内平铺无边框输入框样式（彻底消除 :focus / :pointerover / :pressed 下的焦点边框与背景跳变） -->
+        <Style Selector="TextBox.flatPromptInput">
+            <Setter Property="FontFamily" Value="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', Roboto, sans-serif" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource SctOcrSelectionBrush}" />
+            <Setter Property="SelectionForegroundBrush" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
+        </Style>
+        <Style Selector="TextBox.flatPromptInput /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="TextBox.flatPromptInput:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="TextBox.flatPromptInput:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="TextBox.flatPromptInput:focus-within /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+
+        <!-- 下拉菜单非可选项目（Header 与 Separator）保持完全不透明且禁用指针手势 -->
+        <Style Selector="ComboBoxItem:disabled">
+            <Setter Property="Opacity" Value="1.0" />
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 窗口主容器：沉浸对话流 + 浮动胶囊输入台（显式 1px 细边框在纯白背景下形成清晰对比） -->
+    <Border ClipToBounds="True"
+            Background="{DynamicResource SctTitleBarBrush}"
+            BorderBrush="{DynamicResource SctBorderBrush}"
+            BorderThickness="1">
+        <Grid RowDefinitions="48,*">
+
+            <!-- 1. 顶部标题栏（底部分隔线与对话区区分） -->
+            <Border Grid.Row="0"
+                    Background="Transparent"
+                    BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- 左侧标题与徽章 -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0" Spacing="10">
+                        <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource SctCardTitleBrush}"
+                              Data="M 12 2 C 12 7.52 7.52 12 2 12 C 7.52 12 12 16.48 12 22 C 12 16.48 16.48 12 22 12 C 16.48 12 12 7.52 12 2 Z" />
+                        <TextBlock Text="AI 识图"
+                                   VerticalAlignment="Center"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                        <controls:ContinuousBorder Background="{DynamicResource SctNavActiveBrush}"
+                                CornerRadius="{DynamicResource SctRadiusSmall}"
+                                Padding="8,2">
+                            <TextBlock x:Name="TxtModelBadge"
+                                       Text="gpt-4o"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource SctCardTitleBrush}" />
+                        </controls:ContinuousBorder>
+                    </StackPanel>
+
+                    <!-- 右侧窗口控制按钮：贴死右上角、零间距，走全局 titleBarBtn / closeBtn 几何（与设置窗口一致） -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="0" Spacing="0">
+                        <Button Classes="titleIcon titleBarBtn" Content="—" ToolTip.Tip="最小化" Click="OnMinimizeClick" />
+                        <Button Classes="titleIcon titleBarBtn closeBtn" Content="✕" ToolTip.Tip="关闭 (Esc)" Click="OnCloseClick" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 2. 主体：对话流（窗口即画布）+ 底部输入区 -->
+            <Grid Grid.Row="1" RowDefinitions="*,Auto">
+
+                <!-- 悬浮 Toast 提示条（浮于对话流与输入区之上，带平滑动效） -->
+                <controls:ContinuousBorder x:Name="ToastPanel"
+                        Grid.RowSpan="2"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="0,14,0,0"
+                        Padding="14,7,16,7"
+                        CornerRadius="{DynamicResource SctRadiusControl}"
+                        Background="{DynamicResource SctToastBgBrush}"
+                        BorderBrush="{DynamicResource SctToastBorderBrush}"
+                        BorderThickness="1"
+                        BoxShadow="{DynamicResource SctAiToastShadow}"
+                        Opacity="0"
+                        IsHitTestVisible="False"
+                        ZIndex="100">
+                    <controls:ContinuousBorder.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                            <ThicknessTransition Property="Margin" Duration="0:0:0.2" />
+                        </Transitions>
+                    </controls:ContinuousBorder.Transitions>
+                    <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                        <Path x:Name="ToastIcon" Width="13" Height="13" Stretch="Uniform" Fill="{DynamicResource SctToastIconBrush}"
+                              Data="M 12 2 C 6.48 2 2 6.48 2 12 C 2 17.52 6.48 22 12 22 C 17.52 22 22 17.52 22 12 C 22 6.48 17.52 2 12 2 Z M 10 17 L 5 12 L 6.41 10.59 L 10 14.17 L 17.59 6.58 L 19 8 L 10 17 Z" />
+                        <TextBlock x:Name="ToastText"
+                                   Text="已复制图片到剪贴板"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctToastTextBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </controls:ContinuousBorder>
+
+                <!-- 2.1 对话流滚动区 + 空状态欢迎层 -->
+                <Grid Grid.Row="0">
+                    <ScrollViewer x:Name="ChatScrollViewer"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="ChatMessagesContainer" Spacing="18" Margin="18,10,18,4">
+                            <!-- 动态插入用户提问气泡与 AI 回复卡片 -->
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- 空状态：品牌欢迎 + 2x2 快捷指令卡（有消息时隐藏） -->
+                    <StackPanel x:Name="EmptyStatePanel"
+                                IsVisible="False"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Spacing="10">
+                        <Border Width="56" Height="56" CornerRadius="28"
+                                Background="{DynamicResource SctAccentBrush}"
+                                HorizontalAlignment="Center">
+                            <Path Width="26" Height="26" Stretch="Uniform" Fill="{DynamicResource SctTitleBarCloseTextBrush}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Data="M 12 2 C 12 7.52 7.52 12 2 12 C 7.52 12 12 16.48 12 22 C 12 16.48 16.48 12 22 12 C 16.48 12 12 7.52 12 2 Z" />
+                        </Border>
+                        <TextBlock Text="有什么想问的？"
+                                   FontSize="19" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,6,0,0" />
+                        <TextBlock Text="截图已就绪，直接提问，或试试下面的快捷指令"
+                                   FontSize="12.5"
+                                   Foreground="{DynamicResource SctTextMutedBrush}"
+                                   HorizontalAlignment="Center" />
+
+                        <Grid MaxWidth="440" ColumnDefinitions="*,*" RowDefinitions="*,*" Margin="12,14,12,0">
+                            <Button Grid.Row="0" Grid.Column="0" Classes="sugCard" Margin="6" Click="OnQuickPromptClick"
+                                    Tag="请总结图片中的核心内容、关键要点与结论。">
+                                <StackPanel Spacing="7">
+                                    <controls:ContinuousBorder Width="30" Height="30" CornerRadius="{DynamicResource SctRadiusControl}" Background="{DynamicResource SctNavActiveBrush}">
+                                        <TextBlock Text="总" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource SctCardTitleBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </controls:ContinuousBorder>
+                                    <TextBlock Text="总结核心" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="一句话看懂图片重点" FontSize="11.5" Foreground="{DynamicResource SctTextMutedBrush}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Row="0" Grid.Column="1" Classes="sugCard" Margin="6" Click="OnQuickPromptClick"
+                                    Tag="请完整准确地提取图片中的所有文字内容并排版整理。">
+                                <StackPanel Spacing="7">
+                                    <controls:ContinuousBorder Width="30" Height="30" CornerRadius="{DynamicResource SctRadiusControl}" Background="{DynamicResource SctNavActiveBrush}">
+                                        <TextBlock Text="字" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource SctCardTitleBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </controls:ContinuousBorder>
+                                    <TextBlock Text="提取文字" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="原文完整提取排版" FontSize="11.5" Foreground="{DynamicResource SctTextMutedBrush}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Row="1" Grid.Column="0" Classes="sugCard" Margin="6" Click="OnQuickPromptClick"
+                                    Tag="请解析图片中的代码逻辑，指出关键算法、实现原理与优化建议。">
+                                <StackPanel Spacing="7">
+                                    <controls:ContinuousBorder Width="30" Height="30" CornerRadius="{DynamicResource SctRadiusControl}" Background="{DynamicResource SctNavActiveBrush}">
+                                        <TextBlock Text="码" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource SctCardTitleBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </controls:ContinuousBorder>
+                                    <TextBlock Text="解析代码" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="语言逻辑与优化建议" FontSize="11.5" Foreground="{DynamicResource SctTextMutedBrush}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Row="1" Grid.Column="1" Classes="sugCard" Margin="6" Click="OnQuickPromptClick"
+                                    Tag="请将图片中的文本完整翻译为流畅自然的中文。">
+                                <StackPanel Spacing="7">
+                                    <controls:ContinuousBorder Width="30" Height="30" CornerRadius="{DynamicResource SctRadiusControl}" Background="{DynamicResource SctNavActiveBrush}">
+                                        <TextBlock Text="译" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource SctCardTitleBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </controls:ContinuousBorder>
+                                    <TextBlock Text="翻译中文" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="外文内容流畅中文化" FontSize="11.5" Foreground="{DynamicResource SctTextMutedBrush}" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 2.2 底部输入区：快捷胶囊 + 浮动胶囊输入台 + 免责声明 -->
+                <StackPanel Grid.Row="1" Spacing="8" Margin="18,4,18,14">
+
+                    <!-- 快捷胶囊行（空状态时隐藏，由指令卡代替） -->
+                    <StackPanel x:Name="QuickPillsRow" Orientation="Horizontal" Spacing="6">
+                        <Button Classes="quickPill" Content="总结核心" Click="OnQuickPromptClick" Tag="请总结图片中的核心内容、关键要点与结论。" />
+                        <Button Classes="quickPill" Content="提取文字" Click="OnQuickPromptClick" Tag="请完整准确地提取图片中的所有文字内容并排版整理。" />
+                        <Button Classes="quickPill" Content="解答问题" Click="OnQuickPromptClick" Tag="请详细解答图片中提出的问题，给出步骤与答案。" />
+                        <Button Classes="quickPill" Content="解析代码" Click="OnQuickPromptClick" Tag="请解析图片中的代码逻辑，指出关键算法、实现原理与优化建议。" />
+                        <Button Classes="quickPill" Content="翻译中文" Click="OnQuickPromptClick" Tag="请将图片中的文本完整翻译为流畅自然的中文。" />
+                    </StackPanel>
+
+                    <!-- 浮动胶囊输入台 -->
+                    <controls:ContinuousBorder CornerRadius="{DynamicResource SctRadiusCard}"
+                            Background="{DynamicResource SctPanelBrush}"
+                            BorderBrush="{DynamicResource SctBorderBrush}"
+                            BorderThickness="1"
+                            BoxShadow="{DynamicResource SctAiInputShadow}"
+                            Padding="14,10,10,10">
+                        <StackPanel Spacing="8">
+                            <TextBox x:Name="TxtPromptInput"
+                                     Classes="flatPromptInput"
+                                     FocusAdorner="{x:Null}"
+                                     Watermark="输入你的问题…（@ 唤起预设提示词，Enter 发送）"
+                                     AcceptsReturn="False"
+                                     MinHeight="28"
+                                     Height="30"
+                                     Padding="2,0"
+                                     BorderThickness="0"
+                                     CornerRadius="0"
+                                     Background="Transparent"
+                                     VerticalContentAlignment="Center" />
+
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" VerticalAlignment="Center">
+                                <!-- 1. 模型下拉菜单（胶囊式，限高 320px 并支持滚轮滚动） -->
+                                <ComboBox x:Name="CmbModelSelect"
+                                          Grid.Column="0"
+                                          Classes="modelPillSelect"
+                                          MinWidth="120"
+                                          MaxDropDownHeight="320"
+                                          VerticalAlignment="Center"
+                                          SelectionChanged="OnModelSelectionChanged">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="ai:AiModelDropDownItem">
+                                            <Panel>
+                                                <!-- 1. Header 类型 -->
+                                                <Border IsVisible="{Binding IsHeader}"
+                                                        Padding="4,4,4,2">
+                                                    <TextBlock Text="{Binding DisplayText}"
+                                                               FontSize="11"
+                                                               FontWeight="Bold"
+                                                               Foreground="{DynamicResource SctCardTitleBrush}" />
+                                                </Border>
+                                                <!-- 2. Separator 类型 -->
+                                                <Border IsVisible="{Binding IsSeparator}"
+                                                        Height="1"
+                                                        Margin="2,2"
+                                                        Background="{DynamicResource SctSoftBorderBrush}" />
+                                                <!-- 3. Model 类型 -->
+                                                <StackPanel Orientation="Horizontal" IsVisible="{Binding IsModel}" Spacing="6" Margin="4,1">
+                                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource SctAccentBrush}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding DisplayText}"
+                                                               FontSize="12"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Panel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+
+                                <!-- 2. 联网搜索开关 -->
+                                <ToggleButton x:Name="BtnToggleSearch"
+                                              Grid.Column="1"
+                                              Classes="webChip workspaceToggle"
+                                              Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              ToolTip.Tip="联网搜索：识图后自动检索相关网页，展示参考来源并基于来源生成补充回答"
+                                              IsCheckedChanged="OnToggleSearchChanged">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <Path Width="13" Height="13" Stretch="Uniform" Fill="{DynamicResource SctTextSecondaryBrush}"
+                                              Data="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10-4.48 10-10S17.52,2 12,2zM11,19.93c-3.95,-0.49 -7,-3.85 -7,-7.93 0,-0.62 0.08,-1.21 0.21,-1.79L9,15v1c0,1.1 0.9,2 2,2v1.93zM17.9,17.39c-0.26,-0.81 -1,-1.39 -1.9,-1.39h-1v-3c0,-0.55 -0.45,-1 -1,-1H8v-2h2c0.55,0 1,-0.45 1,-1V7h2c1.1,0 2,-0.9 2,-2v-0.41c2.93,1.19 5,4.06 5,7.41 0,2.08 -0.8,3.97 -2.1,5.39z" />
+                                        <TextBlock Text="联网搜索" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </ToggleButton>
+
+                                <!-- 3. 深度思考开关（复用 webChip 族样式，零新增样式） -->
+                                <ToggleButton x:Name="BtnToggleThinking"
+                                              Grid.Column="2"
+                                              Classes="webChip workspaceToggle"
+                                              Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              ToolTip.Tip="深度思考：推理模型先思考再作答，更稳但更慢；关掉即请求上游直接快答"
+                                              IsCheckedChanged="OnToggleThinkingChanged">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <!-- 灯泡：与"思考"的通行语义一致，单色 Material 风格 -->
+                                        <Path Width="13" Height="13" Stretch="Uniform" Fill="{DynamicResource SctTextSecondaryBrush}"
+                                              Data="M9,21c0,0.55 0.45,1 1,1h4c0.55,0 1,-0.45 1,-1v-1H9v1zM12,2C8.14,2 5,5.14 5,9c0,2.38 1.19,4.47 3,5.74V17c0,0.55 0.45,1 1,1h6c0.55,0 1,-0.45 1,-1v-2.26C17.81,13.47 19,11.38 19,9 19,5.14 15.86,2 12,2z" />
+                                        <TextBlock Text="深度思考" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </ToggleButton>
+
+                                <!-- 隐藏状态文本（保留供代码写入） -->
+                                <TextBlock x:Name="TxtStatus"
+                                           Grid.Column="3"
+                                           IsVisible="False"
+                                           Text="就绪" />
+
+                                <!-- 4. 发送按钮（光学质心微调绝对居中） -->
+                                <Button x:Name="BtnSendPrompt"
+                                        Grid.Column="4"
+                                        Classes="sendRound workspaceCircle"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="发送 (Enter)"
+                                        Click="OnSendPromptClick">
+                                    <Path Width="13" Height="13" Stretch="Uniform" Fill="{DynamicResource SctTitleBarCloseTextBrush}"
+                                          Data="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"
+                                          RenderTransform="translate(1.2px, -0.4px)" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+                    </controls:ContinuousBorder>
+
+                    <TextBlock Text="AI 生成内容 · 仅供参考"
+                               FontSize="10.5"
+                               Foreground="{DynamicResource SctTextMutedBrush}"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

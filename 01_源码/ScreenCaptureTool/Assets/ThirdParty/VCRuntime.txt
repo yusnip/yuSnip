@@ -1,0 +1,14 @@
+Microsoft Visual C++ Runtime Libraries
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+yuSnip 的部分原生组件依赖 Microsoft Visual C++ 运行库。
+这些文件属于 Microsoft 的专有运行库，不适用本窗口其他开源项目的 MIT、Apache 或 GPL 许可。
+
+Microsoft 许可条款入口：
+https://visualstudio.microsoft.com/license-terms/
+
+Visual Studio 可分发代码说明：
+https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution
+
+再分发应遵守对应工具链版本的 Microsoft 许可及 REDIST 清单。
+此处为版权和来源说明；原始 Microsoft 许可协议以对应发行版的正式协议为准。

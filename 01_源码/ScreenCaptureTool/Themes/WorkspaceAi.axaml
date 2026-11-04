@@ -1,0 +1,43 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <!-- 两个 AI 窗口的业务语义别名，色值仍只来自共享主题 Token。 -->
+        <x:Boolean x:Key="SctWorkspaceAiScope">True</x:Boolean>
+        <SolidColorBrush x:Key="SctCardBrush" Color="{DynamicResource SctWorkspaceCardColor}" />
+        <SolidColorBrush x:Key="SctCardFillHoverBrush" Color="{DynamicResource SctWorkspaceHoverColor}" />
+        <SolidColorBrush x:Key="SctChatListBg" Color="{DynamicResource SctWorkspaceCanvasColor}" />
+        <SolidColorBrush x:Key="SctChatBubbleAiBg" Color="{DynamicResource SctWorkspaceCardColor}" />
+        <SolidColorBrush x:Key="SctChatBubbleUserBg" Color="{DynamicResource SctWorkspaceSelectedColor}" />
+        <SolidColorBrush x:Key="SctChatBubbleUserBorder" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctChatBubbleUserText" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctImagePreviewBg" Color="{DynamicResource SctWorkspaceFieldColor}" />
+        <SolidColorBrush x:Key="SctFloatBtnBg" Color="{DynamicResource SctWorkspaceElevatedColor}" />
+        <SolidColorBrush x:Key="SctFloatBtnBorder" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctFloatBtnText" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctInputBg" Color="{DynamicResource SctWorkspaceFieldColor}" />
+        <SolidColorBrush x:Key="SctToastBgBrush" Color="{DynamicResource SctWorkspaceElevatedColor}" />
+        <SolidColorBrush x:Key="SctToastBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctToastTextBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctToastIconBrush" Color="{DynamicResource SctOkColor}" />
+        <SolidColorBrush x:Key="SctScrollThumbBrush" Color="{DynamicResource SctWorkspaceMutedColor}" Opacity="0.27" />
+        <SolidColorBrush x:Key="SctScrollThumbHoverBrush" Color="{DynamicResource SctWorkspaceMutedColor}" Opacity="0.56" />
+        <BoxShadows x:Key="SctAiPromptShadow">0 2 8 0 #12000000, 0 10 24 0 #1E000000</BoxShadows>
+        <BoxShadows x:Key="SctAiInputShadow">0 2 10 0 #0A000000</BoxShadows>
+        <BoxShadows x:Key="SctAiToastShadow">0 4 16 0 #33000000</BoxShadows>
+        <BoxShadows x:Key="SctAiMentionShadow">0 8 24 0 #1E000000</BoxShadows>
+    </Styles.Resources>
+    <!-- 真圆形发送／悬浮操作按钮维持专用几何，不被普通连续矩形模板改变。 -->
+    <Style Selector="Button.workspaceCircle">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                    Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                    Padding="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

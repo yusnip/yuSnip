@@ -1,0 +1,11 @@
+Weather data by Open-Meteo — https://open-meteo.com/
+Copyright and attribution: Open-Meteo and its contributing weather data providers.
+Data license: Creative Commons Attribution 4.0 International (CC BY 4.0).
+License: https://creativecommons.org/licenses/by/4.0/
+Terms: https://open-meteo.com/en/terms
+
+yuSnip 将天气码转换为中文与视觉场景，并以选中区县代表坐标展示模型天气。
+地区代表坐标的近似转换和目录加工见 AreaCity 条目。
+本条说明天气数据的许可；API 访问仍受 Open-Meteo 服务条款约束，免费公共 API 限非商业用途。
+
+数据许可正文随附如下。

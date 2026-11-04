@@ -1,0 +1,20 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <!-- 普通窗口按需引入；不挂 App 或 Workspace，设置与工具条仍走原提示主题。 -->
+    <Style Selector="ToolTip">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <round:ContinuousBorder Name="PART_WorkspaceToolTip"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}" MaxWidth="{TemplateBinding MaxWidth}">
+                    <!-- 保留现有字符串提示契约和明确的文字颜色，避免宿主样式染色。 -->
+                    <TextBlock Classes="tooltipText" Text="{TemplateBinding Content}"
+                        Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" TextWrapping="Wrap" />
+                </round:ContinuousBorder>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

@@ -1,0 +1,281 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d"
+        x:Class="ScreenCaptureTool.Windows.VideoStickerWindow"
+        Title="yuSnip 录屏预览"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="True"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Microsoft YaHei UI">
+    <!--
+      无边框化（2026-09-22 预览引擎落地这一轮）：顶部那条 36 DIP 的标题栏整条撤掉——它是本窗唯一
+      还像"窗口皮"的东西。换参照项目（北京录屏）的形态：圆角画面卡 + 卡下一条右对齐的控制条，
+      两件套浮在透明窗上，光晕由卡与条各自的投影宿主给（§3.6 第三铁律：宿主不裁剪、内层才裁剪）。
+      🔴 2026-09-22 按用户实报改回跟随主题：此前本窗整窗"钉黑"（与主题脱钩的沉浸式播放器），
+      浅色模式下结束录制进预览，弹出来的却是深色窗，与本软件其余窗口不一致。故整窗回归主题 Token
+      （SctPanelBrush / SctControlBarOuterBrush / SctSeparatorBrush / SctText* ＋全局按钮类，
+      与录制控制条同一张皮），仅画面 letterbox 底保留 SctPlayerBg 一枚（浅深两态各一档，见 Colors.axaml），
+      进度紫与危险红两态同值保持固定。画面卡外框不再走主题 Token：2026-09-22 起它跟「截图选框样式」
+      设置（线型／颜色／粗细三项），由 .cs 的 ApplyPlateFrame 现设，见下面①那段。
+      皮归零：本文件不写任何 Window.Styles、不钉整窗字号、不写字面色值，条上每一枚控件挂全局类
+      （Button.toolIcon / .tool / .tool.primary），窗口内不得再写 ToolTip 局部皮。
+      排布：工具条右缘与画面卡右缘对齐（参照项目同款），窗宽下限由工具条实测宽给（见 .cs 的
+      SetupPreview / RepinWidth）；画面卡的宽高由 .cs 按<b>母带实测物理尺寸</b>现设（不是选区尺寸——
+      两者比例可以不等，不等就会露出一条底色缝），本文件不写死。
+      阴影余量由根 Grid 的行列持有（§3.6 第二铁律）：浮层档 0 6 20 的包络＝左/右 20、上 14、下 26，
+      这四条值同时是摆位算式的输入（单一来源＝这里，.cs 的 ShadowInsetX/Top/Bottom 与之对应）。
+      ⚠ 本窗现在必须开 TransparencyLevelHint：圆角外的那一圈与光晕都是逐像素透明区（旧版整窗铺不透明
+      黑所以刻意不开，画面改自绘、卡片收成圆角之后前提变了）。
+    -->
+    <Grid x:Name="Root" RowDefinitions="14,Auto,12,Auto,26" ColumnDefinitions="20,*,20">
+
+        <!-- ① 画面卡：自研引擎把母带原始尺寸的帧直接写进这张位图，卡的尺寸＝母带物理尺寸÷DPI，
+                两者相乘正好回到物理像素 ⇒ 显示侧与解码侧都不缩放，一像素都不损。
+                两层（§3.6 第三铁律）：外圈这层宿主只挂投影、无底色无边框；裁剪归内层的子元素 VideoArea。
+                🔴 内层这枚 Border **不许挂 ClipToBounds**（2026-09-25 用户实报"视频跟遮罩，还有描边是三个
+                东西吗"的根因）：Avalonia 的 Border 在 ClipToBounds=True 时推的裁剪框<b>认 CornerRadius</b>，
+                而 Border 只会按<b>正圆弧</b>算那道角 ⇒ 它把 .cs 挂好的超椭圆画面裁剪又剪了一刀，剪成一个半径
+                =内层 CornerRadius 的正圆。超椭圆（n=5）比同半径的正圆"方"得多（45° 上离角心 1.2312r vs 1.0r），
+                于是卡片可见轮廓缩回正圆、遮罩的洞却还是超椭圆 ⇒ 四角各一块<b>没压暗的桌面</b>楔子
+                （半径 60 时沿对角线宽 13.7px），且画在画面之上的描边被同一刀削掉外半截＝三条线各走各的。
+                ⚠ 从前这里写的注释断言"ClipToBounds 只按矩形包围盒裁、不认圆弧"，是<b>错的</b>，正是这条错判
+                让这一刀留了下来。矩形画面探出圆角那件事由 VideoArea.Clip 单独负责，不需要内层再裁一遍。
+                此前它一层同时挂 BoxShadow 与 ClipToBounds ⇒ 光晕被自己的裁剪框剪光，
+                实测现象＝卡片四周一点投影都没有，整张卡像贴在桌面上的一块矩形。
+                🔴 2026-09-22 外框改画在画面**之上**（FrameOverlay 那一层），内层 Border 的
+                BorderThickness/BorderBrush 一并删掉：原先那圈 1 DIP 描边由 Border 画在自己的矩形内沿，
+                而它的子元素（矩形画面）在描边之后渲染 ⇒ 四角各一块"矩形耳朵"探进圆角带里把弧盖掉，
+                用户实报"白色线框在 R 角处不显示、直边却完好"。更要紧的是这一圈粗细写死在两处
+                （.axaml 的 BorderThickness 与 .cs 的 PlateStroke）＝同一个值两份账。
+                现在描边走共享件 SelVisuals.BuildBorderPen，与截图选框同一支 Pen、同一套三项设置
+                （线型／颜色／粗细全跟「截图选框样式」，0 粗＝不画）；半径跟卡片自己的 PlateRadiusDip。
+                🔴 下面两枚 CornerRadius（12 / 11）只是设计期占位：SetupPreview 里按「截图圆角」设置现算并
+                覆盖（外层 = 内层 + 1 那道内外差不变），且它们**如今只管 BoxShadow 那圈光晕的形状**。
+                卡片真正看得见的轮廓＝VideoArea 里那枚 PlateBackdrop ＋ VideoArea.Clip，走的是与遮罩洞、
+                截图选框同一条超椭圆（Border 只会画正圆弧，跟超椭圆并排就是两套弧度）。
+                内层必须带 x:Name，否则代码拿不到它、圆角就还是写死的。 -->
+        <Border x:Name="VideoPlate" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center"
+                CornerRadius="12" BoxShadow="{DynamicResource SctShadowOverlay}">
+            <Border x:Name="VideoPlateInner" Background="{DynamicResource SctPlayerBgBrush}"
+                    CornerRadius="11">
+                <Panel x:Name="VideoArea">
+                    <!-- 卡面：一枚与卡片轮廓同曲线的底板。为什么不能让内层 Border 的 Background 一个人干——
+                         Border 只会按 CornerRadius 画**正圆弧**，而画面裁剪与描边 2026-09-24 起走截图那套超椭圆
+                         （更"方"）⇒ 圆弧与超椭圆之间那四块角楔子没人填，视频有黑边（Uniform 信箱）时
+                         直接从角上透出桌面。几何由 SetupPreview 现算覆盖。 -->
+                    <Path x:Name="PlateBackdrop" Fill="{DynamicResource SctPlayerBgBrush}" IsHitTestVisible="False" />
+                    <Image x:Name="PlayerHost" Stretch="Uniform" IsHitTestVisible="False" />
+                    <!-- 引擎起不来（ffmpeg 被移走／母带读不出）时的如实说明。保存/复制那几条链路不依赖播放，
+                         所以这句话必须同时告诉用户"文件还在、可以直接存"，不让人以为录制白跑了。 -->
+                    <StackPanel x:Name="UnavailablePanel" IsVisible="False" Spacing="6"
+                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <StackPanel.Styles>
+                            <StyleInclude Source="/Themes/Workspace.axaml" />
+                        </StackPanel.Styles>
+                        <TextBlock Text="预览不可用" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource SctTextSecondaryBrush}" />
+                        <TextBlock x:Name="TxtUnavailable" FontSize="12" TextWrapping="Wrap" MaxWidth="320"
+                                   TextAlignment="Center" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource SctTextMutedBrush}" />
+                    </StackPanel>
+                    <!-- 外框：声明在最后 ⇒ 压在画面与说明文字之上，圆角处必然有线（不像 Border 描边会被子元素盖）。
+                         Stroke/StrokeThickness/Margin/Data 四项由 .cs 的 ApplyPlateFrame 按设置现设
+                         （虚线要按线宽换算 dash，写死在 XAML 里就是第二份实现）；Fill 留空＝只描边不挡画面。
+                         🔴 本件原本是 `Rectangle` ＋ `RadiusX/RadiusY`＝正圆弧，与遮罩洞、截图选框那条超椭圆
+                         不是同一条曲线 ⇒ 2026-09-24 换成 `Path`，几何走 `SelectionVisuals.BuildRoundedOutline`。 -->
+                    <Path x:Name="FrameOverlay" IsHitTestVisible="False" />
+                </Panel>
+            </Border>
+        </Border>
+
+        <!-- ② 控制条：§7.5 双浮层配方（外衬 r12/P1 ＋ 内板 r11/P8,4/MinHeight42），与录制控制条
+                同一张主题皮（SctControlBarOuterBrush 外衬 ＋ SctPanelBrush 内板）。右缘与画面卡右缘
+                齐平、卡在条上方 12 DIP（参照项目北京录屏的摆位）。关闭钮从原标题栏搬进来，
+                仍是"唯一的一枚 ✕"，与 Esc 同一条退路。 -->
+        <controls:ContinuousBorder x:Name="ToolbarOuter" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right"
+                Background="{DynamicResource SctControlBarOuterBrush}" CornerRadius="{DynamicResource SctRadiusToolbar}" Padding="1"
+                BoxShadow="{DynamicResource SctShadowOverlay}">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+                </controls:ContinuousBorder.Styles>
+            <!-- 🔴 内板不挂描边（§7.5 双浮层配方：外衬那圈 SctControlBarOuterBrush 就是唯一的 1px 环，
+                 内板只给底色与 r11）：此处此前多写了一圈 SctBorderBrush，等于在边缘叠出第二条线——
+                 用户实报"预览工具栏的边缘跟其他参数工具栏不一样"。2026-09-22 删。 -->
+            <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}" CornerRadius="{DynamicResource SctRadiusToolbarInner}" Padding="8,4" MinHeight="42">
+                <!-- ⚠ 四组（播放／导出选择／动作／确认·转码）互斥切换必须走 StackPanel 而不是 Panel：
+                     Panel 会把隐藏那组也掺进 DesiredSize ⇒ RepinWidth 量到的永远是四组之最，
+                     条子点一下"放弃"就凭空变宽。播放组与导出组在转码期整组收起（见 .cs 的 EnterEncodingMode）：
+                     转码条与进度条同时挂着两条一粗一细的轨，就是"乱七八糟"本物。 -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                    <StackPanel x:Name="PlayGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnPlay" Classes="toolIcon" ToolTip.Tip="播放 / 暂停 (Space)" Click="OnPlayPauseClick">
+                        <Panel>
+                            <!-- 播放＝实心件，盒子按 §6.9 取 17.8 而非 16：全局类给的是「16 DIP 盒 ＋ Uniform ＋ 线宽 1.8」，
+                                 Uniform 只缩放几何、描边是独立 Pen 恒 1.8 DIP ⇒ 描边件外沿＝墨迹 16 ＋ 线宽 1.8 ＝ 17.8；
+                                 实心件没有描边，要与之同带只能把盒子本身撑到 17.8（盒子留 16 就小一档）。
+                                 更要紧的是这两枚在同一格里互斥切换，一高一矮＝每按一次空格整枚跳一下。
+                                 几何一律引共享常量（原先预览窗与控制条各画一份，暂停两竖间距一份 9 一份 6.9）。 -->
+                            <Path x:Name="IcoPlay" Classes="icon iconFill" Width="17.8" Height="17.8" IsVisible="False"
+                                  Data="{x:Static local:OcrIconGeometry.Play}" />
+                            <Path x:Name="IcoPause" Classes="icon"
+                                  Data="{x:Static local:OcrIconGeometry.Pause}" />
+                        </Panel>
+                    </Button>
+                    <!-- 时间读数去 Consolas（§4.1：等宽只留给键帽/日志/代码盒）＋ 按"00:00"现量预留宽度，
+                         读数从 0:08 走到 10:00 时条子不左右跳（MinWidth 由 .cs 现场量，不手算） -->
+                    <TextBlock x:Name="TxtPos" Text="00:00" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" Margin="4,0" />
+                    <!-- 命中区 16 DIP 高（轨只有 4 DIP，光轨本身不好点）；拖动只认松手那一下，
+                         见 .cs 的 OnSeekPressed/OnSeekReleased——拖一下跳一次的"实时 seek"会每次都换进程。
+                         轨用 MinWidth 而非 Width（§7.5 口径）：条子随内容收缩时它该让，撑窗宽由 RepinWidth 统一决定。
+                         滑块原先那枚 DropShadowEffect 已删——§3.6 界面内部禁止任何阴影（只有卡片档与浮层档两档，
+                         且都由 Border 的 BoxShadow 给），一枚 14 DIP 的圆点上挂特效属于凭空多出来的层次。 -->
+                    <Panel x:Name="SeekTrack" MinWidth="180" Height="16" Cursor="Hand" Background="Transparent"
+                           PointerPressed="OnSeekPressed" PointerReleased="OnSeekReleased"
+                           PointerCaptureLost="OnSeekCaptureLost" PointerMoved="OnSeekMoved">
+                        <Border Height="4" CornerRadius="2" Background="{DynamicResource SctSeparatorBrush}" VerticalAlignment="Center" />
+                        <Border x:Name="SeekFill" Height="4" CornerRadius="2" Background="{DynamicResource SctPlayerProgressBrush}"
+                                HorizontalAlignment="Left" VerticalAlignment="Center" Width="0" />
+                        <Ellipse x:Name="SeekThumb" Width="14" Height="14" Fill="{DynamicResource SctTextPrimaryBrush}"
+                                 HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-7,0,0,0" />
+                    </Panel>
+                    <TextBlock x:Name="TxtDur" Text="00:00" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextSecondaryBrush}" VerticalAlignment="Center" Margin="4,0" />
+
+                    <!-- 发丝线：几何与参数条逐字同档（1×16 / Margin 4,0），底色走主题 SctSeparatorBrush
+                         （与录制控制条那条同源，浅深两态各一档）。
+                         ⚠ VerticalAlignment=Center 必须逐条写：横向 StackPanel 里带了固定 Height 的子元素
+                         默认按 Stretch 顶到上沿，漏写一格就比同排钮矮半截（控制条那条铁律同此）。 -->
+                    <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- 导出参数那一格（格式下拉＋烙印勾选）：只在正常态说话，转码期与确认态一起收起 -->
+                    <StackPanel x:Name="ExportGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- 导出格式：一枚下拉，与录制延迟／画质下拉同一配方（§6.12 唯一菜单档）。
+                         当前档只挂 MenuItem.current 染品牌紫，不拼 ✓。 -->
+                    <Button x:Name="BtnFormat" Classes="tool" ToolTip.Tip="选择导出格式">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtFormat" Text="MP4" VerticalAlignment="Center" />
+                            <!-- 下拉指示箭头＝全局统一那枚描边 V（与画质／录制延迟逐字同一份写法，§6.12）。
+                                 2026-09-22 用户实报"跟其他下拉菜单的箭头不一致，请直接复用"：此前这里是
+                                 8×8 Viewbox 套 <c>OcrIconGeometry.ArrowDown</c> 的 Material 实心三角，
+                                 同义不同形。不再套 Viewbox（Viewbox 会二次缩放，线宽跟着走就不是 1.8 那档）。 -->
+                            <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <!-- 条目＝"档名 ＋ 右侧提示"两列，提示列走全局 TextBlock.menuSub（11.2.8 的 MenuItem
+                                 没有 InputGestureText，框架那一列只吃 Key 型 InputGesture）。整块显式挂 Header，
+                                 不吃隐式内容属性。当前档由 code-behind 挂 MenuItem.current 染品牌紫（§6.12） -->
+                            <MenuFlyout Placement="TopEdgeAlignedLeft">
+                                <MenuItem x:Name="MiFmtMp4" Tag="Mp4" Click="OnFormatItemClick">
+                                    <MenuItem.Header>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="MP4" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Classes="menuSub" Text="推荐 · 带声音" />
+                                        </Grid>
+                                    </MenuItem.Header>
+                                </MenuItem>
+                                <MenuItem x:Name="MiFmtGif" Tag="Gif" Click="OnFormatItemClick">
+                                    <MenuItem.Header>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="GIF" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="TxtFmtGifSub" Grid.Column="1" Classes="menuSub" Text="≤30s · 无声" />
+                                        </Grid>
+                                    </MenuItem.Header>
+                                </MenuItem>
+                                <MenuItem x:Name="MiFmtWebP" Tag="WebP" Click="OnFormatItemClick">
+                                    <MenuItem.Header>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="WebP" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Classes="menuSub" Text="动图 · 无声" />
+                                        </Grid>
+                                    </MenuItem.Header>
+                                </MenuItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <CheckBox x:Name="ChkBurn" Classes="toolCheck" Content="进度条"
+                              ToolTip.Tip="导出时在画面底部添加一条进度条（黑底轨＋蓝色进度，通栏贴底，不可逆）"
+                              Checked="OnBurnChanged" Unchecked="OnBurnChanged" />
+                    </StackPanel>
+
+                    <Border x:Name="SepActions" Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}"
+                            Margin="4,0" VerticalAlignment="Center" />
+
+                    <!-- 动作组：复制 / 快速保存 / 另存为 / 关闭（2026-09-22 第三轮起与截图工具栏同构，无主按钮）。
+                         钮间隙一律由全局类自带的 Margin=4,0 给（组内不再各写 Margin 凑数）。
+                         🔴 2026-09-22 两处整改：
+                         ① 快速保存／另存为**由文字钮改成图标钮**——截图侧那两枚已是图标（CaptureWindow 的
+                            BtnQuickSave / BtnSaveAs），录屏侧却仍是文字，同一个动作在两条链路上两种长相。
+                            改用共享几何 OcrIconGeometry.QuickSaveIcon / SaveAsIcon，与截图侧逐字同一份。
+                         ② **删除「放弃录制」那枚**（原 TrashStroke）。它与末位 ✕ 作用完全重复（都走
+                            RequestCloseOrConfirm），而 Close() 本身就该是"放弃"语义——留着两枚＝同一个出口
+                            摆两次。故本组收到：复制 / 快速保存 / 另存为 / ✕，放弃语义归 ✕。
+                            连带取消：DiscardRequested 事件与那条"放弃后已录内容将不保存"的确认条。 -->
+                    <StackPanel x:Name="ActionGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 🔴 2026-09-22 第三轮整改（用户实报："不需要紫色的按钮，请直接复用"）：
+                            删除品牌紫实底主按钮（tool primary）与"快速保存⇄复制"互换机制（ApplyPrimarySwap），
+                            动作组改为与截图工具栏末几钮**同构的四枚 toolIcon**：复制 / 快速保存 / 另存为 / ✕。
+                            快速保存与另存为两枚几何逐字复用截图侧（OcrIconGeometry.QuickSaveIcon / SaveAsIcon，
+                            同一常量两窗共享，含上色写法——软盘是 Fill 上色非描边件）；
+                            复制是录屏链路特有动作（截图侧无对应钮），几何仍走 CopyOutline；
+                            同一轮连带删除设置页"预览主按钮"互换选项与 RecPreviewPrimarySave 设置键。 -->
+                        <Button x:Name="BtnCopy" Classes="toolIcon" ToolTip.Tip="复制视频文件到剪贴板 (Ctrl+Shift+C)" Click="OnCopyClick">
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.CopyOutline}" />
+                        </Button>
+                        <Button x:Name="BtnQuickSave" Classes="toolIcon" ToolTip.Tip="快速保存 (Ctrl+S)" Click="OnQuickSaveClick">
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.QuickSaveIcon}" />
+                        </Button>
+                        <Button x:Name="BtnSaveAs" Classes="toolIcon" ToolTip.Tip="另存为 (Ctrl+Shift+S)" Click="OnSaveAsClick">
+                            <!-- 软盘＝实心件，Fill 上色（与截图侧 BtnSaveAs 同款写法），不走描边件类 -->
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="{x:Static local:OcrIconGeometry.SaveAsIcon}" />
+                        </Button>
+                        <Button x:Name="BtnClose" Classes="toolIcon" ToolTip.Tip="关闭（忘掉本次录制）(Esc)" Click="OnCloseClick">
+                            <!-- 几何与其余图标同族的描边 X（不用 Material 那枚实心 X），
+                                 上色走全局 Path.icon（SctIconBrush，随主题） -->
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.CloseStroke}" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 转码进度行（D17 甲：嵌在工具条内，其余控件禁用；失败红字+重试/改存 MP4）。
+                         轨用 MinWidth 而非 Width（§7.5 口径），填充条按比例写 Width 是正确用法。
+                         轨与填充的几何（4 高／圆角 2）与上面那条进度轨逐字同档：原先这里是 5/2.5、那里是 4/2，
+                         两态切换时同一位置冒出一粗一细两条轨，就是"乱七八糟"的出处之一 -->
+                    <StackPanel x:Name="EncRow" Orientation="Horizontal" VerticalAlignment="Center"
+                                IsVisible="False" Spacing="0">
+                        <TextBlock x:Name="TxtEncPct" Text="0%" FontSize="12" FontWeight="SemiBold" Margin="4,0"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+                        <Border x:Name="EncTrack" MinWidth="150" Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                Background="{DynamicResource SctSeparatorBrush}">
+                            <Border x:Name="EncFill" Width="0" CornerRadius="2" Background="{DynamicResource SctPlayerProgressBrush}"
+                                    HorizontalAlignment="Left" />
+                        </Border>
+                        <TextBlock x:Name="TxtEncLabel" Text="正在转换…" FontSize="12" Margin="4,0"
+                                   Foreground="{DynamicResource SctTextSecondaryBrush}" VerticalAlignment="Center" />
+                        <StackPanel x:Name="EncFailRow" Orientation="Horizontal" VerticalAlignment="Center"
+                                    IsVisible="False" Spacing="0">
+                            <TextBlock x:Name="TxtEncErr" Text="转换失败" FontSize="12" Foreground="{DynamicResource SctPlayerDangerBrush}"
+                                       VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                            <Button x:Name="BtnEncRetry" Classes="tool outlined" Content="重试" Click="OnEncRetryClick" />
+                            <Button x:Name="BtnEncMp4" Classes="tool outlined" Content="改存 MP4" Click="OnEncMp4Click" />
+                        </StackPanel>
+                        <!-- 转码期最小化（2026-09-29）：把这张无边框卡收进任务栏，转码在后台照旧跑完。
+                             同排那两枚「重试」「改存 MP4」就是汉字钮，本枚跟着走 `tool outlined` ＋文字，不用图形钮。 -->
+                        <Button x:Name="BtnEncMinimize" Classes="tool outlined" Content="最小化"
+                                ToolTip.Tip="收进任务栏，转码不停，点任务栏图标回来" Click="OnEncMinimizeClick" />
+                    </StackPanel>
+                </StackPanel>
+            </controls:ContinuousBorder>
+        </controls:ContinuousBorder>
+    </Grid>
+</Window>

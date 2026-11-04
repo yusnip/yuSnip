@@ -1,0 +1,343 @@
+<Window xmlns="https://github.com/avaloniaui"
+
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+
+        x:Class="ScreenCaptureTool.Windows.HistoryImageViewerWindow"
+
+        Title="图片查看器"
+
+        Width="1100" Height="760"
+
+        MinWidth="600" MinHeight="400"
+
+        WindowStartupLocation="CenterScreen"
+
+        Background="{DynamicResource SctPanelBrush}"
+
+        Foreground="{DynamicResource SctTextPrimaryBrush}"
+
+        ExtendClientAreaToDecorationsHint="True"
+
+        ExtendClientAreaChromeHints="NoChrome"
+
+        ExtendClientAreaTitleBarHeightHint="36">
+
+
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceHistory.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToggleButtons.axaml" />
+        <Style Selector="Button.viewerAction">
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        </Style>
+        <Style Selector="ToggleButton.viewerHighlight">
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="36,*" Background="{DynamicResource SctPanelBrush}">
+
+        <!-- 顶部标题栏：右上角按钮与设置窗口完全对齐 -->
+
+        <Border Grid.Row="0" Background="Transparent" x:Name="TitleBarBorder">
+
+            <Grid ColumnDefinitions="Auto,*,Auto">
+
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False">
+
+                    <round:ContinuousBorder Width="18" Height="18" CornerRadius="{DynamicResource SctRadiusSmall}" Background="{DynamicResource SctAccentBrush}" VerticalAlignment="Center" />
+
+                    <TextBlock x:Name="TxtTitle" Text="图片查看" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+
+                    <TextBlock x:Name="TxtMetaInfo" Text="" FontSize="12" Foreground="{DynamicResource SctTextMutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
+
+                </StackPanel>
+
+
+
+                <Grid Grid.Column="1" Background="Transparent" x:Name="TitleBarDragArea" />
+
+
+
+                <!-- 右上角无间距贴边按钮组：复用 Controls.axaml 全局 titleIcon titleBarBtn 样式 -->
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Stretch" Margin="0" Spacing="0">
+
+                    <Button x:Name="BtnMin" Classes="titleIcon titleBarBtn" Content="—" ToolTip.Tip="最小化" Focusable="False" />
+
+                    <Button x:Name="BtnMax" Classes="titleIcon titleBarBtn" Content="□" ToolTip.Tip="最大化/还原" Focusable="False" />
+
+                    <Button x:Name="BtnClose" Classes="titleIcon titleBarBtn closeBtn" Content="✕" ToolTip.Tip="关闭 (Esc)" Focusable="False" />
+
+                </StackPanel>
+
+            </Grid>
+
+        </Border>
+
+
+
+        <!-- 主视口内容区：暗色背景衬托图片 -->
+
+        <Grid Grid.Row="1" ClipToBounds="True" Background="{DynamicResource SctBackgroundBrush}">
+
+            <Border x:Name="ViewportBorder" Background="Transparent" ClipToBounds="True">
+
+                <!-- 右键菜单：条目与图标复用历史卡片右键菜单的同款设计，只留查看器里用得上的几项 -->
+                <Border.ContextMenu>
+
+                    <ContextMenu>
+
+                        <MenuItem Header="复制到剪贴板" InputGesture="Ctrl+C" Click="OnCtxCopyClick">
+
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Copy}" /></MenuItem.Icon>
+
+                        </MenuItem>
+
+                        <MenuItem Header="贴到屏幕" Click="OnCtxStickerClick">
+
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.CropFree}" /></MenuItem.Icon>
+
+                        </MenuItem>
+
+                        <MenuItem Header="另存为..." InputGesture="Ctrl+S" Click="OnCtxSaveAsClick">
+
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Save}" /></MenuItem.Icon>
+
+                        </MenuItem>
+
+                        <MenuItem Header="打开文件位置" Click="OnCtxOpenLocationClick">
+
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.TraySaveDir}" /></MenuItem.Icon>
+
+                        </MenuItem>
+
+                        <Separator />
+
+                        <MenuItem Header="关闭 (Esc)" Click="OnCtxCloseClick">
+
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Close}" /></MenuItem.Icon>
+
+                        </MenuItem>
+
+                    </ContextMenu>
+
+                </Border.ContextMenu>
+
+                <!-- CanvasContainer 居中对齐视口，变换围绕中心执行，保证图片打开绝对居中 -->
+
+                <Canvas x:Name="CanvasContainer" Background="Transparent" ClipToBounds="False"
+
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                    <Image x:Name="ImgViewer" Stretch="Fill" />
+
+                    <Canvas x:Name="CanvasHighlight" ClipToBounds="False" />
+
+                </Canvas>
+
+            </Border>
+
+                        <!-- 底部悬浮控制胶囊栏（独立设计专属成套 24x24 极简线性图标，统一 1.8px 笔触与圆角端点） -->
+
+            <round:ContinuousBorder HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
+
+                    Background="{DynamicResource SctHistoryViewerSurfaceBrush}" BorderBrush="{DynamicResource SctBorderBrush}" BorderThickness="1"
+
+                    CornerRadius="{DynamicResource SctRadiusControl}" Padding="8,5" BoxShadow="{DynamicResource SctHistoryViewerShadow}">
+
+                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+
+                    <!-- 上一张 (Prev) -->
+
+                    <Button x:Name="BtnPrev" Classes="toolIcon viewerAction" ToolTip.Tip="上一张 (Left / A)" Width="32" Height="32" Focusable="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 14,5 L 7,12 L 14,19"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 页码索引计数 -->
+
+                    <TextBlock x:Name="TxtPageIndicator" Text="0 / 0" FontSize="12" FontWeight="SemiBold"
+
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" Margin="3,0" MinWidth="52" TextAlignment="Center" />
+
+
+
+                    <!-- 下一张 (Next) -->
+
+                    <Button x:Name="BtnNext" Classes="toolIcon viewerAction" ToolTip.Tip="下一张 (Right / D)" Width="32" Height="32" Focusable="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 10,5 L 17,12 L 10,19"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <Border Width="1" Height="18" Background="{DynamicResource SctSoftBorderBrush}" Margin="4,0" VerticalAlignment="Center" />
+
+
+
+                    <!-- 逆时针旋转 90° (RotateLeft) -->
+
+                    <Button x:Name="BtnRotateLeft" Classes="toolIcon viewerAction" ToolTip.Tip="逆时针旋转 90°" Width="32" Height="32" Focusable="False">
+
+                        <!-- 与成套图标同规格线性风格：24 格 / 1.8px / 圆角端点（Feather rotate-ccw 几何），
+                             C 弧 + 斜段 + L 形箭头融合贯通，箭头顺切线指左下=逆时针；经多档渲染验证（2026-09-10） -->
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 1,4 L 1,10 L 7,10 M 3.51,15 A 9,9 0 1 0 5.64,5.64 L 1,10"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 顺时针旋转 90° (RotateRight) -->
+
+                    <Button x:Name="BtnRotateRight" Classes="toolIcon viewerAction" ToolTip.Tip="顺时针旋转 90° (R)" Width="32" Height="32" Focusable="False">
+
+                        <!-- 与逆时针严格镜像（Feather rotate-cw 几何） -->
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 23,4 L 23,10 L 17,10 M 20.49,15 A 9,9 0 1 1 18.36,5.64 L 23,10"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 适应窗口 (FitWindow) -->
+
+                    <Button x:Name="BtnFitWindow" Classes="toolIcon viewerAction" ToolTip.Tip="适应窗口 (空格)" Width="32" Height="32" Focusable="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 8,3 L 5,3 C 3.9,3 3,3.9 3,5 L 3,8 M 16,3 L 19,3 C 20.1,3 21,3.9 21,5 L 21,8 M 3,16 L 3,19 C 3,20.1 3.9,21 5,21 L 8,21 M 21,16 L 21,19 C 21,20.1 20.1,21 19,21 L 16,21"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 1:1 实际大小 (ActualSize) -->
+
+                    <Button x:Name="BtnActualSize" Classes="toolIcon viewerAction" ToolTip.Tip="1:1 原始比例 (双击)" Width="32" Height="32" Focusable="False">
+
+                        <Grid Width="20" Height="20">
+
+                            <round:ContinuousBorder BorderBrush="{DynamicResource SctBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource SctRadiusSmall}" Background="{DynamicResource SctWorkspaceSelectedBrush}" />
+
+                            <TextBlock Text="1:1" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource SctTextPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                        </Grid>
+
+                    </Button>
+
+
+
+                    <Border Width="1" Height="18" Background="{DynamicResource SctSoftBorderBrush}" Margin="4,0" VerticalAlignment="Center" />
+
+
+
+                    <!-- 贴到屏幕 (Pin) -->
+
+                    <Button x:Name="BtnPinSticker" Classes="toolIcon viewerAction" ToolTip.Tip="贴到屏幕 (F3 / 钉屏)" Width="32" Height="32" Focusable="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 15,4.5 L 19.5,9 M 14,6 L 8,12 L 5,13 L 11,19 L 12,16 L 18,10 Z M 9,15 L 3,21" 
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 复制图片 (Copy) -->
+
+                    <Button x:Name="BtnCopyImage" Classes="toolIcon viewerAction" ToolTip.Tip="复制图片到剪贴板 (Ctrl+C)" Width="32" Height="32" Focusable="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 8,7 L 8,5 C 8,3.9 8.9,3 10,3 L 18,3 C 19.1,3 20,3.9 20,5 L 20,13 C 20,14.1 19.1,15 18,15 L 16,15 M 5,7 L 14,7 C 15.1,7 16,7.9 16,9 L 16,19 C 16,20.1 15.1,21 14,21 L 5,21 C 3.9,21 3,20.1 3,19 L 3,9 C 3,7.9 3.9,7 5,7 Z"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 另存为 (SaveAs) -->
+
+                    <Button x:Name="BtnSaveAs" Classes="toolIcon viewerAction" ToolTip.Tip="另存为… (Ctrl+S)" Width="32" Height="32" Focusable="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 12,3 L 12,14.5 M 7.5,10 L 12,14.5 L 16.5,10 M 4,17 L 4,19 C 4,20.1 4.9,21 6,21 L 18,21 C 19.1,21 20,20.1 20,19 L 20,17"
+
+                              Stroke="{DynamicResource SctTextPrimaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+
+                    </Button>
+
+
+
+                    <!-- 关键词高亮切换开关 (Highlight) -->
+
+                    <ToggleButton x:Name="TglHighlight" IsChecked="True" Width="32" Height="32" Focusable="False"
+
+                                  Classes="toolToggle viewerHighlight workspaceToggle" ToolTip.Tip="切换关键词高亮显示" IsVisible="False">
+
+                        <Path Width="16" Height="16" Stretch="Uniform"
+
+                              Data="M 10,16 A 6,6 0 1,1 16,10 A 6,6 0 0,1 10,16 Z M 14.5,14.5 L 19.5,19.5 M 10,7 L 10,13 M 7,10 L 13,10"
+
+                              Stroke="{DynamicResource SctWarnBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Fill="{DynamicResource SctWarnBgBrush}" />
+
+                    </ToggleButton>
+
+                </StackPanel>
+
+            </round:ContinuousBorder>
+
+
+
+            <!-- 搜索匹配状态提示条 -->
+
+            <round:ContinuousBorder x:Name="PanelMatchToast" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
+
+                    Background="{DynamicResource SctWorkspaceSelectedBrush}" CornerRadius="{DynamicResource SctRadiusControl}" Padding="14,6" BoxShadow="{DynamicResource SctHistoryMatchShadow}" IsVisible="False">
+
+                <StackPanel Orientation="Horizontal" Spacing="6">
+
+                    <TextBlock x:Name="TxtMatchCount" Text="" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+
+                </StackPanel>
+
+            </round:ContinuousBorder>
+
+        </Grid>
+
+    </Grid>
+
+</Window>
+

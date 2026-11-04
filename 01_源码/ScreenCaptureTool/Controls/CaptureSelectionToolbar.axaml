@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:local="using:ScreenCaptureTool.Windows"
+             x:Class="ScreenCaptureTool.Controls.CaptureSelectionToolbar">
+    <ThemeVariantScope x:Name="SelectionThemeScope" RequestedThemeVariant="Dark">
+        <controls:ContinuousBorder x:Name="SelectionSurface" Background="{DynamicResource SctSelectionToolbarGlassBrush}"
+                                   BorderBrush="{DynamicResource SctSelectionToolbarGlassBorderBrush}" BorderThickness="1"
+                                   CornerRadius="{DynamicResource SctRadiusToolbar}"
+                                   BoxShadow="{DynamicResource SctShadowOverlay}">
+            <controls:ContinuousBorder.Styles>
+                <StyleInclude Source="/Themes/Toolbar.axaml" />
+                <!-- 只限定选区模式栏的中性状态，尺寸和绘制模板继续复用工具栏。 -->
+                <Style Selector="Button.selectionMode.selected">
+                    <Setter Property="Background" Value="{DynamicResource SctSelectionToolbarSelectedBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource SctSelectionToolbarGlassBorderBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                </Style>
+                <Style Selector="Button.selectionMode:pointerover, Button.selectionAction:pointerover">
+                    <Setter Property="Background" Value="{DynamicResource SctSelectionToolbarHoverBrush}" />
+                </Style>
+                <Style Selector="Button.selectionMode.selected:pointerover, Button.selectionMode:pressed, Button.selectionAction:pressed">
+                    <Setter Property="Background" Value="{DynamicResource SctSelectionToolbarPressedBrush}" />
+                </Style>
+                <Style Selector="Button.selectionMode:focus-visible, Button.selectionAction:focus-visible">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SctIconBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                </Style>
+            </controls:ContinuousBorder.Styles>
+            <!-- 与截图 ActionBar 相同的内距及高度；按钮和图标直接消费共享工具栏样式。 -->
+            <controls:ContinuousBorder Background="Transparent"
+                                       CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                                       Padding="8,4" MinHeight="42">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnRectangle" Classes="tool selectionMode selected" Focusable="True" Click="OnRectangleClick"
+                            ToolTip.Tip="矩形选区 · 拖动框选" AutomationProperties.Name="矩形选区">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Path Classes="icon iconFill" Data="{x:Static local:SelectionModeIconGeometry.Rectangle}" />
+                            <TextBlock Text="矩形" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnFreehand" Classes="tool selectionMode" Focusable="True" Click="OnFreehandClick"
+                            ToolTip.Tip="选区 · 按住鼠标描绘轮廓，松手自动闭合" AutomationProperties.Name="选区">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Path Classes="icon iconFill" Data="{x:Static local:SelectionModeIconGeometry.Freehand}" />
+                            <TextBlock Text="选区" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnPen" Classes="tool selectionMode" Focusable="True" Click="OnPenClick"
+                            ToolTip.Tip="钢笔选区 · 点击加直线节点，拖动绘制曲线" AutomationProperties.Name="钢笔选区">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Path Classes="icon iconFill" Data="{x:Static local:SelectionModeIconGeometry.Pen}" />
+                            <TextBlock Text="钢笔" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnFullScreen" Classes="tool selectionAction" Focusable="True" Click="OnFullScreenClick"
+                            ToolTip.Tip="全屏截图（当前屏幕，直接完成）" AutomationProperties.Name="全屏截图">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Path Classes="icon iconFill" Data="{x:Static local:SelectionModeIconGeometry.FullScreen}" />
+                            <TextBlock Text="全屏" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Rectangle Width="1" Height="18" Margin="6,0" Fill="{DynamicResource SctSeparatorBrush}" />
+                    <Button x:Name="BtnClose" Classes="toolIcon selectionAction" Focusable="True" Click="OnCloseClick"
+                            ToolTip.Tip="取消截图" AutomationProperties.Name="取消截图">
+                        <Path Classes="icon" Data="{x:Static local:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </StackPanel>
+            </controls:ContinuousBorder>
+        </controls:ContinuousBorder>
+    </ThemeVariantScope>
+</UserControl>

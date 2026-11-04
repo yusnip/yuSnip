@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:round="using:ScreenCaptureTool.Controls"
+             x:Class="ScreenCaptureTool.Controls.NotchedSlider">
+    <UserControl.Styles>
+        <!-- 凹槽格子：悬停放大凸起（移植自 Eidos NotchedSlider，对标 PSexp 图片质量滑块） -->
+        <Style Selector="Border.notchCell">
+            <Setter Property="CornerRadius" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource SctNotchEmptyBrush}" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="RenderTransform" Value="scale(1,1)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.notchCell:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.25,1.25)" />
+            <Setter Property="ZIndex" Value="10" />
+        </Style>
+        <!-- 已达阈值的格子：品牌靛紫填充（浅深两态统一实底，与分段选中态同 Token） -->
+        <Style Selector="Border.notchCell.filled">
+            <Setter Property="Background" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- 扁平布局：格子条通栏拉伸 + 右侧内嵌数字输入（单位后缀），无外层圆角容器 -->
+    <Grid ColumnDefinitions="*,Auto">
+        <!-- 凹槽格区：格子由代码生成（固定尺寸 4×20，宽高比 1:5，对标 PSexp 质量滑块；格缝自适应拉伸使轨道两端对齐容器；
+             点击跳格 / 拖拽连续） -->
+        <Grid x:Name="CellsHost"
+              VerticalAlignment="Center"
+              Background="Transparent"
+              PointerPressed="CellsHost_PointerPressed"
+              PointerMoved="CellsHost_PointerMoved"
+              PointerReleased="CellsHost_PointerReleased"
+              PointerCaptureLost="CellsHost_PointerCaptureLost" />
+
+        <!-- 数字输入框（精确输入，失焦/回车提交并夹取范围） -->
+        <round:ContinuousBorder x:Name="InputPanel"
+                Grid.Column="1"
+                Margin="12,0,0,0"
+                Background="{DynamicResource SctComboBoxBgBrush}"
+                BorderBrush="{DynamicResource SctControlOuterBrush}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource SctRadiusControl}"
+                Padding="6,2"
+                Height="26"
+                VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                <TextBox x:Name="InputBox"
+                         Text="0"
+                         Width="36"
+                         FontSize="12"
+                         FontWeight="Bold"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0"
+                         HorizontalContentAlignment="Center"
+                         VerticalContentAlignment="Center"
+                         KeyDown="InputBox_KeyDown"
+                         LostFocus="InputBox_LostFocus">
+                    <TextBox.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></TextBox.Styles>
+                </TextBox>
+                <TextBlock x:Name="SuffixText"
+                           Text=""
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource SctTextMutedBrush}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </round:ContinuousBorder>
+    </Grid>
+</UserControl>

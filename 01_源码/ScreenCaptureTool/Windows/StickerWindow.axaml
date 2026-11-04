@@ -1,0 +1,640 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="320"
+        x:Class="ScreenCaptureTool.Windows.StickerWindow"
+        Title="贴图"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        MaxWidth="99999"
+        MaxHeight="99999"
+        SizeChanged="OnWindowSizeChanged">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/WorkspaceSticker.axaml" />
+        <Style Selector="Border.canvasResizePoint">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Background" Value="{DynamicResource SctStickerGripGlassBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="SelectableTextBlock">
+            <Setter Property="SelectionBrush" Value="#900078D7" />
+        </Style>
+        <!-- 划词装饰三种笔形的外观（2026-09-29）：形状与坐标由代码算，颜色一律取 Token，
+             切主题自动跟上，不必重画。荧光是荧光黄半透明档（SctMarkHl），虚线/波浪线用提醒色。 -->
+        <Style Selector="Rectangle.stMarkHl">
+            <Setter Property="Fill" Value="{DynamicResource SctMarkHlBrush}" />
+        </Style>
+        <Style Selector="Line.stMarkDash">
+            <Setter Property="Stroke" Value="{DynamicResource SctDangerBrush}" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="StrokeDashArray" Value="3,2" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+        </Style>
+        <Style Selector="Path.stMarkWave">
+            <Setter Property="Stroke" Value="{DynamicResource SctDangerBrush}" />
+            <Setter Property="StrokeThickness" Value="1.2" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+        </Style>
+        <!-- 划词译文条正文：底色走主文本色，失败态整句染危险色。
+             颜色必须由样式给而不是写在元素属性上——本地值压过样式，挂了失效类也翻不成红。 -->
+        <Style Selector="TextBlock.translationBarText">
+            <Setter Property="Foreground" Value="{DynamicResource SctStickerOverlayTextBrush}" />
+        </Style>
+        <Style Selector="TextBlock.translationBarText.translationBarError">
+            <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        </Style>
+        <!-- 翻译中状态点：与全局骨架屏同一套呼吸参数（1.3s、0.45↔0.9 往复），
+             不引入新的动画节奏，保持全局观感一致 -->
+        <Style Selector="Ellipse.translatingDot">
+            <Style.Animations>
+                <Animation Duration="0:0:1.3" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0.45" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.9" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <!-- 划词翻译「持久标记」（2026-09-30 二次重设计）：原文下方一道品牌紫实线。
+             与荧光黄的划词标注 SctMarkHl、搜索命中的 SctSearchMark 三种语义互不复用；
+             用实线而非软底色块——标记要长期留在贴图上，整块铺色会压住原文可读性。
+             图元由代码在装饰重画通路里逐段生成（文本／Markdown 进 TextDecorLayer，图片贴图进 StickerCanvas），不吃命中。 -->
+        <Style Selector="Line.stTransLine">
+            <Setter Property="Stroke" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <!-- 原文右上角那枚紫点：可见圆点 8 DIP（品牌紫实底＋面板色描边，压在深底浅底上都读得出），
+             外面裹一圈 16×16 透明命中盒——命中盒比可见点大一倍，悬浮才好命中，不必瞄着 8 像素去够。
+             🔴 命中盒的 Background 必须是 Transparent 而非 null：null 底不参与命中测试，悬浮就收不到事件。 -->
+        <Style Selector="Border.transDotHit">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Ellipse.transDot">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Fill" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="Stroke" Value="{DynamicResource SctPanelBrush}" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <!-- 译文气泡左上角那枚红色圆形关闭 ✕：红是"关闭/危险"语义而非明暗主题语义，
+             故走全局 SctTitleBarClose* 三档（浅深两态同色，与标题栏关闭钮同源，§6.8）。
+             🔴 常态与悬浮态都要显式写一遍红底：不写就被通用 Button:pointerover 的灰底翻掉（§5 样式声明顺序），
+             且覆盖模板部件的值必须挂 /template/ 才压得住模板里那一层（§6.12）。 -->
+        <Style Selector="Button.transBubbleClose">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="MinWidth" Value="16" />
+            <Setter Property="MinHeight" Value="16" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarCloseBrush}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.transBubbleClose /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarCloseBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="Button.transBubbleClose:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarCloseBrush}" />
+        </Style>
+        <Style Selector="Button.transBubbleClose:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarClosePressedBrush}" />
+        </Style>
+        <!-- 文本图层样式：与 CaptureWindow.axaml 同名同值**逐字复制**的一份。
+             类名 captureTextLayer 不能改（TextAnnotationController.CreateTextLayer 在代码里硬加）；
+             也**不能**上提为全局样式——提升样式优先级会改变截图侧 TextBox 的模板取值来源，
+             而截图侧的验收门槛是导出逐像素不变。两侧同步义务见 docs/设计规范.md §7.5。 -->
+        <Style Selector="TextBox.captureTextLayer">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer /template/ Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer:focus /template/ Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer:pointerover /template/ Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer /template/ Border#borderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Window.Styles>
+    <!-- 用 Grid 分层：阴影层 + 内容层（Image）。
+         阴影由 StickerShadowLayer 自绘一圈跟随图片真实外轮廓（超椭圆）的等距光晕——
+         Border.BoxShadow 的圆角只能是正圆弧，圆角贴图会在四个角缺掉阴影。
+         阴影画在 ShadowLayer 上，它与 Image 同尺寸但通过 Grid 叠在 Image 后：
+         光晕只画在基准线以外，自带烘焙阴影带的贴图基准线就是棋盘格（位图）外沿，
+         整个光环都在位图范围之外，不会被内容层里的棋盘格遮住（2026-09-07 并存口径）。
+         窗口比 Image 大出一圈 Padding，给阴影留渲染空间（须 ≥ 光晕截止距离 15 DIP）。 -->
+    <Grid x:Name="RootGrid"
+          Margin="16">
+        <Grid x:Name="CanvasResizePoints" IsVisible="False" IsHitTestVisible="False"
+              HorizontalAlignment="Left" VerticalAlignment="Top" ZIndex="31">
+            <Border Classes="canvasResizePoint" HorizontalAlignment="Left" VerticalAlignment="Top" />
+            <Border Classes="canvasResizePoint" HorizontalAlignment="Right" VerticalAlignment="Top" />
+            <Border Classes="canvasResizePoint" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+            <Border Classes="canvasResizePoint" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+        </Grid>
+        <!-- 画布内的玻璃抓手：圆弧描边与内沿反光独立，装饰层不接管鼠标。 -->
+        <Border x:Name="CanvasGrip" IsVisible="False" Width="64" Height="24"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8,0,0"
+                CornerRadius="12" Background="{DynamicResource SctStickerGripGlassBrush}"
+                BorderBrush="{DynamicResource SctStickerGripRimBrush}" BorderThickness="1"
+                Cursor="SizeAll" ZIndex="30" ToolTip.Tip="拖动以移动画布贴图窗口">
+            <Grid IsHitTestVisible="False" ClipToBounds="True">
+                <Border Margin="1" CornerRadius="10"
+                        BorderBrush="{DynamicResource SctStickerGripSheenBrush}" BorderThickness="1" />
+                <Path x:Name="CanvasGripIcon" Width="18" Height="6" Stretch="Uniform"
+                      Stroke="{DynamicResource SctTextMutedBrush}" StrokeThickness="1.5"
+                      StrokeLineCap="Round" Data="M1,1H17 M1,5H17" />
+            </Grid>
+        </Border>
+        <controls:StickerShadowLayer x:Name="ShadowBorder"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                IsHitTestVisible="False" />
+        <Border x:Name="RootBorder"
+                Background="Transparent"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                ClipToBounds="True">
+            <Border.ContextMenu>
+                <ContextMenu x:Name="StickerContextMenu">
+                    <!-- 只在普通右键菜单作用域启用；窗口工具条及随栏菜单继续默认皮。 -->
+                    <ContextMenu.Styles>
+                        <StyleInclude Source="/Themes/Workspace.axaml" />
+                        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+                    </ContextMenu.Styles>
+                    <!-- 图标一律取 OcrIconGeometry（设计稿图标矩阵），快捷键后缀由 UpdateContextMenuState
+                         按实际绑定写入 InputGesture，统一渲染到右对齐的快捷键列 -->
+                    <MenuItem x:Name="MenuLock" Header="锁定" Click="OnLockClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Lock}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuPenetrate" Header="鼠标穿透" Click="OnPenetrateClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Mouse}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuThumbnailMode" Header="缩略图模式" Click="OnThumbnailModeClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.CropFree}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuCanvasMode" Header="画布模式" Click="OnCanvasModeClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.AspectRatio}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuFitToScreen" Header="适配屏幕" Click="OnFitToScreenClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FitScreen}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <!-- 贴图工具栏＝进入标注（键位 sticker.annotate，默认空格，设置页可改；由 UpdateContextMenuState 写进快捷键列） -->
+                    <MenuItem x:Name="MenuAnnotationToolbar" Header="贴图工具栏" Click="OnAnnotationToolbarClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Edit}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <!-- 图像处理：非破坏式（贴图留一份原图，显示图恒由"原图＋当前处理状态"导出），两个"重置"都是精确回原图 -->
+                    <MenuItem x:Name="MenuImageAdjust" Header="图像处理">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Tune}" /></MenuItem.Icon>
+                        <MenuItem Header="向右旋转 90°" Tag="rotR" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.RotateRight}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="向左旋转 90°" Tag="rotL" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.RotateLeft}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="水平翻转" Tag="flipH" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FlipHorizontal}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="垂直翻转" Tag="flipV" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FlipVertical}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem x:Name="MenuAdjustGray" Header="灰度化" Tag="gray" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Grayscale}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="MenuAdjustInvert" Header="反色" Tag="invert" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.InvertColors}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="MenuAdjustBrightness" Header="亮度(0%)">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Brightness}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem x:Name="MenuAdjustResetGeometry" Header="重置旋转与翻转" Tag="resetGeo" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Refresh}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="MenuAdjustResetAll" Header="重置所有图像处理" Tag="resetAll" Click="OnImageAdjustClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Restore}" /></MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+                    <!-- 大小 / 不透明度：档位子项由代码按预设表生成（当前档染品牌紫），标题实时带当前值 -->
+                    <MenuItem x:Name="MenuSize" Header="大小(100%)">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.AspectRatio}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuOpacity" Header="不透明度(100%)">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Opacity}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem x:Name="MenuSelectableText" Header="文本可选择" Click="OnSelectableTextClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.TextSelect}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <!-- 划词装饰的总退出口：只在真画了几笔时出现（UpdateContextMenuState 实时判），
+                         单段想反悔直接在浮条上再点同一档即可撤掉，不需要这里。 -->
+                    <MenuItem x:Name="MenuClearSelectionMarks" Header="清除划词标注" Click="OnStTtClearMarksClick" IsVisible="False">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Clear}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem x:Name="MenuCopyImage" Header="复制图像" Click="OnCopyImageClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Copy}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuMatting" Header="智能抠图">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Cutout}" /></MenuItem.Icon>
+                        <MenuItem x:Name="MenuPortraitMatting" Header="人像抠图" Click="OnPortraitMattingClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Portrait}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="MenuGeneralMatting" Header="通用抠图" Click="OnGeneralMattingClick">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.ObjectCutout}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator x:Name="MenuMattingSeparator" IsVisible="False" />
+                        <MenuItem x:Name="MenuRestoreOriginalImage" Header="恢复原图" Click="OnRestoreOriginalImageClick" IsVisible="False">
+                            <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Restore}" /></MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuTranslate" Header="翻译" Click="OnTranslateClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Translate}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuSaveImage" Header="另存为图片" Click="OnSaveImageClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Save}" /></MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem x:Name="MenuClose" Classes="danger" Header="关闭贴图" Click="OnCloseClick">
+                        <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.Close}" /></MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </Border.ContextMenu>
+
+            <Panel VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ClipToBounds="True">
+                <!-- 图片底色层：尺寸/定位与 StickerImage 完全一致（由 ApplyScale 与
+                     SetWheelGestureVisual 同步），用于垫在图片下方。
+                     底色**不能**挂在 RootBorder 上——它 Stretch 铺满整个窗口内容区，
+                     而滚轮信封态下窗口远大于图片，会让底色填满信封区形成「巨大纯色画布」。 -->
+                <Border x:Name="ImageBackdrop"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Left" />
+                <!-- 透明图的棋盘格底：同样必须与图片同尺寸同定位，不能用 Stretch。
+                     信封态下窗口远大于图片，Stretch 会让灰白格子铺满信封区
+                     （实测图片缩到 300×200 时棋盘格仍为 600×400）。 -->
+                <Border x:Name="CheckerboardBg"
+                        Background="{DynamicResource SctCheckerboardBrush}"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top" />
+                <Image x:Name="StickerImage"
+                       Stretch="Fill"
+                       VerticalAlignment="Top"
+                       HorizontalAlignment="Left" />
+                <Viewbox x:Name="TextViewbox" Stretch="Uniform" VerticalAlignment="Top" HorizontalAlignment="Left" IsVisible="False">
+                    <Border x:Name="TextStickerContainer"
+                            Background="Transparent"
+                            ClipToBounds="True">
+                        <Border.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></Border.Styles>
+                    <!-- 内容栈 + 划词装饰层同处一格：装饰层必须与文字同一个坐标系，
+                         因此放在 Viewbox **内部**而不是外面——它跟着 Viewbox 一起缩放，
+                         且被 SnapshotTextSticker 的 RenderTargetBitmap.Render(TextStickerContainer)
+                         一并收进"对外输出"的位图（复制图像/另存为/OCR/翻译）。
+                         Canvas 的 DesiredSize 恒为 0，不参与尺寸决定，版宽仍由 StackPanel 说话。 -->
+                    <Grid>
+                        <StackPanel>
+                            <Border x:Name="StickerColorSwatch" Height="28" IsVisible="False" />
+                            <SelectableTextBlock x:Name="StickerTextBlock"
+                                                 TextWrapping="Wrap"
+                                                 SelectionBrush="#900078D7"
+                                                 Background="Transparent"
+                                                 FontFamily="Consolas, Courier New, Microsoft YaHei UI, monospace"
+                                                 FontSize="18"
+                                                 FontWeight="Medium"
+                                                 Padding="0" />
+                            <controls:SelectableMarkdownTextBlock x:Name="StickerMarkdownViewer"
+                                                             SelectionBrush="#900078D7"
+                                                             BaseFontSize="15"
+                                                             IsVisible="False" />
+                        </StackPanel>
+                        <Canvas x:Name="TextDecorLayer" IsHitTestVisible="False" />
+                    </Grid>
+                    </Border>
+                </Viewbox>
+                <Canvas x:Name="StickerCanvas"
+                       IsVisible="False"
+                       IsHitTestVisible="False"
+                       VerticalAlignment="Top"
+                       HorizontalAlignment="Left" />
+                <controls:AnnotationLayer x:Name="StickerAnnotationLayer"
+                                         IsVisible="False"
+                                         IsHitTestVisible="False"
+                                         VerticalAlignment="Top"
+                                         HorizontalAlignment="Left" />
+                <!-- 文本图层宿主：贴图侧文本同样不是矢量图元，而是一棵活 TextBox 可视树，
+                     由 TextAnnotationController 加进本画布，定稿时才用 GDI+ 烘进位图。
+                     ⚠ 几何必须与 StickerAnnotationLayer **成对同步**（宽/高/Margin，四处赋值点统一走 SyncTextHostGeometry），
+                     漏一处就是"缩小后文字跑位"同型事故；Focusable 是 EndActiveTextEditing 交回焦点的目标。 -->
+                <Canvas x:Name="StickerTextHost"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        Focusable="True"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Left">
+                    <Canvas.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></Canvas.Styles>
+                </Canvas>
+                <!-- 译文进行态：与图片**同尺寸同定位**的覆盖层，只承载居中徽章。
+                     ⚠ 绝不能用 Stretch —— 滚轮缩放走「零 resize 信封态」时窗口远大于图片，
+                     Stretch 会让这层填满整个信封区，观感是「巨大的白色画布」
+                     （实测图片缩到 450×628 时遮罩仍为 900×1255，溢出 450×627 DIP）。
+                     ⚠ 背景必须保持 Transparent —— 原先这层挂的是整图半透明白纱（#B0FFFFFF），
+                     既是「白底/白色画布」系列事故的源头，也会盖掉用户正想与译文对照的原文。
+                     IsHitTestVisible=False 保证遮罩不吃鼠标事件——拖动/缩放/右键菜单照常可用。
+                     ClipToBounds=True 保证徽章永不越出图片矩形伸进信封空白区。 -->
+                <Border x:Name="TranslatingOverlay"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        ClipToBounds="True"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Background="Transparent">
+                    <controls:ContinuousBorder HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            CornerRadius="{DynamicResource SctRadiusControl}"
+                            Padding="14,9"
+                            Background="{DynamicResource SctStickerOverlayPlateBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse x:Name="TranslatingDot"
+                                     Classes="translatingDot"
+                                     Width="8" Height="8"
+                                     VerticalAlignment="Center"
+                                     Fill="{DynamicResource SctAccentBrush}" />
+                            <TextBlock x:Name="TranslatingText"
+                                       Text="翻译中…"
+                                       FontSize="13.5"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SctStickerOverlayTextBrush}" />
+                        </StackPanel>
+                    </controls:ContinuousBorder>
+                </Border>
+                <!-- 带烘焙阴影贴图的内容主体聚焦高亮层：紧贴实际截图内容卡片外沿（不含烘焙阴影），获得焦点时呈现辉光轮廓 -->
+                <controls:StickerCardHighlightLayer x:Name="CardHighlightBorder"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch" />
+            </Panel>
+        </Border>
+        <!-- 缩略图模式描边：独立覆盖层，画在内容区最外 6px 环上但不占布局空间。
+             禁止改回 RootBorder.BorderThickness 实现——6px 描边会把内容区起点从
+             ShadowMargin(16) 挤到 22 DIP，破坏缩略图进入/退出的图片冻结几何
+             （进入时图片整体偏右下 6×DPI 物理像素），也使角部热区/视口 clamp 域偏 12 DIP。 -->
+        <Border x:Name="ThumbIndicatorBorder"
+                IsVisible="False"
+                IsHitTestVisible="False"
+                BorderThickness="6"
+                BorderBrush="#4219F2"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch" />
+        <!-- 拖边缩放尺寸提示：代码侧逐帧把本层覆盖在被拖动的内容矩形上（Margin=矩形起点、
+             Width/Height=矩形尺寸），文字钉在矩形右下角故四边拖拽都读得清。
+             必须是 Left/Top 对齐（信封态下 Stretch 会溢进透明 fringe）且无可见背景。 -->
+        <Border x:Name="EdgeSizeIndicator"
+                IsVisible="False"
+                IsHitTestVisible="False"
+                Padding="0,0,8,4"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top">
+            <TextBlock x:Name="EdgeSizeIndicatorText"
+                       Text=""
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource SctAccentBrush}"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom" />
+        </Border>
+        <!-- 聚光灯圆角浮条（2026-09-18）：与截图侧**同一个控件、同一套交互**（按住数值左右拖动调圆角，
+             滚轮 ±1）；圆角在画布上的四角手柄已同批摘除，这里是它的唯一入口。
+             ⚠ 放在 RootGrid 里而**不是**图片那个 Panel 里：RootBorder 带 ClipToBounds="True"，
+             聚光灯贴着图片顶边时浮条会被裁掉一半。定位用 Margin（Panel 内那一族都是 Margin 定位），
+             坐标由 RefreshSpotlightRadiusPill 在选中几何变化时写入；拖动图元/缩放手柄这段手势期间主动收起，
+             松手才按新位置贴回（2026-09-18）。
+             声明在最后 ⇒ 压在缩略图描边与拖边尺寸提示之上。 -->
+        <controls:SpotlightRadiusPill x:Name="SpotlightRadiusPillHost"
+                                      IsVisible="False"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Top" />
+        <!-- 序号浮条（2026-09-18）：与截图侧**同一个控件**（Controls/CounterPill），− / + 改编号、
+             中间那格写说明文字、× 删掉这一个。挂 RootGrid 而非图片那个 Panel 的理由与上面圆角浮条同一条
+             （RootBorder 带 ClipToBounds，贴顶的图元会把浮条裁掉一半）；坐标由 RefreshCounterPill 在选中
+             几何变化时写入，拖动图元/拖引线这段手势期间主动收起、松手贴回。 -->
+        <controls:CounterPill x:Name="CounterPillHost"
+                              IsVisible="False"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Top" />
+        <!-- 🔴 下面这几枚浮层（划词工具栏／译文点亮圈／译文气泡及其把手与关闭钮）必须住在 Canvas 宿主里，
+             不得直接挂 RootGrid（2026-10-02「阴影比图片大一圈、右边多一片空白」的真因）：
+             划词工具栏是**常驻可视树、只用 Opacity 收起**的（为的是首次弹出无测量抖动），而 Grid 的子元一律
+             参与 DesiredSize ⇒ 文本贴图平时是 SizeToContent=WidthAndHeight，窗口宽度就被这条 5 枚按钮的浮条
+             钉死在 198 DIP（5×(28＋4＋4)＝180 ＋ 内板 Padding 8,4 → 196 ＋ 外环 Padding 1 → 198），比卡片宽出一截；
+             TextViewbox 是 Left 对齐 ⇒ 差值整块落在右侧成为透明带，而窗体阴影的光晕基准线＝窗口矩形 ⇒
+             观感正是"阴影比图片大、右边空白"。日志实证：内容宽 156／184／42 的三张贴图，窗口内容区一律报 198。
+             "稍微滚动一下就会恢复正常"也是同一条：滚轮一进来就激活信封态，窗口宽度改由内容账本显式写死，
+             那个 198 的下限当场消失。Canvas 的 DesiredSize 恒为 0、不参与尺寸决定（与本文件 TextDecorLayer
+             同一先例），子元照旧按 Margin 偏移定位（Canvas 与 Grid 的 Left/Top＋Margin 定位口径一致）。
+             ⚠ ZIndex 只在同一父级内比较，故宿主取 13＝移动前的全场最高值，条内各枚保留原 ZIndex 不变，
+             层序（点亮圈 11 ＜ 工具栏与气泡 12 ＜ 关闭钮 13 ＜  caret 0）与原状逐位一致。 -->
+        <Canvas x:Name="FloatOverlayLayer" ZIndex="13">
+            <!-- 划词工具栏（2026-09-29；2026-09-30 图标族二版＋对齐修复）：贴图上一切"能选中文本"的场景都浮出这一条——
+                 图片贴图的 Alt 快速选词与持久「文本可选择」（字级覆盖层），以及文本／Markdown 贴图（原生选区）。
+                 外观逐值抄 §7.5 截图工具栏的双浮层配方（外环 ⊃ 内板），格内按钮走全局 Button.toolIcon、
+                 图标走全局 Path.icon 描边族——与 OCR 侧那条同源同配方，都在 Themes/Controls.axaml 一处。
+                 2026-09-30 图标两处改版（设计稿「贴图划词与AI快答」拍板）：翻译逐字复用截图工具栏那枚
+                 「文A」（OcrIconGeometry.TranslateIcon → Core ToolbarRegistry 单一来源）；三档装饰换成
+                 「两行文字＋底部装饰基线」族（旧「A 字形」与截图「文本」工具撞形）。
+                 常驻可视树、用 Opacity 控显隐（与 OCR 同策略：Measure 才拿得到稳定宽高，
+                 收起时不销毁 ⇒ 首次弹出无测量抖动）。
+                 三档装饰**平铺成三枚按钮**（一个按钮只干一件事，不做"按一下换一种"那种藏功能的形态）。
+                 ⚠ 这条上不许再挂任何 Flyout：本窗按下走 Tunnel，浮层弹在透明无边框窗上本就不可靠，
+                 且其那一下会被当作"点了浮条外"先把浮条收起（2026-09-29 用户实报"点了没反应、整条不见了"）。
+                 用 WrapPanel 而非 StackPanel：贴图常常只有几十字宽，七格连排≈280 DIP 会被窗口裁掉两头，
+                 量宽前由代码把可用宽度写成 MaxWidth，装不下就自己折行；格间距由按钮自带的 Margin 4,0 给
+                 （与截图工具栏同一条），折行后行距同样对称。
+                 🔴 WrapPanel 必须 VerticalAlignment="Center"（2026-09-30 对齐修复）：内板 MinHeight 42
+                 比内容（按钮 28＋上下内边距 8＝36）富余 6 DIP，顶对齐时富余全部沉底、按钮行整体偏上
+                 3 DIP——即用户实报的"按钮与工具栏未对齐"。居中后上下各 3，其余配方一字不动。
+                 挂 RootGrid 而非 Viewbox 内部的理由与上面两枚浮条同一条（RootBorder 带 ClipToBounds），
+                 且工具栏不能跟着 Viewbox 缩放——它不进气泡也不进快照。 -->
+            <controls:ContinuousBorder x:Name="SelectionToolbar"
+                    Classes="selectionFloatBar" CornerRadius="{DynamicResource SctRadiusToolbar}"
+                    Opacity="0"
+                    IsHitTestVisible="False"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    ZIndex="12">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <controls:ContinuousBorder Classes="selectionFloatBarPlate" CornerRadius="{DynamicResource SctRadiusToolbarInner}">
+                    <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="toolIcon" Focusable="False" Click="OnStTtCopyClick" ToolTip.Tip="复制选中文字 (Ctrl+C)">
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.CopyOutline}" />
+                        </Button>
+                        <Button Classes="toolIcon" Focusable="False" Tag="hl" Click="OnStTtMarkClick" ToolTip.Tip="荧光">
+                            <Panel>
+                                <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.MarkHlIcon}" />
+                                <Path Classes="icon iconFill" Data="{x:Static local:OcrIconGeometry.MarkHlBar}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="toolIcon" Focusable="False" Tag="dash" Click="OnStTtMarkClick" ToolTip.Tip="虚线">
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.MarkDashIcon}" />
+                        </Button>
+                        <Button Classes="toolIcon" Focusable="False" Tag="wave" Click="OnStTtMarkClick" ToolTip.Tip="波浪线">
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.MarkWaveIcon}" />
+                        </Button>
+                        <Button Classes="toolIcon" Focusable="False" Click="OnStTtTranslateClick" ToolTip.Tip="翻译选中文字">
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.TranslateIcon}" />
+                        </Button>
+                    </WrapPanel>
+                </controls:ContinuousBorder>
+            </controls:ContinuousBorder>
+            <!-- 划词翻译「持久标记」（2026-09-30 二次重设计：从瞬态指向标记改为常驻标记）：
+                 点浮条「翻译」→ 浮条收起，原文每段下方画一道品牌紫实线（stTransLine，由代码在装饰重画
+                 通路里生成，故跟着排版重排与缩放走，也会被对外输出的位图一并收进去），
+                 原文右上角落一枚紫点（transDotHit ⊃ transDot，由代码按身份重算位置）。
+                 鼠标**悬浮**紫点 → 译文气泡（TranslateBubble）自紫点下方展开、小方角指向紫点；
+                 移开 → 延时 180ms 收起（延时是为了让指针走完紫点与气泡之间那道空隙，见代码 ScheduleBubbleHide）。
+                 气泡左上角骑一枚红色圆形 ✕（TranslateBubbleClose）→ 点它清除**这一条**标记（紫线、紫点、气泡与在飞的请求）。
+                 🔴 标记是持久的：失活、点贴图别处、Esc、重新划选都**不**退场，多段翻译可并存；
+                    只有点红 ✕（或贴图关闭）才清除。Esc 因此恢复"关贴图"原语义，不再被翻译态抢走一级。
+                 🔴 紫线画在装饰层且不吃命中；紫点层本身不铺底（Canvas 无 Background ⇒ 空白处不参与命中），
+                    只有那几枚 16×16 透明命中盒吃指针——既不挡下一轮划词与拖动，又能被悬浮到。
+                 🔴 紫点／气泡／红 ✕ 都吃命中，故按下通路必须把这三件当作"点了浮条上"整条早退（同浮条那条 Tunnel 红线）。
+                 三件声明顺序＝Z序：紫点层(Z11) < 气泡小方角(Z0，被气泡压住只露半个菱形) < 气泡(Z12) < 红 ✕(Z13)。 -->
+            <Canvas x:Name="TranslateDotLayer" ZIndex="11" />
+            <!-- 气泡顶缘的小方角：与气泡同批定位，声明在气泡**之前**让下半截被气泡压住、只露半个菱形。
+                 背景取内板色（SctPanelBrush）——它盖在外环那圈 1px 上，读作"内板缺角"而非独立元素。 -->
+            <Border x:Name="TranslateBubbleCaret"
+                    Width="9" Height="9" CornerRadius="2"
+                    Background="{DynamicResource SctStickerOverlayPlateBrush}"
+                    RenderTransform="rotate(45deg)"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Opacity="0" IsHitTestVisible="False" />
+            <!-- 译文气泡：皮与浮条同一对（外环 ⊃ 内板）。加载态＝呼吸点＋文案；译文 13px 最多 4 行省略
+                 （与既有翻译浮窗口径一致）；角标行＝语言对＋服务商＋复制。错误文案染危险色
+                 （translationBarError 类，样式见文件头）。
+                 🔴 悬浮事件挂在气泡自己身上：指针从紫点移进气泡的途中不能让它收掉，否则「复制」永远点不到。 -->
+            <controls:ContinuousBorder x:Name="TranslateBubble"
+                    Classes="selectionFloatBar"
+                    CornerRadius="{DynamicResource SctRadiusControl}"
+                    Background="{DynamicResource SctStickerOverlayFrameBrush}"
+                    Opacity="0"
+                    IsHitTestVisible="False"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    PointerEntered="OnTranslateBubblePointerEntered"
+                    PointerExited="OnTranslateBubblePointerExited"
+                    ZIndex="12">
+                <controls:ContinuousBorder Classes="selectionFloatBarPlate" Padding="10,8"
+                        CornerRadius="{DynamicResource SctRadiusSegmentInner}" Background="{DynamicResource SctStickerOverlayPlateBrush}">
+                    <StackPanel Orientation="Vertical" Spacing="6">
+                        <StackPanel x:Name="TranslateLoadingRow" Orientation="Horizontal" Spacing="8">
+                            <Ellipse Classes="translatingDot"
+                                     Width="8" Height="8"
+                                     VerticalAlignment="Center"
+                                     Fill="{DynamicResource SctAccentBrush}" />
+                            <TextBlock x:Name="TranslateLoadingText"
+                                       Text="翻译中…"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SctStickerOverlayMutedBrush}" />
+                        </StackPanel>
+                        <TextBlock x:Name="TranslateBubbleText"
+                                   Classes="translationBarText"
+                                   FontSize="13"
+                                   MaxLines="4"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   IsVisible="False" />
+                        <StackPanel x:Name="TranslateMetaRow" Orientation="Horizontal" Spacing="10" IsVisible="False">
+                            <TextBlock x:Name="TranslateMetaText"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SctStickerOverlayMutedBrush}" />
+                            <TextBlock x:Name="TranslateCopyButton"
+                                       Text="复制"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Cursor="Hand"
+                                       Foreground="{DynamicResource SctAccentBrush}"
+                                       Tapped="OnTranslateCopyTapped" />
+                        </StackPanel>
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </controls:ContinuousBorder>
+            <!-- 气泡左上角那枚红色圆形关闭 ✕：骑在角上（各压一半），位置由代码随气泡一起摆。
+                 ZIndex 全场最高，气泡翻到紫点上方时也不被遮。它也挂同一对悬浮事件——
+                 它有一半在气泡外，不挂的话指针移过去会先触发气泡的 PointerExited 把整组收掉。
+                 ✕ 走描边图标 CloseStroke（单色 SVG，白色由 SctTitleBarCloseTextBrush 给，禁 emoji）。 -->
+            <Button x:Name="TranslateBubbleClose"
+                    Classes="transBubbleClose"
+                    Opacity="0"
+                    IsHitTestVisible="False"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Click="OnTranslateBubbleCloseClick"
+                    PointerEntered="OnTranslateBubblePointerEntered"
+                    PointerExited="OnTranslateBubblePointerExited"
+                    ToolTip.Tip="清除这条翻译标记"
+                    ZIndex="13">
+                <Path Data="{x:Static local:OcrIconGeometry.CloseStroke}"
+                      Stroke="{DynamicResource SctTitleBarCloseTextBrush}"
+                      StrokeThickness="2.4"
+                      StrokeLineCap="Round"
+                      Width="8" Height="8"
+                      Stretch="Uniform" />
+            </Button>
+        </Canvas>
+    </Grid>
+</Window>

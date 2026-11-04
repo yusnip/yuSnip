@@ -1,0 +1,136 @@
+{
+  "checked": "2026-10-11",
+  "files": [
+    {
+      "file": "SkiaSharp.txt",
+      "source": "skiasharp/2.88.9",
+      "kind": "NuGet package",
+      "sha256": "63282c9ebe566b117582d0322b06d68fd7916965c91f71577c8dc024b87c58d2"
+    },
+    {
+      "file": "HarfBuzzSharp.txt",
+      "source": "harfbuzzsharp/7.3.0.3",
+      "kind": "NuGet package",
+      "sha256": "63282c9ebe566b117582d0322b06d68fd7916965c91f71577c8dc024b87c58d2"
+    },
+    {
+      "file": "ANGLE.txt",
+      "source": "avalonia.angle.windows.natives/2.1.22045.20230930",
+      "kind": "NuGet package",
+      "sha256": "32fd93a87b4e7311c5f49209dad83336d0983a62b6c74e05fcf183d2700f3c01"
+    },
+    {
+      "file": "ONNXRuntime.txt",
+      "source": "microsoft.ml.onnxruntime/1.22.1",
+      "kind": "NuGet package",
+      "sha256": "89bd0a753d95a91614b879cef0183c1422394b4abcc66ea4a207935df626d24f"
+    },
+    {
+      "file": "DotNet.txt",
+      "source": "system.drawing.common/8.0.27",
+      "kind": "NuGet package",
+      "sha256": "49545f2294ccf3107db22322b6b179d605b6128439ec35d66c25565668aea3a1"
+    },
+    {
+      "file": "AreaCity.txt",
+      "source": "Assets/Weather/AreaCity-LICENSE.txt",
+      "kind": "existing attribution",
+      "sha256": "1f973bafdf4edbb0b1e6c8005d4d0cc70160752904e9440f69f59427c885c5e2"
+    },
+    {
+      "file": "Avalonia.txt",
+      "source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/11.2.8/licence.md",
+      "kind": "upstream license snapshot",
+      "sha256": "6c392bbefc6bfbee31527eb96728476a736342d30a829c0b02de0ae06b0831e2"
+    },
+    {
+      "file": "MicroCom.txt",
+      "source": "https://raw.githubusercontent.com/kekekeks/MicroCom/master/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "b37deb3c1aef4dad9dccfb56aba063012979fc8fd115ba7aad5215515d380cde"
+    },
+    {
+      "file": "Inter.txt",
+      "source": "https://raw.githubusercontent.com/rsms/inter/master/LICENSE.txt",
+      "kind": "upstream license snapshot",
+      "sha256": "b3195af0fb14368d1b3b10fb9d3fe503b7163ea083859d2ee553bc74da07c320"
+    },
+    {
+      "file": "OpenCvSharp.txt",
+      "source": "https://raw.githubusercontent.com/shimat/opencvsharp/main/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "64736a7a64da32ba48dd1198894f3f6b9e42349861accf56ddebf298e0d839fb"
+    },
+    {
+      "file": "OpenCV.txt",
+      "source": "https://raw.githubusercontent.com/opencv/opencv/4.10.0/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5"
+    },
+    {
+      "file": "PaddleOCR.txt",
+      "source": "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/main/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "8ae60061cdd89d5b70a5d71b2816ecc0da0bee21947688bff4b39928512a45af"
+    },
+    {
+      "file": "MODNet.txt",
+      "source": "https://raw.githubusercontent.com/ZHKKKe/MODNet/master/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+    },
+    {
+      "file": "U2Net.txt",
+      "source": "https://raw.githubusercontent.com/xuebinqin/U-2-Net/master/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+    },
+    {
+      "file": "GPL-3.0.txt",
+      "source": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/master/COPYING.GPLv3",
+      "kind": "upstream license snapshot",
+      "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+    },
+    {
+      "file": "CC-BY-4.0.txt",
+      "source": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/CC-BY-4.0.txt",
+      "kind": "upstream license snapshot",
+      "sha256": "4500200b91acb1324538d8e8f9665d5f4142d3f1c5cd9730564cf1895b6170f7"
+    },
+    {
+      "file": "TmdsDBus.txt",
+      "source": "https://raw.githubusercontent.com/tmds/Tmds.DBus/main/COPYING",
+      "kind": "upstream license snapshot",
+      "sha256": "cf5f6ca0435560ec7399eba9ad7f270c8953589e678ce93662f144484fe272b2"
+    },
+    {
+      "file": "MaterialIcons.txt",
+      "source": "https://raw.githubusercontent.com/google/material-design-icons/master/LICENSE",
+      "kind": "upstream license snapshot",
+      "sha256": "49bbe9114e49214df2ccc324cb3ac8d1d1aa1c3a0947f94c286765e86647b32e"
+    },
+    {
+      "file": "FFmpeg.txt",
+      "source": "yuSnip attribution summary; primary URLs included in text",
+      "kind": "local attribution summary",
+      "sha256": "711df93b01516856a49927f277b3978211ce684a4d144d0d898dce4390d403d7"
+    },
+    {
+      "file": "OpenMeteo.txt",
+      "source": "yuSnip attribution summary; primary URLs included in text",
+      "kind": "local attribution summary",
+      "sha256": "e3d8c9a4ae1a6ad89da8d4046d50f3cf18b71dc4dd5bc77c6b949ee4ff39829e"
+    },
+    {
+      "file": "VCRuntime.txt",
+      "source": "yuSnip attribution summary; primary URLs included in text",
+      "kind": "local attribution summary",
+      "sha256": "e6cd04a9cdf22f243cad24d056820329f9b8c5e17fc236ee285f2075daf7eb9b"
+    }
+  ],
+  "notes": [
+    "DotNet.txt additionally includes runtime.win-x64.Microsoft.DotNet.ILCompiler/10.0.7/THIRD-PARTY-NOTICES.TXT.",
+    "FFmpeg.txt, OpenMeteo.txt and VCRuntime.txt are yuSnip attribution summaries, not original license agreements.",
+    "Some upstream snapshots use current branches; exact native-build notices and model conversion provenance remain release audit items."
+  ]
+}

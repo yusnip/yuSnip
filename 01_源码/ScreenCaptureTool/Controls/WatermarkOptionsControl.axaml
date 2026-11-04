@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.WatermarkOptionsControl">
+    <!--
+      水印参数条（2026-09-20 的「水印标注」那一轮，版式＝设计稿《水印标注-参数面板-方案对比》方案丙′ + D1）。
+      只在截图遮罩这一侧出现：水印盖在底图之上、所有标注之下，贴图拿到的干净底图本来就含水印，
+      故贴图标注浮窗不需要、也没有第二份这排控件（对照序号那种"两侧共用一个 UserControl"的形态）。
+
+      条上三段：内容 · 位置 · 一枚图标按钮（下挂「不透明度／大小／间距」三行）。
+      颜色不在这里——沿用参数条末段那组共用的标注色，与「无底序号」「文本」同一口径，不放第二份取色入口。
+      量程与默认值全部来自 Core 的 WatermarkConfig 常量，本文件不写数字（滑杆的 Minimum/Maximum 是
+      构造函数里从常量铺上去的，见 code-behind）。
+
+      ⚠ 间距那一行在**非平铺档整行禁用**（拍板第 4 条：角落/边居中位置没有密度可言，也不给它"内缩"
+      这第二种含义）。禁用态由 Grid 的 IsEnabled 给，压暗走全局样式 Grid.dimWhenDisabled:disabled（类挂在行上，
+      本文件不自造透明度）——不加这层皮，不能用的那一行和能用的一模一样，用户只会以为滑杆坏了。
+    -->
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <!-- ① 内容：水印唯一必须打字的地方，故左对齐（覆盖 toolVal 的居中）——一长串版权号居中会左右晃。
+             框宽按"紧凑"收：装不下的字用右侧那枚省略号位示意（Avalonia 的 TextBox 没有 TextTrimming，
+             判据在 code-behind 的 SyncOverflowHint）；整枚水印本来就实时画在遮罩上，不怕看不见全串 -->
+        <TextBox x:Name="ContentBox" Classes="toolVal" Width="110" TextAlignment="Left"
+                 Watermark="水印内容（留空不盖章）"
+                 ToolTip.Tip="水印文字：留空则不盖章，也不弹提示">
+                    <TextBox.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></TextBox.Styles>
+            <TextBox.InnerRightContent>
+                <TextBlock x:Name="OverflowHint" Text="…" Width="12" IsVisible="False"
+                           Foreground="{DynamicResource SctTextMutedBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </TextBox.InnerRightContent>
+        </TextBox>
+
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+        <!-- ② 位置：§6.12 唯一菜单配方，八档条目由 code-behind 按 WatermarkPosition 枚举现铺
+             （档名取自 Core 的 DisplayName，加一档只改枚举）。按钮上写当前档名，条上永远看得见是哪一档 -->
+        <Button x:Name="BtnPosition" Classes="tool" ToolTip.Tip="水印位置">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtPosition" Text="平铺" VerticalAlignment="Center" />
+                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+            </StackPanel>
+        </Button>
+
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+        <!-- ③ 一枚图标按钮挂三行参数——这形态条上早有（画笔那格的「笔迹」按钮），
+             面板皮与「文本 → 填充」菜单逐值相同（Border.textPopupPanel + 48,*,30 行栅格） -->
+        <Grid>
+            <Button x:Name="BtnAdvanced" Classes="toolIcon outlined" ToolTip.Tip="不透明度、大小与间距"
+                    Click="OnAdvancedClick">
+                <Path Classes="icon" Data="M4,7 H20 M4,12 H14 M4,17 H10 M18,14.4 A2.6,2.6 0 1 0 18,19.6 A2.6,2.6 0 1 0 18,14.4 Z" />
+            </Button>
+            <!-- ⚠ 轻点关闭一律**不开**（全项目其它标注面板也没开）：Avalonia 的 light dismiss 是"关掉这层、
+                 并把这一下透传给下面的可视元素"，而本窗口是全屏遮罩——透传下去就是挪选区／另起新框。
+                 面板内那些没被任何控件消费掉的一下（例如非平铺档整行置灰的「间距」）尤其容易踩中这条路。
+                 收面板改走 code-behind 的窗口根 Tunnel 预捕获：只收起、不吞事件，与笔迹两枚菜单同一配方。 -->
+            <Popup x:Name="AdvancedPopup" PlacementTarget="{Binding #BtnAdvanced}"
+                   Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="4">
+                <controls:ContinuousBorder x:Name="AdvancedPanel" Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                    <StackPanel Width="210" Spacing="6">
+                        <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                            <TextBlock Text="透明" Classes="secondary" VerticalAlignment="Center"
+                                       ToolTip.Tip="整枚水印的不透明度：5–100%，最低 5% 而不是 0，避免盖出完全看不见的东西" />
+                            <Slider x:Name="OpacitySlider" Grid.Column="1" Classes="compactSlider"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" />
+                            <TextBlock x:Name="OpacityText" Grid.Column="2" Text="30" Height="28" LineHeight="28"
+                                       TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                            <TextBlock Text="大小" Classes="secondary" VerticalAlignment="Center"
+                                       ToolTip.Tip="字高，按成品图像像素算：2 倍缩放屏上截的图，水印相对画面一样大" />
+                            <Slider x:Name="SizeSlider" Grid.Column="1" Classes="compactSlider"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" />
+                            <TextBlock x:Name="SizeText" Grid.Column="2" Text="24" Height="28" LineHeight="28"
+                                       TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid x:Name="SpacingRow" Classes="dimWhenDisabled" ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                            <TextBlock Text="间距" Classes="secondary" VerticalAlignment="Center"
+                                       ToolTip.Tip="只作用在平铺档：100%＝一格正好装下一个水印，越大越稀" />
+                            <Slider x:Name="SpacingSlider" Grid.Column="1" Classes="compactSlider"
+                                    TickFrequency="10" IsSnapToTickEnabled="True" />
+                            <TextBlock x:Name="SpacingText" Grid.Column="2" Text="300" Height="28" LineHeight="28"
+                                       TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </Popup>
+        </Grid>
+    </StackPanel>
+</UserControl>

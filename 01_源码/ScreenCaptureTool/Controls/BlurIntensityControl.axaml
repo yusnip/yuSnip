@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.BlurIntensityControl">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Button x:Name="BlurButton" Classes="toolIcon" ToolTip.Tip="模糊" Click="OnBlurClick">
+            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="M12,2.5c-3.5,0-8,6-8,10.5c0,4.4,3.6,8,8,8s8-3.6,8-8C20,8.5,15.5,2.5,12,2.5z" />
+        </Button>
+        <Button x:Name="MosaicButton" Classes="toolIcon" ToolTip.Tip="马赛克" Click="OnMosaicClick">
+            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="M725.333333 78.933333A219.733333 219.733333 0 0 1 945.066667 298.666667v426.666666A219.733333 219.733333 0 0 1 725.333333 945.066667H298.666667A219.733333 219.733333 0 0 1 78.933333 725.333333V298.666667A219.733333 219.733333 0 0 1 298.666667 78.933333h426.666666z m-213.333333 98.090667L298.666667 177.066667A121.6 121.6 0 0 0 177.066667 298.666667l-0.042667 213.333333H512l-0.042667 334.933333H725.333333A121.6 121.6 0 0 0 846.933333 725.333333v-213.333333H512V177.024z" />
+        </Button>
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+        <TextBlock Text="强度" VerticalAlignment="Center" Classes="secondary" Margin="1,0,3,0" />
+        <Slider x:Name="IntensitySlider" Classes="compactSlider" Width="76" Minimum="1" Maximum="30" Value="10"
+                TickFrequency="1" IsSnapToTickEnabled="True" />
+        <TextBlock x:Name="IntensityText" Text="10" Width="24" Height="28" LineHeight="28"
+                   TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+    </StackPanel>
+</UserControl>

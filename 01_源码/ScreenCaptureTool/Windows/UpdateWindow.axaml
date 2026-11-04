@@ -1,0 +1,165 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.UpdateWindow"
+        Icon="/Assets/Black.ico"
+        Title="软件更新 - yuSnip"
+        Width="480" MinHeight="220"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14">
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <!-- 业务尺寸沿用旧更新窗：34 高、108 宽下限；颜色与状态复用共享按钮。 -->
+        <Style Selector="Button.updateAction">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinWidth" Value="108" />
+        </Style>
+        <Style Selector="Button.updateAction.primary">
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <!-- 进度条维持原高度与 pill 语义，不改状态逻辑。 -->
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+        <Style Selector="Border.statusBadge">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 系统负责窗口曲率与阴影；各状态布局保持原样。 -->
+    <Border Background="{DynamicResource SctBackgroundBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="40,Auto,Auto">
+
+            <!-- ════ 自绘标题栏 ════ -->
+            <Border Grid.Row="0" Background="{DynamicResource SctTitleBarBrush}" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Column="0" Text="软件更新" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" Margin="16,0,0,0" />
+                    <Button Grid.Column="2" Classes="titleIcon" CornerRadius="{DynamicResource SctRadiusControl}" AutomationProperties.Name="关闭"
+                            ToolTip.Tip="关闭" Click="OnCloseClick" Margin="0,0,4,0">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static win:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ════ 内容区 ════ -->
+            <Border Grid.Row="1" Background="{DynamicResource SctBackgroundBrush}" Padding="24,18,24,20">
+                <StackPanel Spacing="14">
+                    <!-- 头部：Logo + 当前版本 -->
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Image x:Name="ImgLogo" Width="40" Height="40" VerticalAlignment="Center" />
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="yuSnip" FontSize="18" FontWeight="Bold"
+                                       Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                            <TextBlock x:Name="TxtCurrentVersion" Classes="muted" FontSize="12" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 检查中 -->
+                    <StackPanel x:Name="PanelChecking" Spacing="12" MinHeight="96" IsVisible="True"
+                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="220" Height="4" />
+                        <TextBlock Text="正在检查更新…" Classes="muted" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- 发现新版本 -->
+                    <StackPanel x:Name="PanelAvailable" Spacing="12" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="发现新版本" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                                <TextBlock x:Name="TxtNewVersion" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource SctAccentBrush}" />
+                            </StackPanel>
+                            <TextBlock x:Name="TxtUpdateDate" Grid.Column="1" Classes="muted" FontSize="12"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                        <controls:ContinuousBorder Background="{DynamicResource SctInputBgBrush}" CornerRadius="{DynamicResource SctRadiusControl}" Padding="12,10"
+                                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1">
+                            <ScrollViewer MaxHeight="220">
+                                <controls:SelectableMarkdownTextBlock x:Name="TxtChangelog" BaseFontSize="13" />
+                            </ScrollViewer>
+                        </controls:ContinuousBorder>
+                    </StackPanel>
+
+                    <!-- 已是最新 -->
+                    <StackPanel x:Name="PanelNoUpdate" Spacing="8" MinHeight="96" IsVisible="False"
+                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border Classes="statusBadge" Background="{DynamicResource SctOkBgBrush}">
+                            <Path Classes="workspaceIcon" Width="24" Height="24" Data="{x:Static win:WorkspaceIconGeometry.Check}"
+                                  Stroke="{DynamicResource SctOkBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="已是最新版本" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="TxtNoUpdateHint" Classes="muted" FontSize="12" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- 下载中 -->
+                    <StackPanel x:Name="PanelDownloading" Spacing="12" MinHeight="96" IsVisible="False"
+                                VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtDownloadStatus" Text="正在下载更新…" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                        <ProgressBar x:Name="PbDownload" Height="6" Minimum="0" Maximum="100" />
+                        <TextBlock x:Name="TxtDownloadDetail" Classes="muted" FontSize="12" />
+                    </StackPanel>
+
+                    <!-- 下载完成：等待重启软件 -->
+                    <StackPanel x:Name="PanelReady" Spacing="8" MinHeight="96" IsVisible="False"
+                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border Classes="statusBadge" Background="{DynamicResource SctOkBgBrush}">
+                            <Path Classes="workspaceIcon" Width="24" Height="24" Data="{x:Static win:WorkspaceIconGeometry.Check}"
+                                  Stroke="{DynamicResource SctOkBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="下载完成，重启软件后生效" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="TxtReadyHint" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                                   HorizontalAlignment="Center" TextAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- 出错 -->
+                    <StackPanel x:Name="PanelError" Spacing="8" MinHeight="96" IsVisible="False"
+                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border Classes="statusBadge" Background="{DynamicResource SctDangerBgBrush}">
+                            <Path Width="24" Height="24" Stretch="Uniform" Data="{x:Static win:OcrIconGeometry.ErrorCircle}"
+                                  Fill="{DynamicResource SctDangerBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="更新失败" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="TxtError" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                                   MaxWidth="400" TextAlignment="Center" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ════ 底部按钮区 ════ -->
+            <Border Grid.Row="2" Background="{DynamicResource SctBackgroundBrush}" Padding="24,0,24,20">
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button x:Name="BtnCancel" Classes="secondary updateAction" Content="取消下载" IsVisible="False" Click="OnCancelClick" />
+                    <Button x:Name="BtnRetry" Classes="secondary updateAction" Content="重试" IsVisible="False" Click="OnRetryClick" />
+                    <Button x:Name="BtnLater" Classes="secondary updateAction" Content="稍后提醒" IsVisible="False" Click="OnCloseClick" />
+                    <Button x:Name="BtnUpdate" Classes="primary updateAction" Content="立即更新" IsVisible="False" Click="OnUpdateClick" />
+                    <Button x:Name="BtnRestart" Classes="primary updateAction" Content="立即重启软件" IsVisible="False" Click="OnRestartClick" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

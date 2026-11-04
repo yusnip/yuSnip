@@ -1,0 +1,347 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             x:Class="ScreenCaptureTool.Controls.AnnotationToolbar">
+    <UserControl.Styles>
+        <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+    </UserControl.Styles>
+    <!--
+      贴图标注浮窗工具栏：与截图窗口 CaptureWindow.axaml 的 ActionBar / ToolOptionsBar / ToolOptionsArrow
+      同一套容器配方（连续外环 R20+1px、内板 R19+Padding 8,4+MinHeight 42、两栏间距 6、箭头 14×7）
+      和同一套逐工具显隐规则（照抄 ShowToolOptions()）。
+      唯一刻意不照抄的是投影：截图那条栏铺满屏宽、压在变暗遮罩上，属界面内部栏；本控件是脱离窗口的
+      独立浮窗，按设计规范 §3.6 必须走浮层档 0 6 20 #38000000，用截图那两档 20%/15% 等于没有阴影。
+      主工具栏改版时请同步本文件——这条"两处一一对应"的约定记录在 docs/设计规范.md。
+      贴图侧只减不增：去掉 AI识图/长截图/OCR/翻译/贴图/保存/取消/完成；不设重做（只留撤销）；
+      马赛克的"手动/自动"因贴图无自动识别链路而省略。
+    -->
+    <!--
+      四周的 12/20/20/26 是**阴影余量**，不是留白：Avalonia 的 BoxShadow 光晕只画在父级 Panel 自己的
+      矩形内（实测：余量放本控件之外的宿主 Border 时，窗口边界处仍被切成一条硬边；把同样的余量改垫进
+      本 Grid 的行列，光晕立刻完整出来）。所以余量必须由根 Grid 的行列表持有，宿主不能再另加缓冲。
+      数值取自浮层档 0 6 20 的包络：左/右 ≥20、下 ≥26（20+6）、上 ≥14，上沿取 12 是因为它同时充当
+      "工具栏与贴图下沿的可见间距"（见 StickerAnnotationPaletteWindow.PositionNearSticker），
+      实测上沿光晕在第 8 行就淡到 254/255，12 已无可视损失。改数值请同步 AnnotationToolbar.ShadowInset。
+    -->
+    <Grid x:Name="Root"
+          RowDefinitions="12,Auto,6,Auto,26"
+          ColumnDefinitions="20,Auto,20">
+
+        <!-- ① 图标条 -->
+        <controls:ContinuousBorder x:Name="IconBar"
+                Grid.Row="1"
+                Grid.Column="1"
+                HorizontalAlignment="Left"
+                Background="{DynamicResource SctControlBarOuterBrush}"
+                CornerRadius="{DynamicResource SctRadiusToolbar}"
+                Padding="1"
+                BoxShadow="{DynamicResource SctShadowOverlay}">
+            <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                    CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                    Padding="8,4"
+                    MinHeight="42">
+                <StackPanel x:Name="Tools" Orientation="Horizontal" VerticalAlignment="Center">
+                    <controls:AnnotationToolButton ToolKey="mosaic" ToolTip.Tip="马赛克 / 模糊" Click="OnToolClick" />
+                    <controls:AnnotationToolButton ToolKey="spotlight" ToolTip.Tip="聚光灯" Click="OnToolClick" />
+                    <Border Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                    <controls:AnnotationToolButton ToolKey="brush" ToolTip.Tip="画笔" Click="OnToolClick" />
+                    <controls:AnnotationToolButton ToolKey="arrow" ToolTip.Tip="箭头" Click="OnToolClick" />
+                    <controls:AnnotationToolButton ToolKey="text" ToolTip.Tip="文本" Click="OnToolClick" />
+                    <controls:AnnotationToolButton ToolKey="rectangle" ToolTip.Tip="形状" Click="OnToolClick" />
+                    <controls:AnnotationToolButton ToolKey="counter" ToolTip.Tip="序号" Click="OnToolClick" />
+                    <controls:AnnotationToolButton x:Name="EraserButton" ToolKey="eraser" ToolTip.Tip="橡皮擦：局部擦除标注" Click="OnToolClick" />
+                    <controls:AnnotationToolButton ToolKey="clearall" ToolTip.Tip="清除全部标注" Click="OnToolClick" />
+                    <controls:AnnotationToolButton x:Name="UndoButton" ToolKey="undo" ToolTip.Tip="撤销" IsEnabled="False" Click="OnToolClick" />
+                </StackPanel>
+            </controls:ContinuousBorder>
+        </controls:ContinuousBorder>
+
+        <!-- ② 参数条：未选工具时整体隐藏 -->
+        <controls:ContinuousBorder x:Name="OptionsBar"
+                Grid.Row="3"
+                Grid.Column="1"
+                IsVisible="False"
+                HorizontalAlignment="Left"
+                Background="{DynamicResource SctControlBarOuterBrush}"
+                CornerRadius="{DynamicResource SctRadiusToolbar}"
+                Padding="1"
+                BoxShadow="{DynamicResource SctShadowOverlay}">
+            <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                    CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                    Padding="8,4"
+                    MinHeight="42">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="0">
+                    <StackPanel x:Name="BrushOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                        <Button x:Name="BtnBrushLineStyle" Classes="tool" Width="62" ToolTip.Tip="画笔线型：实线" Click="OnBrushLineStyleClick">
+                            <Grid Width="46" Height="20" VerticalAlignment="Center">
+                                <Line x:Name="BrushLineStylePreview" StartPoint="2,10" EndPoint="32,10" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" />
+                                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Button>
+                        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                        <controls:BrushOpacityControl x:Name="BrushOptions" />
+                        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                        <Button x:Name="BtnBrushAdvanced" Classes="toolIcon" ToolTip.Tip="笔迹：等宽（笔锋关闭）" Click="OnBrushAdvancedClick">
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="M20.5,3.5a2.1,2.1 0 0,0 -3,0l-3.2,3.2 4.5,4.5 3.2,-3.2a2.1,2.1 0 0,0 0,-3l-1.5,-1.5z M13.2,7.8L9.5,11.5l4.5,4.5 3.7,-3.7 -4.5,-4.5z M8.2,12.8l-1.8,5a0.8,0.8 0 0,0 1,1l5,-1.8 -4.2,-4.2z M4,19c2.5,-1.5 5,-1.2 7,-0.2l0.8,-1.8C9.3,15.8 6,15.5 3,17.5a1,1 0 0,0 1,1.5z" />
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel x:Name="ArrowOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                        <Button x:Name="BtnArrowStyle" Classes="tool" MinWidth="62" ToolTip.Tip="箭头样式">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <controls:ArrowHeadSwatch x:Name="ArrowStyleSwatch" Width="40" Height="16" DoubleHead="True" />
+                                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel x:Name="RectangleOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                        <Button x:Name="BtnShapeKind" Classes="toolIcon" ToolTip.Tip="形状：矩形" Click="OnShapeKindClick">
+                            <Path x:Name="ShapeKindPreview" Classes="icon" Data="M7,4 H17 A3,3 0 0 1 20,7 V17 A3,3 0 0 1 17,20 H7 A3,3 0 0 1 4,17 V7 A3,3 0 0 1 7,4 Z" Width="14" Height="14" />
+                        </Button>
+                        <Button x:Name="BtnShapeLineStyle" Classes="tool" Width="62" ToolTip.Tip="形状线型：实线" Click="OnShapeLineStyleClick">
+                            <Grid Width="46" Height="20" VerticalAlignment="Center">
+                                <Line x:Name="ShapeLineStylePreview" StartPoint="2,10" EndPoint="32,10" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" />
+                                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Button>
+                        <!-- 圆角滑块已拆除（2026-09-12「圆角滑块退役」），画布四角手柄亦于 2026-09-18 退役：
+                             圆角一律在「选中后元素上方浮出的圆角浮条」上调。下面这组是形状填充档（2026-09-18）。 -->
+                        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                        <controls:ShapeFillControl x:Name="ShapeFillOptions" />
+                    </StackPanel>
+
+                    <!-- 贴图无自动识别链路，故只保留共享的模糊/马赛克与强度 -->
+                    <StackPanel x:Name="MosaicOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                        <controls:BlurIntensityControl x:Name="BlurOptions" ModeChanged="OnBlurModeChanged" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="SpotlightOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                        <controls:SpotlightOptionsControl x:Name="SpotlightOptions" KindChanged="OnSpotlightKindChanged" StrokeAdjusted="OnSpotlightStrokeAdjusted" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="CounterOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center" Height="28">
+                        <!-- AllowFlipUp=False：贴图侧浮层一律"越界只夹不翻边"（与主工具栏/参数条同一口径），
+                             故样式工具栏恒弹在「样式」按钮下方，不像截图遮罩那样在贴屏幕底部时翻到上方。 -->
+                        <controls:CounterOptionsControl x:Name="CounterOptions" AllowFlipUp="False" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="EraserOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center" Spacing="8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <controls:AnnotationToolButton x:Name="BtnEraserRectangle" ToolKey="eraserRectangle" Classes="active" ToolTip.Tip="矩形擦除" Click="OnEraserRectangleClick" />
+                            <controls:AnnotationToolButton x:Name="BtnEraserBrush" ToolKey="brush" ToolTip.Tip="画笔擦除" Click="OnEraserBrushClick" />
+                        </StackPanel>
+                        <StackPanel x:Name="EraserBrushSizePanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False" Spacing="8">
+                            <TextBlock Text="大小" Classes="secondary" VerticalAlignment="Center" />
+                            <Slider x:Name="SliderEraserSize" Classes="compactSlider" Width="112" Minimum="8" Maximum="96" Value="28" IsSnapToTickEnabled="True" TickFrequency="2" ValueChanged="OnEraserSizeChanged" />
+                            <TextBlock x:Name="EraserSizeValue" Text="28" MinWidth="24" TextAlignment="Right" Classes="secondary" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" VerticalAlignment="Center" />
+                        <controls:AnnotationToolButton ToolKey="clearall" ToolTip.Tip="清除全部标注，可撤销" Click="OnClearAllAnnotationsClick" />
+                    </StackPanel>
+
+                    <!-- 文本参数面板：**逐字复刻** CaptureWindow.axaml 的 TextToolsPanel（含两枚 Popup）。
+                         ⚠ 这里每一个 x:Name 都必须与截图侧同名同类型——TextAnnotationController.InitTextToolControls
+                         按名抓取控件，改名或漏名不会报错，只会让对应参数静默失效。两侧同步义务见 docs/设计规范.md §7.5。
+                         截图侧 TextSizeHost 的字号下拉是代码自建的 MenuFlyout（EnsureTextSizeMenu），故 XAML 里没有它。 -->
+                    <StackPanel x:Name="TextToolsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center" Spacing="3">
+                        <!-- 字号（滚轮调整）。格距一律由容器 Spacing 给，子项自身不再带 Margin：
+                             原先 4,0 与样式默认的 4,0 叠出 8/9/12 三种间距混在一起，看着就是"不对等"。 -->
+                        <Grid x:Name="TextSizeHost" Margin="0" Background="Transparent">
+                            <controls:ContinuousBorder BorderBrush="{DynamicResource SctBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource SctRadiusToolButton}" Height="28" Width="72" Padding="0" Background="Transparent" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="字号" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <TextBlock x:Name="TextSizeValueText" Text="24" MinWidth="32" TextAlignment="Center" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </controls:ContinuousBorder>
+                        </Grid>
+
+                        <Rectangle Width="1" Height="20" Fill="{DynamicResource SctSeparatorBrush}" Margin="0" />
+
+                        <!-- 粗体 -->
+                        <Button x:Name="BtnTextBold" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="粗体" Click="OnTextBoldClick">
+                            <Path Classes="icon" Data="M7,4 H13 A4,4 0 0 1 17,8 A4,4 0 0 1 13,12 A4,4 0 0 1 17,16 A4,4 0 0 1 13,20 H7 Z M7,12 H13 M10,12 V20 M10,4 V12" Width="14" Height="14" />
+                        </Button>
+                        <!-- 斜体 -->
+                        <Button x:Name="BtnTextItalic" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="斜体" Click="OnTextItalicClick">
+                            <Path Classes="icon" Data="M10,4 H16 M8,20 H14 M13,4 L11,20" Width="14" Height="14" />
+                        </Button>
+
+                        <!-- 描边 + Popup -->
+                        <Grid Margin="0">
+                            <Button x:Name="BtnTextStroke" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="描边" Click="OnTextStrokeClick">
+                                <Path Classes="icon" Data="M5,20 L9,6 A3,3 0 0 1 15,6 L19,20 H16 L15,17 H9 L8,20 H5 Z M12,9 L10.5,14 H13.5 Z" Width="14" Height="14" />
+                            </Button>
+                            <Popup x:Name="TextStrokePopup" PlacementTarget="{Binding #BtnTextStroke}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="-12" HorizontalOffset="-16">
+                                <Border Padding="16" Background="Transparent">
+                                    <controls:ContinuousBorder Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                                        <StackPanel Width="198" Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                <CheckBox x:Name="ChkStrokeEnable" Content="描边" IsChecked="False" VerticalAlignment="Center" Focusable="False" />
+                                                <Border Grid.Column="1" Classes="segmentedHost">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button x:Name="BtnTargetStrokeColor" Classes="textSegment" Content="描边" Tag="2" Click="OnColorTargetButtonClick" />
+                                                        <Button x:Name="BtnTargetStrokeText" Classes="textSegment" Content="文字" Tag="0" Click="OnColorTargetButtonClick" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="44,*,28" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="大小" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderStrokeSize" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="30" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextStrokeSizeValue" Grid.Column="2" Text="4" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <!-- 填充背景 ToggleButton + Popup -->
+                        <Grid Margin="0">
+                            <Button x:Name="BtnTextBackground" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="填充背景" Click="OnTextBackgroundClick">
+                                <!-- 外框 14＝与左邻三枚字形同一条墨迹带（那三枚实测墨迹高都是 14）；内字 11 是在框内留呼吸 -->
+                                <Grid Width="14" Height="14">
+                                    <Border BorderBrush="{DynamicResource SctIconBrush}" BorderThickness="1" CornerRadius="4" />
+                                    <Path Classes="icon" Data="M5,20 L10,6 A2,2 0 0 1 14,6 L19,20 M7.5,14 H16.5" Width="11" Height="11" />
+                                </Grid>
+                            </Button>
+                            <Popup x:Name="TextBackgroundPopup" PlacementTarget="{Binding #BtnTextBackground}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="-12" HorizontalOffset="-16">
+                                <Border Padding="16" Background="Transparent">
+                                    <controls:ContinuousBorder Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                                        <StackPanel Width="210" Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                <CheckBox x:Name="ChkBackgroundEnable" Content="填充" IsChecked="False" VerticalAlignment="Center" Foreground="{DynamicResource SctTextPrimaryBrush}" Focusable="False" />
+                                                <Border Grid.Column="1" Classes="segmentedHost">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button x:Name="BtnTargetBackgroundColor" Classes="textSegment" Content="填充" Tag="1" Click="OnColorTargetButtonClick" />
+                                                        <Button x:Name="BtnTargetBackgroundText" Classes="textSegment" Content="文字" Tag="0" Click="OnColorTargetButtonClick" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="透明" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderFillOpacity" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="100" Value="100" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextFillOpacityValue" Grid.Column="2" Text="100" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="圆角" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderFillCorner" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="50" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextFillCornerValue" Grid.Column="2" Text="4" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="边距" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderFillPadding" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="30" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextFillPaddingValue" Grid.Column="2" Text="4" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </StackPanel>
+
+                    <Border x:Name="SepAfterStyle" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                    <StackPanel x:Name="CommonThicknessPanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False">
+                        <controls:StrokeThicknessControl x:Name="ThicknessOptions" WheelAdjusted="OnStrokeThicknessAdjusted" />
+                    </StackPanel>
+
+                    <Border x:Name="SepAfterSize" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                    <StackPanel x:Name="CommonColorPanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False">
+                        <controls:AnnotationColorControl x:Name="ColorOptions" />
+                    </StackPanel>
+
+                    <Border x:Name="SepBeforeClear" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                    <Button x:Name="BtnClearCurrentTool" Classes="toolIcon" ToolTip.Tip="清除当前工具标注" Click="OnClearCurrentToolClick">
+                        <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="17" Height="17" Data="M6,19c0,1.1,0.9,2,2,2h8c1.1,0,2-0.9,2-2V7H6V19z M19,4h-3.5l-1-1h-5l-1,1H5v2h14V4z" />
+                    </Button>
+                </StackPanel>
+            </controls:ContinuousBorder>
+        </controls:ContinuousBorder>
+
+        <!-- ③ 箭头：声明在最后才能盖住参数条顶边（截图里它是 ToolOptionsBar 的后续兄弟节点） -->
+        <Path x:Name="OptionsArrow"
+              Grid.Row="2"
+              Grid.Column="1"
+              IsVisible="False"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              Margin="0,2,0,0"
+              Width="14"
+              Height="7"
+              Data="M0,7 L7,0 L14,7 Z"
+              Fill="{DynamicResource SctPanelBrush}"
+              IsHitTestVisible="False" />
+
+        <!-- ④ 三枚菜单：与截图同一内容，截图用 Canvas 里的 Border，本控件用 Popup（浮窗只有工具栏大小，装不下菜单）
+             外层套一层 Padding=16 的透明缓冲 Border，避免 PopupRoot 边界直接剪掉 BoxShadow 阴影 -->
+        <Popup x:Name="BrushLineStylePopup"
+               PlacementTarget="{Binding #BtnBrushLineStyle}"
+               Placement="BottomEdgeAlignedRight"
+               VerticalOffset="-12"
+               HorizontalOffset="16"
+               IsLightDismissEnabled="False">
+            <Border Padding="16" Background="Transparent">
+                <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                        BorderBrush="{DynamicResource SctBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource SctRadiusToolPanel}"
+                        Padding="4"
+                        BoxShadow="0 4 14 0 #22000000">
+                    <StackPanel MinWidth="72">
+                        <Button x:Name="BtnBrushSolidItem" Classes="tool" Height="30" HorizontalContentAlignment="Center" Click="OnBrushSolidItemClick">
+                            <Grid Height="22">
+                                <Line StartPoint="4,11" EndPoint="62,11" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" />
+                            </Grid>
+                        </Button>
+                        <Button x:Name="BtnBrushDashItem" Classes="tool" Height="30" HorizontalContentAlignment="Center" Click="OnBrushDashItemClick">
+                            <Grid Height="22">
+                                <Line StartPoint="4,11" EndPoint="62,11" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" StrokeDashArray="3,2" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </Border>
+        </Popup>
+
+        <Popup x:Name="BrushAdvancedPopup"
+               PlacementTarget="{Binding #BtnBrushAdvanced}"
+               Placement="BottomEdgeAlignedRight"
+               VerticalOffset="-12"
+               HorizontalOffset="16"
+               IsLightDismissEnabled="False">
+            <Border Padding="16" Background="Transparent">
+                <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                        BorderBrush="{DynamicResource SctBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource SctRadiusToolPanel}"
+                        Padding="8,7"
+                        BoxShadow="0 4 14 0 #22000000">
+                    <StackPanel Width="232" Spacing="6">
+                        <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                            <TextBlock Text="强度" Classes="secondary" VerticalAlignment="Center" />
+                            <Slider x:Name="SliderBrushTaper" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="100" Value="35" TickFrequency="1" IsSnapToTickEnabled="True" ToolTip.Tip="笔锋强度：0 为等宽，越大则快慢带来的粗细差别越明显" />
+                            <TextBlock x:Name="TxtBrushTaper" Grid.Column="2" Text="35" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                            <TextBlock Text="平滑" Classes="secondary" VerticalAlignment="Center" />
+                            <Slider x:Name="SliderBrushSmoothing" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="100" Value="40" TickFrequency="1" IsSnapToTickEnabled="True" ToolTip.Tip="输入平滑：越大转折越圆滑，代价是笔迹跟手略迟" />
+                            <TextBlock x:Name="TxtBrushSmoothing" Grid.Column="2" Text="40" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                            <TextBlock Text="最细" Classes="secondary" VerticalAlignment="Center" />
+                            <Slider x:Name="SliderBrushMinWidth" Grid.Column="1" Classes="compactSlider" Minimum="5" Maximum="100" Value="25" TickFrequency="1" IsSnapToTickEnabled="True" ToolTip.Tip="笔锋最细处相对当前粗细的比例下限" />
+                            <TextBlock x:Name="TxtBrushMinWidth" Grid.Column="2" Text="25" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                        <TextBlock Text="速度笔锋：移动越快越细，强度滑至 0 即可等宽。"
+                                   Classes="secondary"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

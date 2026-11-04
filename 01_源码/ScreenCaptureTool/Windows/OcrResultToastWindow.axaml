@@ -1,0 +1,100 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        x:Class="ScreenCaptureTool.Windows.OcrResultToastWindow"
+        Title="OCR 识别结果"
+        Width="464"
+        SizeToContent="Height"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13"
+        PointerPressed="OnRootPointerPressed"
+        PointerEntered="OnRootPointerEntered"
+        PointerExited="OnRootPointerExited">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+    </Window.Styles>
+    <!-- OCR 静默复制提示卡（扁平一体化 · 发丝线分隔 · 无嵌套圆角容器）
+         头部：勾选图标 + 主标题 + 品牌色 "编辑" 徽标（SctBadge* Token）
+         分隔：1px SctSoftBorderBrush 发丝线
+         预览：弱化文字色，无边框 / 无内层容器
+         底部：2px 品牌紫倒计时进度条（ScaleTransform 缩放）
+         层级：ShadowHost 只是投影宿主——无底色、无边框、不裁剪，肉眼看不见这层；
+               RootCard 自己开 ClipToBounds（底部进度条的圆角裁剪要靠它），
+               阴影挂在它身上会被它自己的边界剪光，所以必须分开这一层 -->
+    <round:ContinuousBorder x:Name="ShadowHost"
+            Margin="26"
+            CornerRadius="{DynamicResource SctRadiusCard}"
+            BoxShadow="{DynamicResource SctShadowOverlay}">
+        <round:ContinuousBorder x:Name="RootCard"
+                Background="{DynamicResource SctCardFillBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource SctRadiusCard}"
+                ClipToBounds="True"
+                Cursor="Hand">
+            <Grid RowDefinitions="Auto,2">
+                <StackPanel Grid.Row="0" Margin="16,12">
+                    <!-- 状态行：勾选 + 标题 + 徽标 -->
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Path Grid.Column="0"
+                              Data="{x:Static win:OcrIconGeometry.Proof}"
+                              Width="14" Height="14"
+                              Stretch="Uniform"
+                              Fill="{DynamicResource SctAccentBrush}"
+                              Margin="0,0,8,0"
+                              VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="OCR 文本已复制到剪贴板"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <round:ContinuousBorder Grid.Column="2"
+                                Background="{DynamicResource SctBadgeBgBrush}"
+                                CornerRadius="{DynamicResource SctRadiusSmall}"
+                                Padding="7,1"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="编辑"
+                                       Foreground="{DynamicResource SctBadgeTextBrush}"
+                                       FontSize="11"
+                                       FontWeight="Medium" />
+                        </round:ContinuousBorder>
+                    </Grid>
+
+                    <!-- 发丝线 -->
+                    <Border Height="1"
+                            Background="{DynamicResource SctSoftBorderBrush}"
+                            Margin="0,10" />
+
+                    <!-- 预览：直接放卡片内，靠文字弱化色 + 字号建立层级 -->
+                    <TextBlock x:Name="TxtPreview"
+                               Foreground="{DynamicResource SctTextMutedBrush}"
+                               FontSize="12"
+                               LineHeight="19"
+                               TextWrapping="Wrap"
+                               MaxLines="3"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <!-- 倒计时进度条：外层 RootCard.ClipToBounds 自然裁圆角 -->
+                <Border x:Name="ProgressBar"
+                        Grid.Row="1"
+                        Background="{DynamicResource SctAccentBrush}"
+                        RenderTransformOrigin="0%,50%">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
+                </Border>
+            </Grid>
+        </round:ContinuousBorder>
+    </round:ContinuousBorder>
+</Window>

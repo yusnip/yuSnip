@@ -1,0 +1,131 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      「浮条」（选中元素后浮在它上方那条黑条）一族的基础样式：标签 / 数值 / 整组热区 / 悬浮底片 /
+      让位过渡 / 微调浮起层的五档刻度。
+
+      由谁引用：<c>SpotlightRadiusPill</c>（圆角浮条）与 <c>CounterPill</c>（序号浮条），两条各自
+      <c>&lt;StyleInclude&gt;</c> 进自己的 <c>UserControl.Styles</c>。
+      ⚠ 为什么不上提到 <c>App.Styles</c> 全局：这两条浮条有一条住在截图窗口里，而
+      <c>CaptureWindow.axaml</c> 的 <c>Window.Styles</c> 里另有一份**同选择器**的样式（服务选区参数条自己
+      那几格）。挂到全局之后，窗口那一份就以"更靠近元素"的名义盖掉全局那一份，改全局看不到效果、改窗口
+      只生效一半——正是设计规范里"声明顺序决定胜负"那条坑的远程版。放在控件级样式里，作用域恒等于
+      控件自己的后代，两侧宿主（截图窗口 / 贴图根网格）拿到的字节完全一样。
+
+      ⚠ 配色口径与选区参数条逐字一致：条底恒为 100% 不透明黑、不跟随应用明暗主题。
+    -->
+
+    <Style Selector="TextBlock.pillLabel">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="#B8FFFFFF" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.pillValue">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#FFFFFFFF" />
+        <!-- 定宽 + 右对齐：1 位 → 3 位那一档条宽会变，不定宽左缘会跟着抖 -->
+        <Setter Property="MinWidth" Value="20" />
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 参数组：整组（标签＋数值）都是按住拖动区与滚轮区，故给横向调整光标。
+         `Background` 必须是 `Transparent` 而**不能省**：`Background` 为 `null` 的 `Border`
+         不参与命中测试，整组的按住/滚轮热区会全部失效。放在样式里而不是内联，是为了让这一族的
+         基础属性只有一处（内联属 `LocalValue` 优先级，日后想按状态改底色就再也改不动）。 -->
+    <Style Selector="Border.pillGroup">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="SizeWestEast" />
+    </Style>
+
+    <!-- 可发现性：悬浮时整组浮出一层半透明底片。
+         ⚠ 底片必须是**独立一层 Border**、只过渡它的 `Opacity`——设计规范 §9 陷阱 9 明令禁止对
+         `Background` 做 `BrushTransition`（SolidColorBrush 的 ARGB 插值会滑出中段脏色）。 -->
+    <Style Selector="Border.pillChip">
+        <Setter Property="Background" Value="#1FFFFFFF" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.pillGroup:pointerover Border.pillChip">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+
+    <!-- 让位过渡：微调态下整条要暗下去，没有过渡会是一帧闪变。
+         ⚠ Avalonia 的选择器**不支持通配 `*`**（`> *` 会 AVLN2201 直接构建失败），故按直接子元素类型逐条写；
+         用直接子代 `>` 而不是后代空格，是为了不误伤内层模板里的 TextBlock。 -->
+    <Style Selector="StackPanel.pillContent > TextBlock">
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="StackPanel.pillContent > Border">
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <!-- 带按钮的宿主（序号浮条那四枚 − / + / A / ×）也要一起让位：只压暗文字与分隔线的话，
+         微调时整条暗了、按钮却全亮，看着像按钮被单独点亮。圆角浮条没有按钮，这两条对它空转。 -->
+    <Style Selector="StackPanel.pillContent > Button">
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="StackPanel.pillContent.fineDim > TextBlock">
+        <Setter Property="Opacity" Value="0.12" />
+    </Style>
+    <Style Selector="StackPanel.pillContent.fineDim > Border">
+        <Setter Property="Opacity" Value="0.12" />
+    </Style>
+    <Style Selector="StackPanel.pillContent.fineDim > Button">
+        <Setter Property="Opacity" Value="0.12" />
+    </Style>
+    <Style Selector="StackPanel.pillContent.fineDim > Border.pillGroup.active">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <!-- ⚠ 声明顺序红线：这条与上面 :pointerover 那条特异性相同，同优先级下后声明者胜出。
+         它必须排在 :pointerover 之后——微调态下指针就压在活动组上，不压掉底片会剩一个空壳。
+         标签与数值也一并让位给浮起数字：−1/−2 档是从被按数值向左排开的，
+         正好压在标签两个字的位置上，不隐掉会重叠。 -->
+    <Style Selector="Border.pillGroup.active Border.pillChip">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.pillGroup.active TextBlock.pillLabel">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.pillGroup.active TextBlock.pillValue">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+
+    <!-- 浮起层五档刻度。缩放与定位由 PillValueFineController 驱动：
+         缩放 = ScaleTransform + DoubleTransition（过渡与初始缩放都挂在控制器里，
+         这里**不能**写 RenderTransform，内联值会盖掉过渡的目标值）。
+         ⚠ 不要改成 Animation.RunAsync 驱动：Animation 会按属性挑 animator，
+         ScaleTransform.ScaleXProperty 挑中的 TransformAnimator 只接受 Visual，
+         对 ScaleTransform 实例必抛 InvalidCastException（2026-09-17 实机踩过）。 -->
+    <Style Selector="TextBlock.fineStep2">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#5CFFFFFF" />
+    </Style>
+    <Style Selector="TextBlock.fineStep1">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#99FFFFFF" />
+    </Style>
+    <Style Selector="TextBlock.fineCurrent">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+</Styles>

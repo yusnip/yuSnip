@@ -1,0 +1,163 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctrl="using:ScreenCaptureTool.Controls"
+             x:Class="ScreenCaptureTool.Controls.CounterOptionsControl">
+    <UserControl.Styles>
+        <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+    </UserControl.Styles>
+    <!--
+      序号工具的参数（2026-09-18 样式做减法那一轮，见设计稿《序号样式减法·参数条与样式菜单》第四稿）。
+      截图遮罩的参数条（CaptureWindow.axaml 的 CounterOptionsPanel）与贴图标注浮窗（AnnotationToolbar.axaml）
+      共用这一份——两套工具栏"逐值对应"是设计规范的同步义务。
+
+      版式：条上只剩**每画一个都要碰的**五段（样式 / 类型 / 起始 / 引线箭头 / 大小），段间 1×16 SctSeparatorBrush 发丝线。
+      「引线箭头」原位在最末，2026-09-19 按用户指令移到「起始」右边（它和起始值同属"这一颗怎么起"，大小放末段更顺手）。
+      描边宽、字体、引线粗细、说明字号这四项已不再有入口，一律走 AnnotationRenderOptions 的固定常量，
+      故原来的七行面板整个拆除，样式层只剩「形状 × 底色」这一排画出来的成品小样。
+      引线箭头在 2026-09-19 当天晚些时候重新拿到入口（「起始」右边那一格）：它与箭头标注工具共用同一份头型档
+      <c>ArrowAnnotationStyle</c> 与同一个下拉 <c>ArrowHeadStyleMenu</c>，不再是常量。
+      颜色仍不在这里——沿用工具栏已有的那组标注色，不放第二份。
+      ⚠ 三处下拉指示箭头一律 <c>Stretch="None"</c> 且路径按 8×8 盒子**居中**重写：Uniform 会把 8×4 的几何
+      贴到盒子上沿（离心的那 2 DIP 由盒子自己吃掉），实测比同行小样中线高 2.12 DIP（同一坑见 CounterPill 的「→」）。
+
+      样式层的皮就是 §7.5 那条工具栏（外环圆角 12 + Padding 1 + 投影 / 内板 SctPanelBrush 圆角 11 + Padding 8,4
+      + MinHeight 42 ⇒ 单条 44 DIP），并照同一配方用一枚 14×7 三角缝合箭钉在「样式」按钮下面，
+      箭头必须声明在栏体之后才盖得住那条 1px 上描边。
+      ⚠ 每枚小样自带一块 28×28 的样片底（SctPreviewStageBrush，§6.14：预览模拟的是"被截的那块屏幕"，
+      刻意与主题脱钩、浅深两态同色）——标注色可被用户改成白色，铺在内板上时"实心"两枚会整片消失。
+      样片块尺寸＝格子尺寸，不额外套任何容器，故 44 DIP 配方一点没动。
+
+      触发口径：**悬浮 250ms 即出、移开 400ms 收、点一下钉住**。
+      进延迟挡住路过闪现、出延迟让鼠标从按钮斜插进栏里不中断、点击给不习惯悬浮的人一个等价出口。
+    -->
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <!-- ① 样式：按钮内容就是当前样式的小样，改了立刻在按钮上看到，不用点开确认 -->
+        <Grid>
+            <Button x:Name="BtnStyle" Classes="tool" MinWidth="52" ToolTip.Tip="序号样式：形状与底色（悬浮即出，点击钉住）"
+                    Click="OnStyleButtonClick" PointerEntered="OnStyleHoverEntered" PointerExited="OnStyleHoverExited">
+                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                    <ctrl:CounterSwatch x:Name="CurrentSwatch" Width="18" Height="18" Radius="8" />
+                    <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+                </StackPanel>
+            </Button>
+
+            <!-- ⚠ PlacementConstraintAdjustment=None：翻边与夹取全部由本控件 ShowStyleBar 自己算
+                 （要连缝合箭的方向一起翻，框架那套只挪窗不翻箭，会指歪），故关掉框架的自动翻边/挪位。 -->
+            <Popup x:Name="StylePopup" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False"
+                   PlacementConstraintAdjustment="None">
+                <Grid x:Name="StylePopupHost">
+                    <controls:ContinuousBorder x:Name="StyleBar"
+                            Background="{DynamicResource SctControlBarOuterBrush}"
+                            CornerRadius="{DynamicResource SctRadiusToolbar}"
+                            Padding="1"
+                            BoxShadow="0 5 20 0 #26000000"
+                            PointerEntered="OnBarHoverEntered" PointerExited="OnBarHoverExited">
+                        <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                                CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                                Padding="8,4"
+                                MinHeight="42">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="Cell0" Classes="counterCell" Tag="0" ToolTip.Tip="圆形 · 实心" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch0" Width="20" Height="20" Radius="9" />
+                                </Button>
+                                <Button x:Name="Cell1" Classes="counterCell" Tag="1" ToolTip.Tip="圆形 · 描边" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch1" Width="20" Height="20" Radius="9" Glyph="Circle" Fill="Outline" />
+                                </Button>
+
+                                <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                                <Button x:Name="Cell2" Classes="counterCell" Tag="2" ToolTip.Tip="圆角方形 · 实心" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch2" Width="20" Height="20" Radius="9" Glyph="RoundedSquare" />
+                                </Button>
+                                <Button x:Name="Cell3" Classes="counterCell" Tag="3" ToolTip.Tip="圆角方形 · 描边" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch3" Width="20" Height="20" Radius="9" Glyph="RoundedSquare" Fill="Outline" />
+                                </Button>
+
+                                <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                                <Button x:Name="Cell4" Classes="counterCell" Tag="4" ToolTip.Tip="胶囊：随编号宽度撑长，两位数与 XIII 不被切字 · 实心" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch4" Width="20" Height="20" Radius="9" Glyph="Capsule" />
+                                </Button>
+                                <Button x:Name="Cell5" Classes="counterCell" Tag="5" ToolTip.Tip="胶囊 · 描边" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch5" Width="20" Height="20" Radius="9" Glyph="Capsule" Fill="Outline" />
+                                </Button>
+
+                                <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                                <!-- 无底只有一枚，不是三枚：源码里 Fill 只有实心/描边两支，无底档既不铺色底也不画轮廓，
+                                     圆 / 方 / 胶囊三枚"无底"画面上完全相同；形状仍参与几何（引线出射点、说明排布），
+                                     只是画面上没有反馈，故此档固定按圆走。 -->
+                                <Button x:Name="Cell6" Classes="counterCell" Tag="6" ToolTip.Tip="无底：只留编号文字（自带白色描边）" Click="OnStyleCellClick">
+                                    <ctrl:CounterSwatch x:Name="Swatch6" Width="20" Height="20" Radius="9" Fill="None" />
+                                </Button>
+                            </StackPanel>
+                        </controls:ContinuousBorder>
+                    </controls:ContinuousBorder>
+
+                    <!-- 缝合箭：与主工具栏/参数条同一枚（Fill 走内板色，不参与命中），声明在栏体之后才压得住那 1px 上描边 -->
+                    <Path x:Name="StyleBarArrow"
+                          Width="14"
+                          Height="7"
+                          Data="M0,7 L7,0 L14,7 Z"
+                          Fill="{DynamicResource SctPanelBrush}"
+                          IsHitTestVisible="False"
+                          HorizontalAlignment="Left" VerticalAlignment="Top" />
+                </Grid>
+            </Popup>
+        </Grid>
+
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+        <!-- ② 类型：一枚下拉（§6.12 菜单唯一配方）。按钮文案就是当前档，
+             菜单里当前那条染品牌紫，不在 Header 上拼 ✓ -->
+        <Button x:Name="BtnSerialType" Classes="tool" MinWidth="46" ToolTip.Tip="序号类型">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtSerialType" Text="123" VerticalAlignment="Center" />
+                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+            </StackPanel>
+            <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                    <MenuItem x:Name="MiSerialNumber" Header="数字 123" Tag="0" Click="OnSerialTypeClick" />
+                    <MenuItem x:Name="MiSerialLetter" Header="字母 ABC" Tag="1" Click="OnSerialTypeClick" />
+                    <MenuItem x:Name="MiSerialRoman" Header="罗马数字 ⅠⅡⅢ" Tag="2" Click="OnSerialTypeClick" />
+                    <MenuItem x:Name="MiSerialChinese" Header="汉字 一二三" Tag="3" Click="OnSerialTypeClick" />
+                </MenuFlyout>
+            </Button.Flyout>
+        </Button>
+
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+        <!-- ③ 起始：点着直接输（PixPin 原话「鼠标点击可手动输入序列号」）。起始值只抬「之后新建」的号，
+             已画在图上的一个都不动，故改完不需要重绘预览。 -->
+        <TextBlock Text="起始" VerticalAlignment="Center" Classes="secondary" Margin="1,0,3,0" />
+        <TextBox x:Name="StartBox" Classes="toolVal" Width="34" MinWidth="0" Text="1"
+                 ToolTip.Tip="起始值：只影响之后新建的序号，已画好的不动">
+                    <TextBox.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></TextBox.Styles>
+                </TextBox>
+
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+        <!-- ④ 引线箭头：与箭头标注工具**同一个下拉、同一份头型表**（ArrowHeadStyleMenu），只是这一版
+             按 legacyPath=false 出样——引线从不套箭头工具的模板，Designed/Sharp 两档在引线上走新算式。
+             DoubleHead 也显式写 False：箭头工具上那四档 V 形家族两端各挂一个头，而引线的一头钉在圆点上、
+             没地方挂第二个头，故引线这边十一档全是单头（别把它跟箭头工具那两处对齐）。
+             不带 Click：点击由代码里挂的 Button.Flyout 弹菜单。只影响之后新建的号（与样式/大小同一口径）。 -->
+        <Button x:Name="BtnTailHead" Classes="tool" MinWidth="62" ToolTip.Tip="引线箭头：拖出引线时的箭头头型">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <ctrl:ArrowHeadSwatch x:Name="TailHeadSwatch" Width="40" Height="16" DoubleHead="False" />
+                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+            </StackPanel>
+        </Button>
+
+        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+        <!-- ⑤ 大小 -->
+        <TextBlock Text="大小" VerticalAlignment="Center" Classes="secondary" Margin="1,0,3,0" />
+        <Slider x:Name="RadiusSlider" Classes="compactSlider" Width="76" Minimum="8" Maximum="80" Value="14"
+                TickFrequency="1" IsSnapToTickEnabled="True"
+                PointerWheelChanged="OnRadiusSliderWheel" />
+        <TextBlock x:Name="RadiusText" Text="14" MinWidth="24" Height="28" LineHeight="28" TextAlignment="Center"
+                   VerticalAlignment="Center" FontWeight="SemiBold" Margin="3,0,0,0" />
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Offline-friendly development: avoid NuGet vulnerability audit network calls during restore. -->
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,16 @@
+FFmpeg
+Copyright (c) 2000-2026 the FFmpeg developers
+
+当前 yuSnip 1.3.0 组件包所采用的构建：
+ffmpeg version 9.0.2-essentials_build-www.gyan.dev
+构建来源：https://www.gyan.dev/ffmpeg/builds/
+FFmpeg 项目：https://ffmpeg.org/
+许可说明：https://ffmpeg.org/legal.html
+上游源码：https://ffmpeg.org/download.html#releases
+构建来源与配套源码入口：https://www.gyan.dev/ffmpeg/builds/#release-builds
+
+该构建启用 --enable-gpl、--enable-version3 与 --enable-static，适用 GPL version 3 or later。
+FFmpeg 是独立的可执行程序，yuSnip 通过进程调用使用它。下方保留 GPL v3 正文。
+其构建包含的其他库仍保留各自的版权与许可。手动提供的其他 FFmpeg 构建请查看该构建随附的许可、源码及构建信息（ffmpeg -version / ffmpeg -L）。
+
+上述上游入口不代表 yuSnip 已提供当前二进制构建的完整对应源码；GPL 分发的对应源码及其构建材料需与实际发布的构建一一匹配。

@@ -1,0 +1,240 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:core="clr-namespace:ScreenCaptureTool.Core;assembly=ScreenCaptureTool.Core"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="44"
+        x:Class="ScreenCaptureTool.LongScroll.Windows.LongScrollControlWindow"
+        Title="InfinityScroll 2026"
+        MinWidth="0"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        WindowStartupLocation="Manual"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="12">
+
+    <!-- 与主工具栏 (CaptureWindow.ActionBar) 完全复用同一套外观：
+         外层 SctControlBarOuterBrush 描边 + 内层 SctPanelBrush 面板，连续 R20/R19，
+         Sct* 动态资源着色，工具按钮复用 toolIcon / tool 样式。 -->
+    <Border Background="Transparent"
+            CornerRadius="{DynamicResource SctRadiusToolbar}"
+            Padding="0"
+            BoxShadow="0 5 20 0 #33000000"
+            Margin="14,14,14,20">
+        <ContentControl Theme="{DynamicResource SctContinuousToolbarSurfaceTheme}"
+                        Background="{DynamicResource SctControlBarOuterBrush}"
+                        CornerRadius="{DynamicResource SctRadiusToolbar}" Padding="1">
+        <ContentControl Theme="{DynamicResource SctContinuousToolbarSurfaceTheme}"
+                Background="{DynamicResource SctPanelBrush}"
+                CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                Padding="8,4"
+                MinHeight="42">
+            <Grid ColumnDefinitions="Auto,Auto">
+                <StackPanel Orientation="Vertical" VerticalAlignment="Center" MaxWidth="190" Margin="0,0,6,0">
+                    <TextBlock x:Name="TxtStatus"
+                               Text="初始化中..."
+                               Foreground="{DynamicResource SctTextPrimaryBrush}"
+                               FontSize="12"
+                               FontWeight="Bold"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="190" />
+                    <!-- 第二行只在"到顶了"那一刻出内容（收口原因），平时是空文本、由代码收起不占位。
+                         可见性见 LongScrollControlWindow.SetMetrics。 -->
+                    <TextBlock x:Name="TxtMetrics"
+                               Text=""
+                               Foreground="{DynamicResource SctTextSecondaryBrush}"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="190" />
+                    <TextBlock x:Name="TxtHint"
+                               IsVisible="False"
+                               Foreground="{DynamicResource SctTextSecondaryBrush}"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="190" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnToggleAxis"
+                            Classes="toolIcon"
+                            Tag="当前：纵向长截图（点击切换为横向）"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnToggleAxisClick">
+                        <Path x:Name="ToggleAxisIcon"
+                              Data="M5.5 6.5H18.5 M5.5 12H18.5 M5.5 17.5H18.5"
+                              Stroke="{DynamicResource SctIconBrush}"
+                              StrokeThickness="3"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="16"
+                              Height="16"
+                              RenderTransformOrigin="50%,50%"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </Button>
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnAutoScroll"
+                            Classes="tool"
+                            MinWidth="64"
+                            Tag="左键：开始/停止 · 右键：切换滚动方向"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnAutoScrollClick"
+                            ContextRequested="OnAutoScrollContextRequested">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                            <TextBlock x:Name="TxtAutoScroll"
+                                       Text="自动滚动"
+                                       VerticalAlignment="Center"
+                                       TextAlignment="Center" />
+                            <!-- 方向指示：纯色圆角三角形，随滚动方向/轴向切换。 -->
+                            <Path x:Name="AutoScrollDirectionIcon"
+                                  Data="M5,6 Q3.2,6 4,7.8 L10.2,17 Q11.4,19 12,19 Q12.6,19 13.8,17 L20,7.8 Q20.8,6 19,6 Z"
+                                  Fill="{DynamicResource SctIconBrush}"
+                                  Stretch="Uniform"
+                                  Width="9"
+                                  Height="9"
+                                  VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <ContentControl Theme="{DynamicResource SctToolbarOptionSurfaceTheme}" x:Name="AutoScrollFreqBox"
+                            Classes="toolOptionHost"
+                            IsVisible="False"
+                            Margin="4,0"
+                            PointerWheelChanged="OnAutoScrollIntervalWheel">
+                        <TextBlock x:Name="TxtAutoScrollFreq"
+                                   Text="频率：160ms"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}"
+                                   FontSize="12"
+                                   VerticalAlignment="Center" />
+                    </ContentControl>
+
+                    <!-- 方向 chip：自动滚动运行中可见，单击实时翻转滚动方向。 -->
+                    <ContentControl Theme="{DynamicResource SctToolbarOptionSurfaceTheme}" x:Name="AutoScrollDirectionBox"
+                            Classes="toolOptionHost"
+                            IsVisible="False"
+                            Margin="2,0"
+                            Tag="点击切换滚动方向（右键自动滚动按钮同效）"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Cursor="Hand"
+                            PointerPressed="OnAutoScrollDirectionClick">
+                        <Path x:Name="AutoScrollDirectionChipIcon"
+                              Data="M5,6 Q3.2,6 4,7.8 L10.2,17 Q11.4,19 12,19 Q12.6,19 13.8,17 L20,7.8 Q20.8,6 19,6 Z"
+                              Fill="{DynamicResource SctIconBrush}"
+                              Stretch="Uniform"
+                              Width="13"
+                              Height="13"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </ContentControl>
+
+                    <Border Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                    <Border x:Name="BtnManualOffset"
+                            Tag="裁剪多余内容（上下拖动）"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Width="28"
+                            Height="28"
+                            Margin="4,0"
+                            Background="Transparent"
+                            CornerRadius="6"
+                            Cursor="SizeNorthSouth"
+                            PointerPressed="OnManualOffsetPressed"
+                            PointerMoved="OnManualOffsetMoved"
+                            PointerReleased="OnManualOffsetReleased"
+                            PointerCaptureLost="OnManualOffsetCaptureLost">
+                        <Path x:Name="ManualOffsetIcon"
+                              Data="M7,11L12,6L17,11M7,13L12,18L17,13"
+                              Stroke="{DynamicResource SctIconBrush}"
+                              StrokeThickness="2"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="18"
+                              Height="18"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </Border>
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnSticker"
+                            Classes="toolIcon"
+                            Tag="完成并贴图"
+                            AutomationProperties.Name="完成并贴图"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnStickerClick">
+                        <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" />
+                    </Button>
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnQuickSave"
+                            Classes="toolIcon"
+                            Tag="快速保存"
+                            AutomationProperties.Name="快速保存"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnQuickSaveClick">
+                        <Path Classes="icon" Data="{x:Static core:ToolbarRegistry.QuickSaveIcon}" />
+                    </Button>
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnSaveAs"
+                            Classes="toolIcon"
+                            Tag="另存为"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnSaveAsClick">
+                        <Path Data="M15,9H5V5H15M12,19A3,3,0,0,1,9,16A3,3,0,0,1,12,13A3,3,0,0,1,15,16A3,3,0,0,1,12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2,0,0,0,5,21H19A2,2,0,0,0,21,19V7L17,3Z"
+                              Fill="{DynamicResource SctIconBrush}"
+                              Stretch="Uniform"
+                              Width="16"
+                              Height="16" />
+                    </Button>
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnStop"
+                            Classes="toolIcon"
+                            Tag="取消"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnCancelClick">
+                        <Path Classes="icon" Stroke="#FF5555" Data="M 5 5 L 19 19 M 19 5 L 5 19" />
+                    </Button>
+
+                    <Button Theme="{DynamicResource SctContinuousToolbarButtonTheme}" CornerRadius="{DynamicResource SctRadiusToolButton}" x:Name="BtnFinish"
+                            Classes="toolIcon"
+                            Tag="完成并复制到剪贴板"
+                            PointerEntered="OnTipSourcePointerEnter"
+                            PointerExited="OnTipSourcePointerLeave"
+                            Click="OnFinishClick">
+                        <Path Classes="icon" Stroke="#07C160" Data="M 4 13 L 10 19 L 20 4" />
+                    </Button>
+                </StackPanel>
+
+                <!-- 自管 Popup 而非原生 ToolTip：原生弹层是独立 HWND，长截图会话中控制窗与
+                     预览窗每秒重断言 HWND_TOPMOST（EnforceTopmost 后备定时器），Z 序反复重排
+                     会把 Tooltip 弹层压到后面，表现为"悬浮 1~2 秒就消失"。Popup 挂在视觉树里
+                     不受影响，且永远弹向远离选区的一侧（不盖选区、不与预览窗争 Z 序）。
+                     气泡外观复用全局 ToolTip 主题：🔴 Content 只能给字符串——那套模板是
+                     Text="{TemplateBinding Content}"，塞控件进去会被 ToString 成类名。
+                     放树里不进 :open 伪类，故显式 Opacity=1。 -->
+                <Popup x:Name="TipPopup"
+                       IsLightDismissEnabled="False"
+                       WindowManagerAddShadowHint="False"
+                       IsOpen="False"
+                       Placement="Bottom">
+                    <ToolTip x:Name="TipHost" Opacity="1" />
+                </Popup>
+            </Grid>
+        </ContentControl>
+        </ContentControl>
+    </Border>
+</Window>

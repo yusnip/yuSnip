@@ -1,0 +1,34 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <!-- 普通窗口按需引入：保持 sctList 的虚拟化、内距和选中语义，只替换行背景绘制。 -->
+    <Style Selector="ListBox.sctList ListBoxItem">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <round:ContinuousBorder Name="PART_WorkspaceListSurface"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter" Background="Transparent"
+                        Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                        HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </round:ContinuousBorder>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBox.sctList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBox.sctList ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem:pointerover /template/ Border#PART_WorkspaceListSurface">
+        <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem:selected /template/ Border#PART_WorkspaceListSurface">
+        <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem:pressed /template/ Border#PART_WorkspaceListSurface">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+</Styles>

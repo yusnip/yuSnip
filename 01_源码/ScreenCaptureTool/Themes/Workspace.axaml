@@ -1,0 +1,484 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <!-- 新窗口按需引入本主题；色值仅定义在 Colors.axaml，旧窗口继续使用原来的全局主题。 -->
+    <Styles.Resources>
+        <SolidColorBrush x:Key="SctWorkspaceSampleLightCanvasBrush" Color="{DynamicResource SctWorkspaceSampleLightCanvasColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleLightSidebarBrush" Color="{DynamicResource SctWorkspaceSampleLightSidebarColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleLightCardBrush" Color="{DynamicResource SctWorkspaceSampleLightCardColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleLightLineBrush" Color="{DynamicResource SctWorkspaceSampleLightLineColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleDarkCanvasBrush" Color="{DynamicResource SctWorkspaceSampleDarkCanvasColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleDarkSidebarBrush" Color="{DynamicResource SctWorkspaceSampleDarkSidebarColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleDarkCardBrush" Color="{DynamicResource SctWorkspaceSampleDarkCardColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSampleDarkLineBrush" Color="{DynamicResource SctWorkspaceSampleDarkLineColor}" />
+
+        <SolidColorBrush x:Key="SctBackgroundBrush" Color="{DynamicResource SctWorkspaceCanvasColor}" />
+        <SolidColorBrush x:Key="SctTitleBarBrush" Color="{DynamicResource SctWorkspaceCanvasColor}" />
+        <SolidColorBrush x:Key="SctPanelBrush" Color="{DynamicResource SctWorkspaceCanvasColor}" />
+        <SolidColorBrush x:Key="SctCardFillBrush" Color="{DynamicResource SctWorkspaceCardColor}" />
+        <SolidColorBrush x:Key="SctCardBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <Thickness x:Key="SctCardBorderThickness">1</Thickness>
+        <SolidColorBrush x:Key="SctBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctSoftBorderBrush" Color="{DynamicResource SctWorkspaceDividerColor}" />
+        <SolidColorBrush x:Key="SctInputBgBrush" Color="{DynamicResource SctWorkspaceFieldColor}" />
+        <SolidColorBrush x:Key="SctComboBoxBgBrush" Color="{DynamicResource SctWorkspaceFieldColor}" />
+        <SolidColorBrush x:Key="SctComboBoxHoverBrush" Color="{DynamicResource SctWorkspaceHoverColor}" />
+        <SolidColorBrush x:Key="SctRowBgBrush" Color="{DynamicResource SctWorkspaceCardColor}" />
+        <SolidColorBrush x:Key="SctRowHoverBgBrush" Color="{DynamicResource SctWorkspaceHoverColor}" />
+        <SolidColorBrush x:Key="SctTextPrimaryBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctCardTitleBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctTextSecondaryBrush" Color="{DynamicResource SctWorkspaceSecondaryColor}" />
+        <SolidColorBrush x:Key="SctSubTitleBrush" Color="{DynamicResource SctWorkspaceSecondaryColor}" />
+        <SolidColorBrush x:Key="SctTextMutedBrush" Color="{DynamicResource SctWorkspaceMutedColor}" />
+        <SolidColorBrush x:Key="SctTextTertiaryBrush" Color="{DynamicResource SctWorkspaceMutedColor}" />
+        <SolidColorBrush x:Key="SctNavActiveBrush" Color="{DynamicResource SctWorkspaceSelectedColor}" />
+        <SolidColorBrush x:Key="SctNavActiveTextBrush" Color="{DynamicResource SctWorkspaceBrandTextColor}" />
+        <SolidColorBrush x:Key="SctNavActiveHintBrush" Color="{DynamicResource SctWorkspaceBrandTextColor}" />
+        <SolidColorBrush x:Key="SctMenuBackgroundBrush" Color="{DynamicResource SctWorkspaceElevatedColor}" />
+        <SolidColorBrush x:Key="SctMenuBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctTooltipBgBrush" Color="{DynamicResource SctWorkspaceElevatedColor}" />
+        <SolidColorBrush x:Key="SctTooltipFgBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctTooltipBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSidebarBrush" Color="{DynamicResource SctWorkspaceSidebarColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceBrandTextBrush" Color="{DynamicResource SctWorkspaceBrandTextColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceSelectedBrush" Color="{DynamicResource SctWorkspaceSelectedColor}" />
+        <SolidColorBrush x:Key="SctWorkspaceScrimBrush" Color="{DynamicResource SctWorkspaceScrimColor}" />
+        <!-- 静态环境光：只画一次渐变，不用模糊滤镜、计时器或循环动画。 -->
+        <RadialGradientBrush x:Key="SctWorkspaceGlowBrush" Center="50%,50%" GradientOrigin="50%,50%" RadiusX="50%" RadiusY="50%">
+            <GradientStop Offset="0" Color="{DynamicResource SctWorkspaceGlowColor}" />
+            <GradientStop Offset="1" Color="{DynamicResource SctWorkspaceGlowClearColor}" />
+        </RadialGradientBrush>
+        <SolidColorBrush x:Key="SctSkyDayTextBrush" Color="{DynamicResource SctSkyDayTextColor}" />
+        <SolidColorBrush x:Key="SctSkyDuskTextBrush" Color="{DynamicResource SctSkyDuskTextColor}" />
+        <SolidColorBrush x:Key="SctSkyNightTextBrush" Color="{DynamicResource SctSkyNightTextColor}" />
+        <SolidColorBrush x:Key="SctSkyActionFillBrush" Color="{DynamicResource SctSkyActionFillColor}" />
+        <SolidColorBrush x:Key="SctSkyActionHoverBrush" Color="{DynamicResource SctSkyActionHoverColor}" />
+
+        <BoxShadows x:Key="SctWorkspaceCardShadow">0 2 8 0 #05000000</BoxShadows>
+        <BoxShadows x:Key="SctWorkspaceSidebarShadow">0 4 20 0 #08000000</BoxShadows>
+        <x:TimeSpan x:Key="SctMotionFastDuration">0:0:0.15</x:TimeSpan>
+        <x:TimeSpan x:Key="SctMotionPageDuration">0:0:0.22</x:TimeSpan>
+    </Styles.Resources>
+
+    <!-- 地区选择在窗口内布局，沿用共享连续曲率及主题色。 -->
+    <Style Selector="Border.weatherPickerCard">
+        <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+        <Setter Property="Padding" Value="24" />
+    </Style>
+    <!-- 表单容器为文字行高预留空间，不继承概览轻入口的紧凑高度。 -->
+    <Style Selector="Border.weatherPickerCard TextBox, Border.weatherPickerCard ComboBox">
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Border.weatherPickerCard ComboBox /template/ ContentControl#ContentPresenter">
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.weatherPickerCard Button">
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,6" />
+    </Style>
+    <Style Selector="Border.weatherPickerCard TextBox /template/ TextBlock#PART_Watermark">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.weatherPickerCard ComboBox:disabled /template/ Border#Background">
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+    </Style>
+    <Style Selector="Border.weatherPickerCard ComboBox /template/ TextBlock#PlaceholderTextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+    </Style>
+    <Style Selector="Border.weatherPickerCard Button:disabled /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+    </Style>
+    <!-- 设置与地区搜索复用同一浮层和结果行资产。 -->
+    <!-- 搜索浮层：连续 R28、四边细描边；不绘制外投影。 -->
+    <Style Selector="Border.searchResultPanel">
+        <Setter Property="Background" Value="{DynamicResource SctMenuBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctMenuBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+        <Setter Property="Padding" Value="5,5" />
+        <Setter Property="MinWidth" Value="380" />
+        <Setter Property="MaxWidth" Value="520" />
+    </Style>
+    <!-- 浮层状态表头 -->
+    <Style Selector="Border.searchRHeader">
+        <Setter Property="Padding" Value="8,2,8,6" />
+    </Style>
+    <Style Selector="TextBlock.searchRHeaderTitle">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+    </Style>
+    <!-- 搜索结果共用连续 R12；悬浮与键盘选择使用相同淡底。 -->
+    <Style Selector="Border.searchResultRow">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.searchResultRow:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+    </Style>
+    <Style Selector="Border.searchResultRow.sel">
+        <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+    </Style>
+    <!-- 结果行内：标题 / 说明 / 分类徽标（字号随行高压扁收敛一档） -->
+    <Style Selector="TextBlock.searchRTitle">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="TextBlock.searchRDesc">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+    </Style>
+    <Style Selector="Border.searchRCategory">
+        <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Padding" Value="7,1.5" />
+    </Style>
+    <Style Selector="TextBlock.searchRCategoryText">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+    </Style>
+    <Style Selector="ListBox.searchResults">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.searchResults ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter" Background="Transparent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.searchResults ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                     ListBox.searchResults ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <!-- 通用控件的新主题变体集中于本层，窗口只组合业务布局。 -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+        <Setter Property="Padding" Value="24,20" />
+        <Setter Property="BoxShadow" Value="{StaticResource SctWorkspaceCardShadow}" />
+    </Style>
+    <Style Selector="Button">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <round:ContinuousContentPresenter Name="PART_ContinuousPresenter"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                    Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                    Padding="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- 轻操作外轮廓按 13.5 DIP 标题的字面高度收敛，不把标题行框当成文字高度。 -->
+    <Style Selector="Button.actionSurface">
+        <Setter Property="Height" Value="14" />
+        <Setter Property="MinHeight" Value="14" />
+        <Setter Property="MaxHeight" Value="14" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="6,0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextBlock.LineHeight" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.actionSurface /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctWorkspaceSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource SctWorkspaceBrandTextBrush}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.actionSurface:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="Button.actionSurface:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="Button.actionSurface:focus-visible /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="Button.actionSurface:disabled /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="Window.reduceMotion Button.actionSurface /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Button.weatherAction /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctSkyActionFillBrush}" />
+        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}" />
+    </Style>
+    <Style Selector="Button.weatherAction:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctSkyActionHoverBrush}" />
+    </Style>
+    <Style Selector="Button.weatherAction:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctSkyActionFillBrush}" />
+    </Style>
+    <!-- 保留 Avalonia Fluent 11.2.8 的输入／选择部件及绑定，仅替换可见背景的连续曲率皮肤。 -->
+    <Style Selector="TextBox, ComboBox, NumericUpDown">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+    </Style>
+    <Style Selector="TextBox">
+        <Setter Property="Template">
+            <ControlTemplate x:CompileBindings="False">
+                <DataValidationErrors>
+                    <Panel>
+                        <round:ContinuousBorder Name="PART_BorderElement" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}" MinWidth="{TemplateBinding MinWidth}" MinHeight="{TemplateBinding MinHeight}" />
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="{TemplateBinding BorderThickness}">
+                            <ContentPresenter Content="{TemplateBinding InnerLeftContent}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            <DockPanel Name="PART_InnerDockPanel" Grid.Column="1" Margin="{TemplateBinding Padding}">
+                                <TextBlock Name="PART_FloatingWatermark" DockPanel.Dock="Top" Text="{TemplateBinding Watermark}" IsVisible="False" Foreground="{DynamicResource SctAccentBrush}" />
+                                <ScrollViewer Name="PART_ScrollViewer"
+                                    HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                    VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                    IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                    AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                    BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                                    <Panel>
+                                        <TextBlock Name="PART_Watermark" Text="{TemplateBinding Watermark}" Opacity="0.5"
+                                            TextAlignment="{TemplateBinding TextAlignment}" TextWrapping="{TemplateBinding TextWrapping}"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                            <TextBlock.IsVisible>
+                                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                    <CompiledBinding ElementName="PART_TextPresenter" Path="PreeditText" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                                    <CompiledBinding RelativeSource="{RelativeSource TemplatedParent}" Path="Text" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                                </MultiBinding>
+                                            </TextBlock.IsVisible>
+                                        </TextBlock>
+                                        <TextPresenter Name="PART_TextPresenter" Text="{TemplateBinding Text, Mode=TwoWay}"
+                                            CaretBlinkInterval="{TemplateBinding CaretBlinkInterval}" CaretIndex="{TemplateBinding CaretIndex}"
+                                            SelectionStart="{TemplateBinding SelectionStart}" SelectionEnd="{TemplateBinding SelectionEnd}"
+                                            TextAlignment="{TemplateBinding TextAlignment}" TextWrapping="{TemplateBinding TextWrapping}"
+                                            LineHeight="{TemplateBinding LineHeight}" LetterSpacing="{TemplateBinding LetterSpacing}"
+                                            PasswordChar="{TemplateBinding PasswordChar}" RevealPassword="{TemplateBinding RevealPassword}"
+                                            SelectionBrush="{TemplateBinding SelectionBrush}" SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                            CaretBrush="{TemplateBinding CaretBrush}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                    </Panel>
+                                    <ScrollViewer.Styles><Style Selector="ScrollContentPresenter#PART_ContentPresenter"><Setter Property="Cursor" Value="IBeam" /></Style></ScrollViewer.Styles>
+                                </ScrollViewer>
+                            </DockPanel>
+                            <ContentPresenter Grid.Column="2" Content="{TemplateBinding InnerRightContent}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Grid>
+                    </Panel>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="Template">
+            <ControlTemplate x:CompileBindings="False">
+                <DataValidationErrors>
+                    <Grid ColumnDefinitions="*,32">
+                        <round:ContinuousBorder Name="Background" Grid.ColumnSpan="2" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" />
+                        <round:ContinuousBorder Name="HighlightBackground" Grid.ColumnSpan="2" Background="Transparent"
+                            BorderBrush="{DynamicResource SctAccentBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" IsVisible="False" />
+                        <TextBlock Name="PlaceholderTextBlock" Text="{TemplateBinding PlaceholderText}" Foreground="{TemplateBinding PlaceholderForeground}"
+                            Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" IsVisible="{TemplateBinding SelectionBoxItem, Converter={x:Static ObjectConverters.IsNull}}" />
+                        <ContentControl Name="ContentPresenter" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                            Margin="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        <PathIcon Name="DropDownGlyph" Grid.Column="1" Width="12" Height="12" Margin="0,0,10,0" IsHitTestVisible="False"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource SctTextMutedBrush}"
+                            Data="M1939 486L2029 576L1024 1581L19 576L109 486L1024 1401L1939 486Z" />
+                        <Popup Name="PART_Popup" WindowManagerAddShadowHint="False" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                            MinWidth="{CompiledBinding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                            PlacementTarget="{CompiledBinding #Background}" IsLightDismissEnabled="True" InheritsTransform="True">
+                            <round:ContinuousBorder Name="PopupBorder" Background="{DynamicResource SctMenuBackgroundBrush}" BorderBrush="{DynamicResource SctMenuBorderBrush}"
+                                BorderThickness="1" Padding="4" CornerRadius="{DynamicResource SctRadiusControl}">
+                                <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                    VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}" IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}">
+                                    <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                </ScrollViewer>
+                            </round:ContinuousBorder>
+                        </Popup>
+                    </Grid>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.primary, Button.secondary">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+    </Style>
+    <Style Selector="Button.nav">
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+    <!-- 导航在实际绘制层使用实色表面，避免半透明白色与选中底插值时闪亮。 -->
+    <Style Selector="Button.nav /template/ ContentPresenter#PART_ContentPresenter, Button.nav /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctWorkspaceSidebarBrush}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="{StaticResource SctMotionFastDuration}" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.nav:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.nav:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.nav:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+    </Style>
+    <Style Selector="Button.nav.active">
+        <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctNavActiveTextBrush}" />
+    </Style>
+    <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter, Button.nav.active /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctNavActiveTextBrush}" />
+    </Style>
+    <Style Selector="Button.nav &gt; Grid &gt; Border.navIndicator">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Button.nav.active &gt; Grid &gt; Border.navIndicator">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Path.workspaceIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Stroke" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="StrokeThickness" Value="1.6" />
+        <Setter Property="StrokeLineCap" Value="Round" />
+        <Setter Property="StrokeJoin" Value="Round" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="TextBlock.pageTitle">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="-0.5" />
+    </Style>
+    <Style Selector="TextBlock.pageDescription">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.sectionTitle">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SctCardTitleBrush}" />
+    </Style>
+    <Style Selector="TextBlock.fieldLabel">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <Style Selector="TextBlock.fieldHint">
+        <Setter Property="LineHeight" Value="19" />
+    </Style>
+    <!-- 外观主题使用选择卡；普通开关与页签仍复用全局 segmented。 -->
+    <Style Selector="RadioButton.themeTile">
+        <Setter Property="RenderTransform" Value="translate(0px, 0px)" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
+            </Transitions>
+        </Setter>
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <round:ContinuousBorder Name="PART_ThemeTile" Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                        CornerRadius="{DynamicResource SctRadiusControl}" Padding="10" BoxShadow="{StaticResource SctWorkspaceCardShadow}">
+                    <round:ContinuousBorder.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="{StaticResource SctMotionFastDuration}" />
+                            <BrushTransition Property="BorderBrush" Duration="{StaticResource SctMotionFastDuration}" />
+                        </Transitions>
+                    </round:ContinuousBorder.Transitions>
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalContentAlignment="Stretch" />
+                </round:ContinuousBorder>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.themeTile:pointerover">
+        <Setter Property="RenderTransform" Value="translate(0px, -2px)" />
+    </Style>
+    <Style Selector="RadioButton.themeTile:pointerover /template/ Border#PART_ThemeTile">
+        <Setter Property="BoxShadow" Value="{StaticResource SctWorkspaceSidebarShadow}" />
+        <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+    </Style>
+    <Style Selector="RadioButton.themeTile:checked /template/ Border#PART_ThemeTile">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SctWorkspaceSelectedBrush}" />
+    </Style>
+    <Style Selector="RadioButton.themeTile:focus-visible /template/ Border#PART_ThemeTile">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="Padding" Value="9" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="Button.nav &gt; Grid &gt; TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.nav.active &gt; Grid &gt; TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctNavActiveTextBrush}" />
+    </Style>
+    <Style Selector="Button.nav.active &gt; Grid &gt; Path">
+        <Setter Property="Stroke" Value="{DynamicResource SctNavActiveTextBrush}" />
+    </Style>
+    <Style Selector="Button.titleBarBtn.closeBtn:pointerover &gt; Path.workspaceIcon">
+        <Setter Property="Stroke" Value="{DynamicResource SctTitleBarCloseTextBrush}" />
+    </Style>
+    <Style Selector="Window.reduceMotion Button.nav">
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Window.reduceMotion Button.nav /template/ ContentPresenter#PART_ContentPresenter, Window.reduceMotion Button.nav /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Window.reduceMotion RadioButton.themeTile">
+        <Setter Property="Transitions" Value="{x:Null}" />
+        <Setter Property="RenderTransform" Value="translate(0px, 0px)" />
+    </Style>
+    <Style Selector="Window.reduceMotion RadioButton.themeTile /template/ Border#PART_ThemeTile">
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+</Styles>

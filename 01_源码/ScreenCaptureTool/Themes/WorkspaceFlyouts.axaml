@@ -1,0 +1,25 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <Styles.Resources>
+        <!-- 小气泡与宿主透明留边配套，不扩大既有 Popup 的量宽与阴影缓冲。 -->
+        <BoxShadows x:Key="SctOcrFixShadow">0 4 14 0 #2E0F172A</BoxShadows>
+        <BoxShadows x:Key="SctOcrToastShadow">0 4 16 0 #26000000</BoxShadows>
+        <BoxShadows x:Key="SctOcrGrowShadow">0 8 24 0 #30000000</BoxShadows>
+    </Styles.Resources>
+    <!-- 普通内容 Flyout 按窗接入，四模块随栏参数浮层继续沿用原模板。 -->
+    <Style Selector="FlyoutPresenter">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <round:ContinuousContentPresenter Name="PART_ContinuousPresenter"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}" Content="{TemplateBinding Content}"
+                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

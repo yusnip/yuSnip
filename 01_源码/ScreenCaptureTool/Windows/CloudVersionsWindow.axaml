@@ -1,0 +1,188 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.CloudVersionsWindow"
+        Icon="/Assets/Black.ico" Title="云端版本管理 - yuSnip"
+        Width="940" SizeToContent="Height" CanResize="False"
+        ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full" ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}" FontFamily="Microsoft YaHei UI" FontSize="14">
+
+    <!-- 骨架＝标题栏 36 / 内容 Auto / 底栏 Auto。设计稿：docs/云版本管理-重排设计稿.html
+         🔴 高度改成 SizeToContent（不再固定 680）：记录只有几条时窗口自己变短，
+           上限钉在"会滚的那一块"（列表 MaxHeight）上，不钉在窗口上（设计规范 §2 排版纪律）。
+         🔴 主从双栏已废：版本记录是完全同构的条目、详情只有四行短读数，按 §6.5 的判据
+           （同构条目 + 轻详情 ⇒ 摊平读数，不要主从分栏）改成通栏六列表格，差异一眼横比。
+         表格几何逐值照设置页 hotkeyMatrix 那一族（SettingsWindow.axaml:240-276），颜色全走 Token。 -->
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <!-- 表格外框换连续 R12；原六列、组头和行间线保持。 -->
+        <Style Selector="Border.versionTable">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <!-- 组头：浅底通栏 + 底部发丝线 + 13.5 SemiBold -->
+        <Style Selector="Border.versionTableHead">
+            <Setter Property="Background" Value="{DynamicResource SctRowBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+        <Style Selector="Border.versionTableHead TextBlock">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- 行：不套卡片、只留底部发丝线，悬浮与选中都是整行平铺（CornerRadius 0） -->
+        <Style Selector="ListBox.versionTable">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <!-- 🔴 Padding 必须归零：组头在列表外面，列表一旦有内距，列就对不齐 -->
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.versionTable ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <!-- 🔴 必须 Stretch：行底发丝线是"行内容那个 Border"自己画的，内容若垂直居中，
+                 线就落在带内 19px 内容的下缘（实测 y=169，而整带是 141–178），选中底色铺满整带，
+                 于是分割线被包在选中块里面、还比真正的行界高 9px。拉伸让 Border 吃满整带，
+                 线就正好压在带底；文字仍由各自的 VerticalAlignment=Center 居中。 -->
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="ListBox.versionTable ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+        </Style>
+        <Style Selector="ListBox.versionTable ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+        </Style>
+        <!-- 行底发丝线：与 hotkeyMatrixRow 同口径，末行去线（.last 声明在基础类之后） -->
+        <Style Selector="Border.versionRow">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+        <Style Selector="Border.versionRow.last">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <!-- 差异两档：一致＝12 号三级灰，不同＝13.5 号正文色。层级只靠字号＋字色拉，
+             不引入第三种颜色（§4.3）；两个类互斥地挂上，不留样式优先级争用。 -->
+        <Style Selector="TextBlock.diffSame">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.diffDiff">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.versionTime">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- 🔴 选中必须"看得见"：实测淡底（SctSubtle #EFEFEF）压在表格底（SctCardFill #EAEAEA）上只差
+             5/255 个灰阶，肉眼挑不出哪一行。沿用全局 nav.active 的「紫字＋加粗」这一档做标记，
+             不新造颜色、不加几何。
+             🔴 必须声明在上一条之后：两条样式同为 Style 优先级，同优先级后声明者胜——
+             放前面时字重生效、前景色被基础类盖回 #222222（离屏探针实测）。 -->
+        <Style Selector="ListBox.versionTable ListBoxItem:selected TextBlock.versionTime">
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.versionDevice">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="TextBlock.versionNote">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+            <Setter Property="Margin" Value="14,10,14,12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Styles>
+
+    <Grid x:Name="LayoutRoot" RowDefinitions="36,Auto,Auto,Auto">
+        <Border PointerPressed="OnTitlePointerPressed" Background="{DynamicResource SctTitleBarBrush}">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="云端版本管理" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,0" />
+                <Button Grid.Column="1" x:Name="BtnClose" Classes="titleIcon titleBarBtn closeBtn" ToolTip.Tip="关闭" AutomationProperties.Name="关闭" Click="OnCloseClick">
+                    <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static win:WorkspaceIconGeometry.Close}" />
+                </Button>
+            </Grid>
+        </Border>
+        <Rectangle Grid.Row="0" VerticalAlignment="Bottom" Height="1" Fill="{DynamicResource SctSoftBorderBrush}" />
+
+        <!-- ══════ 头部读数：左状态 / 右刷新 ══════ -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="24,16,24,0">
+            <StackPanel Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtStatus" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" TextWrapping="Wrap" Text="正在读取云端版本…" />
+                <TextBlock x:Name="TxtMode" Classes="fieldHint" LineHeight="NaN" TextWrapping="Wrap" Text="云端版本记录 · 旧历史自动清理。" />
+            </StackPanel>
+            <Grid Grid.Column="1" x:Name="PnlRefresh" Classes="dimWhenDisabled" VerticalAlignment="Center">
+                <Button x:Name="BtnRefresh" Classes="secondary" Content="刷新记录" Click="OnRefreshClick" />
+            </Grid>
+        </Grid>
+
+        <!-- ══════ 通栏表格：组头与行共用代码里那一份列定义 ══════ -->
+        <round:ContinuousBorder Grid.Row="2" Classes="versionTable" Margin="24,14,24,0">
+            <StackPanel>
+                <Border Classes="versionTableHead" Height="36">
+                    <Grid x:Name="HdrVersions" Margin="14,0">
+                        <TextBlock Text="版本" />
+                        <TextBlock Grid.Column="1" Text="设备" />
+                        <TextBlock Grid.Column="2" Text="用户设置" />
+                        <TextBlock Grid.Column="3" Text="动作与脚本" />
+                        <TextBlock Grid.Column="4" Text="窗口快捷键" />
+                        <TextBlock Grid.Column="5" Text="录屏预设" />
+                    </Grid>
+                </Border>
+                <!-- 条不画、滚动照旧（§7.3）：Hidden 不占位，所以列宽与组头仍然逐列对齐；
+                     用 Disabled 会连滚轮一起废掉，是错的。上限由代码按工作区高度折算。 -->
+                <ListBox x:Name="LstVersions" Classes="versionTable" MaxHeight="430"
+                         SelectionChanged="OnVersionSelected"
+                         ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                <!-- 表脚一行短语：常驻，不再有空状态控件（记录为 0 时这一行就把它说清楚） -->
+                <TextBlock x:Name="TxtNote" Classes="versionNote" />
+            </StackPanel>
+        </round:ContinuousBorder>
+
+        <!-- ══════ 底栏：左＝该注意什么 / 右＝主操作（确认态同一格原地互换，窗口不改高） ══════ -->
+        <Border Grid.Row="3" Background="{DynamicResource SctPanelBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0"
+                Padding="24,12" Margin="0,16,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <Grid>
+                    <TextBlock x:Name="TxtSelectionHint" Classes="fieldHint" LineHeight="NaN" Margin="0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock x:Name="TxtConfirm" Classes="fieldHint" LineHeight="NaN" Margin="0" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="False" />
+                </Grid>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Grid x:Name="PnlUseVersion" Classes="dimWhenDisabled">
+                        <Button x:Name="BtnUseVersion" Content="请选择版本" Classes="primary" Click="OnUseVersionClick" MinWidth="112" />
+                    </Grid>
+                    <StackPanel x:Name="PnlConfirm" Orientation="Horizontal" Spacing="8" IsVisible="False">
+                        <Grid x:Name="PnlCancel" Classes="dimWhenDisabled">
+                            <Button x:Name="BtnCancel" Content="取消" Classes="secondary" Click="OnCancelChoiceClick" />
+                        </Grid>
+                        <Grid x:Name="PnlConfirmAction" Classes="dimWhenDisabled">
+                            <Button x:Name="BtnConfirm" Content="确认使用" Classes="primary" Click="OnConfirmClick" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

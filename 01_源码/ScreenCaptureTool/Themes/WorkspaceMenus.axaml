@@ -1,0 +1,151 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="using:Avalonia.Controls.Converters"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <!-- 按窗口／文本子树启用，禁止全局引入。工具栏参数菜单逐批接入，当前截图侧已授权。
+         保留 Avalonia Fluent 11.2.8 的模板部件、共享列、滚动及子菜单绑定，仅替换连续表面。
+         来源（MIT，AvaloniaUI contributors）：https://github.com/AvaloniaUI/Avalonia/tree/11.2.8/src/Avalonia.Themes.Fluent/Controls -->
+    <Styles.Resources>
+        <conv:PlatformKeyGestureConverter x:Key="SctMenuKeyGestureConverter" />
+        <StreamGeometry x:Key="SctMenuChevronGeometry">M 1,0 10,10 l -9,10 -1,-1 L 8,10 -0,1 Z</StreamGeometry>
+        <SolidColorBrush x:Key="SctMenuBackgroundBrush" Color="{DynamicResource SctWorkspaceCardColor}" />
+        <SolidColorBrush x:Key="SctMenuBorderBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+    </Styles.Resources>
+    <Style Selector="ContextMenu">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                    <round:ContinuousBorder Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            MaxWidth="{TemplateBinding MaxWidth}"
+                            MinHeight="{TemplateBinding MinHeight}"
+                            HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                      <ScrollViewer Theme="{StaticResource FluentMenuScrollViewer}">
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        Margin="{DynamicResource MenuFlyoutScrollerMargin}"
+                                        KeyboardNavigation.TabNavigation="Continue"
+                                        Grid.IsSharedSizeScope="True" />
+                      </ScrollViewer>
+                    </round:ContinuousBorder>
+                  </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="MenuFlyoutPresenter">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                    <round:ContinuousBorder Name="LayoutRoot"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{DynamicResource FlyoutBorderThemePadding}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                      <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                    Theme="{StaticResource FluentMenuScrollViewer}"
+                                    VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        Margin="{DynamicResource MenuFlyoutScrollerMargin}"
+                                        KeyboardNavigation.TabNavigation="Continue"
+                                        Grid.IsSharedSizeScope="True" />
+                      </ScrollViewer>
+                    </round:ContinuousBorder>
+                  </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="MenuItem">
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                    <Panel>
+                      <round:ContinuousBorder Name="PART_LayoutRoot"
+                              Padding="{TemplateBinding Padding}"
+                              Background="{TemplateBinding Background}"
+                              BorderBrush="{TemplateBinding BorderBrush}"
+                              BorderThickness="{TemplateBinding BorderThickness}"
+                              CornerRadius="{TemplateBinding CornerRadius}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"
+                                              SharedSizeGroup="ToggleIcon" />
+                            <ColumnDefinition Width="Auto"
+                                              SharedSizeGroup="MenuItemIcon" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto"
+                                              SharedSizeGroup="MenuItemIGT" />
+                            <ColumnDefinition Width="Auto"
+                                              SharedSizeGroup="MenuItemChevron" />
+                          </Grid.ColumnDefinitions>
+            
+                          <ContentControl Grid.Column="0"
+                                          x:Name="PART_ToggleIconPresenter"
+                                          IsVisible="False"
+                                          Theme="{StaticResource FluentMenuItemIconTheme}"
+                                          Margin="{DynamicResource MenuIconPresenterMargin}" />
+            
+                          <ContentControl Grid.Column="1"
+                                          x:Name="PART_IconPresenter"
+                                          IsVisible="False"
+                                          Theme="{StaticResource FluentMenuItemIconTheme}"
+                                          Content="{TemplateBinding Icon}"
+                                          Margin="{DynamicResource MenuIconPresenterMargin}" />
+            
+                          <ContentPresenter Name="PART_HeaderPresenter"
+                                            Content="{TemplateBinding Header}"
+                                            ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Stretch"
+                                            RecognizesAccessKey="True"
+                                            Grid.Column="2"/>
+                          <TextBlock x:Name="PART_InputGestureText"
+                                     Grid.Column="3"
+                                     Margin="{DynamicResource MenuInputGestureTextMargin}"
+                                     Text="{TemplateBinding InputGesture, Converter={StaticResource SctMenuKeyGestureConverter}}"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"
+                                     Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
+                          <Path Name="PART_ChevronPath"
+                                Stretch="Uniform"
+                                Width="8"
+                                Height="16"
+                                Data="{StaticResource SctMenuChevronGeometry}"
+                                Fill="{DynamicResource MenuFlyoutSubItemChevron}"
+                                Margin="{DynamicResource MenuFlyoutItemChevronMargin}"
+                                VerticalAlignment="Center"
+                                Grid.Column="4" />
+                        </Grid>
+                      </round:ContinuousBorder>
+                      <Popup Name="PART_Popup"
+                             WindowManagerAddShadowHint="False"
+                             Placement="RightEdgeAlignedTop"
+                             HorizontalOffset="{DynamicResource MenuFlyoutSubItemPopupHorizontalOffset}"
+                             IsLightDismissEnabled="False"
+                             IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
+                        <round:ContinuousBorder Background="{DynamicResource SctMenuBackgroundBrush}"
+                                BorderBrush="{DynamicResource SctMenuBorderBrush}"
+                                BorderThickness="{DynamicResource MenuFlyoutPresenterBorderThemeThickness}"
+                                Padding="{DynamicResource MenuFlyoutPresenterThemePadding}"
+                                MaxWidth="{DynamicResource FlyoutThemeMaxWidth}"
+                                MinHeight="{DynamicResource MenuFlyoutThemeMinHeight}"
+                                HorizontalAlignment="Stretch"
+                                CornerRadius="{DynamicResource SctRadiusControl}">
+                          <ScrollViewer Theme="{StaticResource FluentMenuScrollViewer}">
+                            <ItemsPresenter Name="PART_ItemsPresenter"
+                                            ItemsPanel="{TemplateBinding ItemsPanel}"
+                                            Margin="{DynamicResource MenuFlyoutScrollerMargin}"
+                                            Grid.IsSharedSizeScope="True" />
+                          </ScrollViewer>
+                        </round:ContinuousBorder>
+                      </Popup>
+                    </Panel>
+                  </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="MenuItem:separator">
+        <Setter Property="Template"><ControlTemplate><Separator /></ControlTemplate></Setter>
+    </Style>
+</Styles>

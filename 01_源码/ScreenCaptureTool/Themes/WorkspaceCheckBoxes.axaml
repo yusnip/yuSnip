@@ -1,0 +1,64 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls">
+    <!-- 普通表单的可选复选皮；只对显式 workspaceCheck 消费方生效。 -->
+    <Style Selector="CheckBox.workspaceCheck">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="24,*" Background="Transparent">
+                    <round:ContinuousBorder Name="PART_CheckFocus" Width="24" Height="24"
+                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                        CornerRadius="{DynamicResource SctRadiusSmall}" BorderBrush="{DynamicResource SctAccentBrush}"
+                        BorderThickness="1" IsVisible="False" IsHitTestVisible="False" />
+                    <round:ContinuousBorder Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center"
+                        CornerRadius="{DynamicResource SctRadiusSmall}" Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <Panel>
+                            <Path Name="PART_CheckGlyph" Data="M0,3.8 L3,6.8 L8.8,0" IsVisible="False"
+                                Stroke="{DynamicResource SctSegmentedCheckedTextBrush}" StrokeThickness="1.8"
+                                StrokeLineCap="Round" StrokeJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Path Name="PART_MixedGlyph" Data="M0,0 L8.8,0" IsVisible="False"
+                                Stroke="{DynamicResource SctSegmentedCheckedTextBrush}" StrokeThickness="1.8"
+                                StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                    </round:ContinuousBorder>
+                    <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Margin="4,0,0,0"
+                        Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                        Foreground="{TemplateBinding Foreground}" RecognizesAccessKey="True"
+                        HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalContentAlignment="Center" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:pointerover">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:pressed">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:checked, CheckBox.workspaceCheck:indeterminate">
+        <Setter Property="Background" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:checked:pointerover, CheckBox.workspaceCheck:indeterminate:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SctAccentHoverBrush}" />
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:checked:pressed, CheckBox.workspaceCheck:indeterminate:pressed">
+        <Setter Property="Background" Value="{DynamicResource SctAccentPressedBrush}" />
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:checked /template/ Path#PART_CheckGlyph,
+                     CheckBox.workspaceCheck:indeterminate /template/ Path#PART_MixedGlyph,
+                     CheckBox.workspaceCheck:focus-visible /template/ Border#PART_CheckFocus">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="CheckBox.workspaceCheck:disabled">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+</Styles>

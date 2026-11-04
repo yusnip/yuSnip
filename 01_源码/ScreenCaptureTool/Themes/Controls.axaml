@@ -1,0 +1,1863 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:seg="using:ScreenCaptureTool.Controls"
+        xmlns:utils="using:ScreenCaptureTool.Utils">
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource SctBackgroundBrush}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+    </Style>
+
+    <Style Selector="TextBlock.secondary">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.navHint">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- ── 全局 ToolTip 皮（2026-09-22 二次修复：换用自有 ControlTheme）────────────────
+         🔴 起因：FluentTheme 自带的 ToolTip 是钉死的一套（深灰底 #2B2B2B ＋ 白字），
+         不看主题——浅色模式下划过任何按钮弹出的都是"灰底白字"（用户两轮实报）。
+         🔴 教训：第一轮修复只在 ToolTip 控件上挂属性样式＋穿透模板子元素，实测仍然灰底白字——
+         Fluent 模板的取值链既不全经 TemplateBinding，模板成员名也与 WPF 不同
+         （猜的 Border#PART_ToolTipBorder 在 Avalonia Fluent 模板里并不存在，那条是死样式）。
+         属性样式压不进别人的模板，这是结构性问题、不是哪条选择器写错。
+         🔴 本轮做法（釜底抽薪）：给 ToolTip 一枚**自有 ControlTheme（含全套模板）**——
+         模板内一枚 ContentPresenter 全部按 TemplateBinding 取本处属性，彻底不再依赖
+         Fluent 模板的内部结构。它作为资源放在 Styles.Resources 里；App.axaml 的加载
+         顺序是第 6 行 FluentTheme、第 8 行本文件，后加载的资源胜出 ⇒ 此处生效。
+         配套：Colors.axaml 三个主题字典同时供值 Fluent 消费的 ToolTipBackground /
+         ToolTipForeground / ToolTipBorderBrush 三枚——本 ControlTheme 不用它们，
+         但若有控件内部不走这枚主题，那三枚兜底。
+         ⚠ 数值：底走 SctTooltipBgBrush（浅深两态各一枚）、边 1 DIP、圆角 6、
+         Padding 8,5、字号 12（比正文 14 小一档，提示不该抢主界面）、MaxWidth 360。
+         这些值归到本处唯一取值点，窗口内不得再写 ToolTip 局部皮。 -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- 全软件唯一的 R 尺寸资产；连续轮廓见 Controls/ContinuousCorners.cs。 -->
+            <CornerRadius x:Key="SctRadiusSmall">4</CornerRadius>
+            <CornerRadius x:Key="SctRadiusControl">12</CornerRadius>
+            <CornerRadius x:Key="SctRadiusSegmentInner">10</CornerRadius>
+            <CornerRadius x:Key="SctRadiusCard">28</CornerRadius>
+            <CornerRadius x:Key="SctRadiusSidebar">20</CornerRadius>
+            <CornerRadius x:Key="SctRadiusHero">28</CornerRadius>
+            <!-- 工具栏独立曲率档，不改变设置表单／普通菜单的 R12。 -->
+            <CornerRadius x:Key="SctRadiusToolbar">20</CornerRadius>
+            <CornerRadius x:Key="SctRadiusToolbarInner">19</CornerRadius>
+            <CornerRadius x:Key="SctRadiusToolButton">14</CornerRadius>
+            <CornerRadius x:Key="SctRadiusToolPanel">16</CornerRadius>
+            <ControlTemplate x:Key="SctToolbarButtonTemplate" TargetType="Button">
+                <seg:ContinuousContentPresenter Name="PART_ContinuousPresenter"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                    Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                    Padding="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </ControlTemplate>
+            <!-- 独立长截图工程显式消费宿主的编译模板，不反向引用主工程、不复制轮廓。 -->
+            <ControlTheme x:Key="SctContinuousToolbarSurfaceTheme" TargetType="ContentControl">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <seg:ContinuousContentPresenter Name="PART_ContinuousPresenter"
+                            Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                            Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+            <ControlTheme x:Key="SctToolbarOptionSurfaceTheme" TargetType="ContentControl" BasedOn="{StaticResource SctContinuousToolbarSurfaceTheme}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusToolButton}" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="Padding" Value="8,0" />
+            </ControlTheme>
+            <ControlTheme x:Key="SctContinuousToolbarButtonTheme" TargetType="Button">
+                <Setter Property="Template" Value="{StaticResource SctToolbarButtonTemplate}" />
+            </ControlTheme>
+            <ControlTemplate x:Key="SctContinuousChoiceTemplate" TargetType="Button">
+                <seg:ContinuousBorder Name="PART_ContinuousChoice" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter" Classes="continuousChoiceContent"
+                        Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                        Foreground="{TemplateBinding Foreground}" RecognizesAccessKey="True"
+                        HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </seg:ContinuousBorder>
+            </ControlTemplate>
+            <ControlTheme x:Key="{x:Type ToolTip}" TargetType="ToolTip">
+                <Setter Property="Background" Value="{DynamicResource SctTooltipBgBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SctTooltipFgBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SctTooltipBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Padding" Value="8,5" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="MaxWidth" Value="360" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <!-- 🔴 模板内必须自带一枚 TextBlock，且颜色写在**这枚 TextBlock 自己身上**（Template 优先级）：
+                             ① 上一版只绑了 ContentTemplate、漏了 Content 本身 ⇒ 气泡照弹、一个字都没有（用户实报"只有
+                                空的气泡"）；② 同版改用 ContentPresenter 后仍漏一枚——ContentPresenter 内部生成的那枚
+                                TextBlock 属**宿主控件的后代**，会被带 .class 的后代样式直接命中。
+                             ⚠ 但**光靠本模板治不了白气泡**（2026-09-22 实测改口，此前的归因说错了一半）：真正让
+                                「结束录制」变白底白字的是我们自己那条 `Button.tool.primary TextBlock` 宽后代规则。
+                                Avalonia 的 Popup 视觉树挂在**宿主控件之下**（实测链：ToolTip.:open &lt;= Popup &lt;=
+                                Button.tool.primary &lt;= StackPanel &lt;= Window），而带 .class 的规则按 StyleTrigger(1)
+                                记账、**压得过**本模板的 TemplateBinding(Template=2)（数值小者胜：Animation −1 ＜
+                                LocalValue 0 ＜ StyleTrigger 1 ＜ Template 2 ＜ Style 3 ＜ Inherited 4）。故源头修在
+                                下面那条——收窄成 `Button.tool.primary > TextBlock`（实测钮面显式文字的父级就是 Button，
+                                中间没有 ContentPresenter 占层，`>` 恰好只圈它自己）。本模板自带 TextBlock 这一层
+                                仍然保留：它挡的是**别家**宿主样式跨进气泡，与那条收窄各治一半。
+                             ⚠ 前提：ToolTip 内容一律是字符串（本模板是 Text 直取 Content）。
+                                2026-09-22 换皮时全仓 grep 的是 `ToolTip.Tip` 这个键名，🔴 漏了一类——
+                                把 `<ToolTip>` 直接放进视觉树的自管 Popup（长截图控制条那枚）没有这个
+                                键名，它给的 Content 是一枚控件 ⇒ 被 ToString 成 "Avalonia.Controls.TextBlock"
+                                （用户 2026-10-02 实报，已改回字符串）。凡复查这条前提，除 `ToolTip.Tip`
+                                外还须 grep `<ToolTip`。若日后真要放富内容提示，这里得再加一条
+                                ContentPresenter 分支。 -->
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Padding="{TemplateBinding Padding}"
+                                MaxWidth="{TemplateBinding MaxWidth}">
+                            <TextBlock Classes="tooltipText"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       TextWrapping="Wrap" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- Win11 风格卡片：柔和填充、大圆角、微弱浮动阴影与描边 -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="24,20" />
+        <Setter Property="BoxShadow" Value="0 2 12 0 #08000000" />
+        <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+
+    <!-- 设置窗口已有的发丝分割线：跨窗口共用同一份定义。 -->
+    <Style Selector="Border.softDivider">
+        <Setter Property="Background" Value="{DynamicResource SctSoftBorderBrush}" />
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Margin" Value="0,2" />
+    </Style>
+
+    <!-- 日志窗口已有的圆角列表皮：共享给版本等单选记录列表。 -->
+    <Style Selector="ListBox.sctList">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem">
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="Margin" Value="0,0,0,3" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+    </Style>
+    <Style Selector="ListBox.sctList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+    </Style>
+
+    <Style Selector="Button">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- 基础悬浮/按下态：必须声明在所有带 classes 的按钮变体（primary/secondary 等）之前，
+         否则同优先级下后声明者胜出，会覆盖 primary 的紫色悬浮背景，出现"灰底白字" -->
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter, Button:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+
+    <!-- 强调色填充按钮（主操作，如"保存"）：品牌色 #797EFE，全局唯一样式，窗口禁止再重复定义 -->
+    <Style Selector="Button.primary">
+        <Setter Property="Background" Value="#797EFE" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="MaxHeight" Value="32" />
+        <Setter Property="MinWidth" Value="72" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter, Button.primary /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#797EFE" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#8E93FF" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#6267E6" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- 选择型按钮（ToggleButton.selectBtn）：32px 高度、共享连续 R12；中性选中表面、细描边与清晰文字层级 -->
+    <Style Selector="ToggleButton.selectBtn">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SctChoiceTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceTrackBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="MaxHeight" Value="32" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template" Value="{StaticResource SctContinuousChoiceTemplate}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.selectBtn /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:checked">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceSelectedBorderBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.selectBtn:checked /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceTextBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:checked Path.sctIcon">
+        <Setter Property="Fill" Value="{DynamicResource SctChoiceAccentBrush}" />
+    </Style>
+
+    <!-- 次要按钮（如"取消"）：透明底 + 常规边框，全局唯一样式 -->
+    <Style Selector="Button.secondary">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="MaxHeight" Value="32" />
+        <Setter Property="MinWidth" Value="72" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.secondary /template/ ContentPresenter#PART_ContentPresenter, Button.secondary /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.secondary:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+    </Style>
+
+    <!-- 文本链接（设计规范 §6.2）：透明底无边框、悬浮下划线。用于「复制」「获取 API Key」「官方网站」等轻操作 -->
+    <Style Selector="Button.link">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctCardTitleBrush}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.link /template/ ContentPresenter#PART_ContentPresenter, Button.link /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.link:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctCardTitleBrush}" />
+        <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+    </Style>
+
+    <!-- 危险操作按钮（删除／卸载那一族）。2026-09-29 从 SettingsWindow 的窗口私有样式逐值上收到这里：
+         消费者从一窗变两窗（设置页那四枚＋画质预设编辑窗的「删除预设」），按设计规范 §2 只留一份定义。
+         🔴 声明位置必须在上面 Button:pointerover（121 行）之后、.ghost 变体之前——同优先级下后声明者胜出。 -->
+    <Style Selector="Button.danger">
+        <Setter Property="Background" Value="{DynamicResource SctDangerBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="MinHeight" Value="32" />
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.danger:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- danger.ghost：只留红框红字、常态无填充。并排时淡红底那档太重，"危险"这层意思等指针真落上来再说。
+         🔴 描边必须在 pointerover 的模板规则里再写一遍：`Button.danger` 那条 BorderBrush 挂在控件上、
+         不带伪类只有 Style 优先级，而 Fluent 自己的 `Button:pointerover /template/ ContentPresenter`
+         是 StyleTrigger，压得过它 ⇒ 不补这一笔，一悬停红框就被换成主题灰边（看着像描边消失了）。 -->
+    <Style Selector="Button.danger.ghost">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.danger.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.danger.ghost:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctDangerBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+    </Style>
+
+    <!-- @ 预设提示词提及下拉条目（AiPresetMentionPopup 复用控件，识图提问/追问两窗口共用） -->
+    <Style Selector="Button.aiPresetMentionItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.aiPresetMentionItem /template/ ContentPresenter#PART_ContentPresenter, Button.aiPresetMentionItem /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="TextAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.aiPresetMentionItem:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.aiPresetMentionItem:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+    </Style>
+    <Style Selector="Button.aiPresetMentionItem.hl /template/ ContentPresenter#PART_ContentPresenter, Button.aiPresetMentionItem.hl /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+    </Style>
+
+    <!-- Win11 风格导航：选中时圆角柔和填充块，紧凑排版与平滑过渡 -->
+    <Style Selector="Button.nav">
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.1" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.nav:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.nav.active">
+        <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource SctNavActiveTextBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter, Button.nav.active /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctNavActiveTextBrush}" />
+    </Style>
+
+    <!-- 标题栏图标按钮：内容居中、hover 圆角背景（全局唯一样式，含 hover 态） -->
+    <Style Selector="Button.titleIcon">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinWidth" Value="36" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Button.titleIcon:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.titleIcon:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+
+    <!-- 标题栏右上角贴边按钮组（设计规范 §6.8）：44×36、直角、零间距贴死窗口右上边缘。
+         几何统一由 titleBarBtn 承载，closeBtn 只作「关闭」语义修饰类叠加红底两态。
+         必须声明在上面基础样式之后——同优先级下后声明者胜出 -->
+    <Style Selector="Button.titleIcon.titleBarBtn">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.titleIcon.titleBarBtn.closeBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.titleIcon.titleBarBtn.closeBtn:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctTitleBarCloseBrush}" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctTitleBarCloseTextBrush}" />
+    </Style>
+    <Style Selector="Button.titleIcon.titleBarBtn.closeBtn:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.titleIcon.titleBarBtn.closeBtn:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctTitleBarClosePressedBrush}" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctTitleBarCloseTextBrush}" />
+    </Style>
+
+    <!-- 工具条这四类按钮一律不给键盘焦点：Avalonia 的 Button.OnKeyDown 把 Enter/Space 当作"激活"
+         （OnClick + e.Handled=true），而截图覆盖层的「确认选区＝Enter」「空格＝切上次工具/平移选区」注册在
+         window.KeyDown 的冒泡路上、不带 handledEventsToo ⇒ 焦点只要留在工具条按钮上，全局快捷键就被按钮吞掉，
+         而且那个按钮会被再触发一次（实测：选完描边颜色按回车 → 描边取色器又弹一次，选区没确认）。
+         这条口径在覆盖层里本就有先例（Slider.compactSlider、参数条的阴影勾选都写了 Focusable=False），只有按钮这一路漏了。
+         文本输入框不在此列——它们要焦点才打得进字。 -->
+    <Style Selector="Button.tool">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.toolIcon">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinWidth" Value="28" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Foreground" Value="{DynamicResource SctIconBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- 常态描边变体：图标条那一路靠图标本身表意，无边框是对的；但文本工具那四格（粗体/斜体/描边/填充）
+         并排在参数条上时，没有边框就散成一片浮空图标，与左侧那个带边框的「字号」框对不齐。
+         🔴 必须声明在下面 Button.toolIcon.active **之前**：两条同为「元素＋两个 class」权重，
+         同优先级后声明者胜出，写反会把选中态那圈品牌紫描边盖回灰色。 -->
+    <Style Selector="Button.toolIcon.outlined">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.toolIcon.outlined /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon.outlined /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- 文字工具钮的描边档（2026-09-22 补）：预览窗转码失败行的"重试／改存 MP4"两枚要用——原先那两枚
+         挂的是 .hud 钉黑修饰类的 outlined，随 .hud 整组退役后文字描边档在本族缺位。配方与
+         toolIcon.outlined 逐值相同，只是宿主换成文字钮。 -->
+    <Style Selector="Button.tool.outlined">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.tool.outlined /template/ ContentPresenter#PART_ContentPresenter, Button.tool.outlined /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.toolIcon.active">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.toolIcon.active /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon.active /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.toolIcon.active:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon.active:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.toolIcon.active:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon.active:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- 方格尺寸的品牌紫实心钮（录屏控制条的暂停／停止）：配色与 Button.tool.primary 逐值相同，
+         尺寸沿用 Button.toolIcon 的 28×28。为什么不让控制条直接挂 "tool primary"：那条带 MinWidth 70
+         与横向内边距，压在方格上会被撑成长条。 -->
+    <Style Selector="Button.toolIcon.primary">
+        <Setter Property="Background" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctSegmentedCheckedTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.toolIcon.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon.primary:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#8E93FF" />
+    </Style>
+    <Style Selector="Button.toolIcon.primary:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon.primary:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#6267E6" />
+    </Style>
+    <!-- ⚠ 紫底上那枚图标的反白规则住在下面 `Path.icon` 之后（本文件后段），不在这里。 -->
+
+    <Style Selector="Button.toolIcon:disabled">
+        <Setter Property="Opacity" Value="0.35" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <Style Selector="Button.toolIcon:disabled /template/ ContentPresenter#PART_ContentPresenter, Button.toolIcon:disabled /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- ── `.hud` 钉黑修饰类 —— 2026-09-22 已整组删除 ─────────────────────────────────────
+         起因：预览窗（VideoStickerWindow）此前整窗钉黑、与主题脱钩，条上那批按钮需要翻白图标、
+         白叠加悬浮与白描边，于是立了这组修饰类（Classes="toolIcon hud" / "tool hud outlined"）。
+         2026-09-22 按用户实报把预览窗改回跟随主题（浅色模式下结束录制弹出的却是深色窗），
+         预览条按钮全部回归全局主题类之后本组再无使用者，故连同 Colors.axaml 的
+         SctHudHoverBrush / SctHudPressedBrush 两枚一并删除。
+         仍钉黑的是「会被录进画面」的那族（键帽药丸 Border.hudPill ＋ 点击波纹），
+         它们走 SctHud* Token、不经按钮类，不受本次删除影响。 -->
+
+    <!-- 序号样式工具栏里的那一排小样格（CounterOptionsControl，7 枚）：尺寸/圆角/外边距与 Button.toolIcon
+         逐值相同，差别只有一层"样片底"。为什么不复用 toolIcon + .active：.active 会连底一起翻成
+         SctButtonPressedBrush，把样片底吃掉——而设计稿排法甲要的就是"底恒定、只加环"。
+         样片底取 SctPreviewStageBrush（§6.14：与主题脱钩的中灰，浅深两态同色），因为标注色是用户可改的，
+         选了白色时"实心"那两枚压在浅色内板上会整片消失。
+         ⚠ 悬浮与按下两条必须挂 /template/ 才压得住第 58 行那条通用 Button:pointerover；
+         静止态不用挂（Button.Background 经模板 TemplateBinding 直达内容呈现器），
+         .on 同理只改按钮自身的 BorderBrush 就能出环 -->
+    <Style Selector="Button.counterCell">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinWidth" Value="28" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Background" Value="{DynamicResource SctPreviewStageBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.counterCell:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.counterCell:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctPreviewStageHoverBrush}" />
+    </Style>
+    <Style Selector="Button.counterCell:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.counterCell:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctPreviewStageHoverBrush}" />
+    </Style>
+    <Style Selector="Button.counterCell.on">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+
+    <!-- 工具栏自定义：代码动态创建的分隔线 -->
+    <Style Selector="Border.tbDivider">
+        <Setter Property="Background" Value="{DynamicResource SctSeparatorBrush}" />
+    </Style>
+    <!-- 截图及各场景共用分裂格；编译期资产，后台工程不动态加载 XAML。 -->
+    <Style Selector="Button.toolbarGroupedTool">
+        <Setter Property="Template" Value="{StaticResource SctToolbarButtonTemplate}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusToolButton}" />
+    </Style>
+    <Style Selector="Button.toolIcon.tbGroupHead">
+        <Setter Property="Margin" Value="4,0,0,0" />
+    </Style>
+    <Style Selector="Button.toolIcon.tbGroupChevron">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Margin" Value="2,0,4,0" />
+    </Style>
+    <Style Selector="Button.toolIcon.tbGroupChevron.opened">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+
+    <Style Selector="Path.icon">
+        <Setter Property="Stroke" Value="{DynamicResource SctIconBrush}" />
+        <Setter Property="StrokeThickness" Value="1.8" />
+        <Setter Property="StrokeLineCap" Value="Round" />
+        <Setter Property="StrokeJoin" Value="Round" />
+        <Setter Property="Fill" Value="Transparent" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 实心档：与 Path.icon 同缩放同盒子，只把"描边"换成"填充"。
+         一条 Path 的 Fill 与 StrokeThickness 是整条几何共用的，画不出"描边的框＋实心的件"，
+         故凡图标里有一枚必须实心的件（如录屏「键鼠」那枚鼠标光标），就叠两条 Path：
+         描边件挂 icon，实心件挂 iconFill（本类只改上色方式，盒子与缩放仍由 icon 给）。本条必须声明在 Path.icon
+         之后——同为单类选择器、优先级相等，靠书写顺序决胜。
+         ⚠ 本类在上表「图标反白」那组里为实心主按钮与钉黑浮层各再钉了一次白，那两条同样必须排在本条之后。 -->
+    <Style Selector="Path.iconFill">
+        <Setter Property="Fill" Value="{DynamicResource SctIconBrush}" />
+        <Setter Property="StrokeThickness" Value="0" />
+    </Style>
+
+    <!-- 键鼠操作那枚三件套曾有专属元素盒 Path.keymouse（18×18）：那是"墨区是扁件、只能靠抬盒子找视觉重量"
+         的补救。2026-09-24 该图标几何已重画成 16×16 方件（见 OcrIconGeometry.KeyMouseFrame），
+         18 档与全局 16 档并存的唯一理由消失 ⇒ 整条删除，两处消费方回到同一条 Path.icon。
+         ⚠ 别把它当冗余样式加回来：None 下元素盒不参与缩放，盒比墨区大 2 DIP 就是整枚偏左上 1 DIP。 -->
+
+    <!-- ── 图标反白（实心底／钉黑底上的 Path 上色，2026-09-21 修）──────────────────────────
+         🔴 本组只能写在上面 `Path.icon` / `Path.iconFill` **之后**，也不许搬回按钮那一组里：
+         Avalonia 没有 CSS 那套选择器权重，同一个 BindingPriority.Style 里**后写的胜出**（AGENTS.md §5
+         "样式声明顺序"同一条）。这几条此前就写早了——规则形同不存在，实测现象＝录屏控制条那枚紫底"完成"钮
+         上挂着一枚**黑勾**（用户复看指出）。
+         ⚠ 为什么非不可靠按钮 Foreground 的继承：Foreground 只是从父级**继承**下来的值，
+            而 `Path.icon` 那一条是**直接赋值**给这枚 Path，直接赋值永远压过继承。 -->
+    <Style Selector="Button.toolIcon.primary Path.icon">
+        <Setter Property="Stroke" Value="{DynamicResource SctSegmentedCheckedTextBrush}" />
+    </Style>
+    <!-- 文字工具钮上的主按钮图标反白（2026-09-22 预览窗主按钮由文字改图标后补）：
+         Button.tool.primary 是品牌紫实底，宿主按钮的 Foreground／全局 Path.icon（SctIconBrush＝
+         主题主文字色）在浅色档下是深墨、压在紫底上读不出，须与上面 toolIcon.primary 那条同款反白 -->
+    <Style Selector="Button.tool.primary Path.icon">
+        <Setter Property="Stroke" Value="{DynamicResource SctSegmentedCheckedTextBrush}" />
+    </Style>
+    <!-- .hud 反白两条（tool.hud / toolIcon.hud 的 Path.icon 与 Path.iconFill）已随 2026-09-22
+         .hud 修饰类整组删除，见文件前段那段删除说明。 -->
+
+    <Style Selector="Button.swatch">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="MinWidth" Value="20" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="1,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.toolOptionHost">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- 参数条里"点着直接输"的裸数值框（序号起始值）：**常态就得带一圈描边**——用户两次点名同样的问题
+         （"输入控件没有可见边框，用户不知道能输入" / "起始框看不到，得悬浮了才看到，不好看"）。
+         外框逐值抄同一条黑栏上「字号」那一格：`SctBorderBrush` + 1 + radius 6、底色保持透明；聚焦换品牌紫，
+         与全局 `TextBox:focus /template/` 那条同一口径。配色一律走 Token，不硬编码。
+         截图遮罩参数条与贴图标注浮窗共用这一份，属全局样式而非窗口私有。 -->
+    <Style Selector="TextBox.toolVal">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="2,0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <!-- 模板部件的底色/描边必须按伪类逐条接管：全局 `TextBox:pointerover /template/` 与 `:focus /template/`
+         那两条带 activator、是 StyleTrigger 优先级，会把底色刷成灰底/输入底（在黑栏上就是一块突兀的浅色斑）。
+         ⚠ **不带 activator 的 `/template/` 规则只有 Style 优先级、压不过模板里的 TemplateBinding**（设计规范 §7），
+         所以"常态描边"只能由上面那组控件属性经 `TemplateBinding` 流进 `PART_BorderElement`，这里只管悬浮与聚焦三态。 -->
+    <Style Selector="TextBox.toolVal:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBox.toolVal:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBox.toolVal:focus:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Border.textPopupPanel">
+        <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,7" />
+    </Style>
+
+    <!-- 全局提示胶囊（2026-09-21，位点 ④＋⑪ 收口）：录屏降级提示与 FFmpeg 引导提示本来就是同一件事，
+         此前一个圆角 14、一个圆角 8，两套字面色。现只留这一份：外环照 §7.5 只做 1px 环与阴影，
+         圆角与底色交给内板；圆角＝高度一半（胶囊档），投影走 §3.6 浮层档 Token。
+         ⚠ §3.6 第二铁律：光晕余量必须由本 Border 的直接父级持有（左右 ≥20、下 ≥26、上 ≥14）。
+         🔴 2026-09-22 删掉本条原有的 `BorderThickness=1`：那一圈 1px 环已经由 `Padding=1` ＋ 外衬底色给过了，
+         再叠一层"有宽度、没颜色"的 BorderThickness 不会多画一条线（Brush 为空 ⇒ 线根本不描），但会**占掉
+         四边各 1 DIP**，于是外衬那一圈实心底变成 2 DIP 厚——与 §7.5 工具浮层的 1px 环对不上，圆角也失同心
+         （r14 对 r13 本就是按 1px 环算的）。同一条坑另外两处（倒计时药丸与 REC 徽标）同轮收口。 -->
+    <Style Selector="Border.notifyPill">
+        <Setter Property="Background" Value="{DynamicResource SctControlBarOuterBrush}" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="1" />
+        <Setter Property="BoxShadow" Value="{DynamicResource SctShadowOverlay}" />
+    </Style>
+    <Style Selector="Border.notifyPillPlate">
+        <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="Padding" Value="12,4" />
+        <Setter Property="MinHeight" Value="26" />
+    </Style>
+    <!-- 内板文字口径也收在这里：两个宿主原先各写一遍 12 号＋主文字色。用后代而非直接子代选择器，
+         因为带链接的那条中间还隔一层横向 StackPanel。个别要另配色的文字（如「去设置」链接）
+         在本地给 Foreground 即可压过本条。 -->
+    <Style Selector="Border.notifyPillPlate TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 深色 HUD 胶囊（2026-09-21 岔路一甲案）：判据是"会不会被 ffmpeg 录进画面"。键帽药丸画在选区之内、
+         压在任意应用内容上并直接进成品视频，底色必须与主题脱钩钉死（浅色档下面可能是纯白文档）。
+         钉死 ≠ 各写一份：色值全部来自 SctHud* Token，C# 侧不得再 new SolidColorBrush。 -->
+    <Style Selector="Border.hudPill">
+        <Setter Property="Background" Value="{DynamicResource SctHudBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctHudBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="BoxShadow" Value="{DynamicResource SctHudShadow}" />
+    </Style>
+    <Style Selector="Border.hudPill TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctHudFgBrush}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <!-- 键帽是 §4.1「等宽只留给键帽/日志/代码盒」里点名的合法例外（§6.6 键帽物理模型），
+             全应用 Consolas 到此为止一处。 -->
+        <Setter Property="FontFamily" Value="Consolas" />
+    </Style>
+
+    <!-- 钉黑胶囊（2026-09-22 录屏第（五）项）：压在**任意应用内容**上的只读读数条，与上面 hudPill 同一判据、
+         不同一档形态——本档的参照物是截图选区右上角那枚读数胶囊（InfoPill），两者逐值相同（r8 / 内距 8,3 /
+         高 30 / 1px 半透明白边／**无投影**：InfoPill 本来就没挂 BoxShadow，加了会比截图那枚重一圈）。
+         截图侧与录屏侧共用这一条，色值全在 SctDarkPill* 四枚 Token 里。
+         🔴 文字一律挂**类**（darkPillValue / darkPillLabel），不写裸 `Border.darkPill TextBlock`：
+         后代选择器会把这一格里的每一枚文字都刷白，且与本轮 ToolTip 那个病同源（宿主样式直接命中内部文字）。 -->
+    <Style Selector="Border.darkPill">
+        <Setter Property="Background" Value="{DynamicResource SctDarkPillBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctDarkPillBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="Border.darkPill TextBlock.darkPillValue">
+        <Setter Property="Foreground" Value="{DynamicResource SctDarkPillFgBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.darkPill TextBlock.darkPillLabel">
+        <Setter Property="Foreground" Value="{DynamicResource SctDarkPillLabelBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.segmentedHost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.textSegment">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="7,0" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource SctChoiceTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceTrackBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template" Value="{StaticResource SctContinuousChoiceTemplate}" />
+    </Style>
+
+    <Style Selector="Button.textSegment.active">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceSelectedBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceTextBrush}" />
+    </Style>
+
+    <Style Selector="Slider.compactSlider">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <!-- 点哪儿指哪儿（2026-09-20）：整条轨道都可落点，判据与落点换算在行为类里，挂在样式上
+             ⇒ 全软件所有 compactSlider 一处生效，各窗口与参数控件不逐个接线。 -->
+        <Setter Property="seg:SliderTrackTapBehavior.MoveToPoint" Value="True" />
+        <!-- 轨道颜色改由 BorderBrush 驱动（BorderThickness 恒为 0，该属性在本模板里只被轨道消费）：
+             深色浮层上的滑杆只需覆盖 BorderBrush 就能换轨道色，不必复制整套模板，
+             也不必去覆盖模板部件——那属于 BindingPriority.Template 层，普通样式压不过。 -->
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Height="28" Background="Transparent" VerticalAlignment="Center">
+                    <Border Height="4"
+                            CornerRadius="2"
+                            Background="{TemplateBinding BorderBrush}"
+                            VerticalAlignment="Center" />
+                    <Track Name="PART_Track"
+                           Orientation="{TemplateBinding Orientation}"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value}"
+                           IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                           Height="28"
+                           VerticalAlignment="Center">
+                        <!-- 两枚隐形翻页按钮关掉命中：它们本来就 Opacity=0、点了也只会按 LargeChange 挪一格
+                             （本项目恒为 0 ⇒ 等于没反应），留着只会抢走"点轨道落点"要用的那下按下 -->
+                        <Track.DecreaseButton>
+                            <RepeatButton IsTabStop="False" Focusable="False" IsHitTestVisible="False" Background="Transparent" BorderThickness="0" Padding="0" Opacity="0" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton IsTabStop="False" Focusable="False" IsHitTestVisible="False" Background="Transparent" BorderThickness="0" Padding="0" Opacity="0" />
+                        </Track.IncreaseButton>
+                        <Track.Thumb>
+                            <Thumb Width="16" Height="16" Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                                <Thumb.Template>
+                                    <ControlTemplate>
+                                        <Grid Width="16" Height="16">
+                                            <Ellipse Fill="{DynamicResource SctAccentBrush}" />
+                                            <Ellipse Fill="#FFFFFFFF" Margin="4" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Track.Thumb>
+                    </Track>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- 整行禁用＝整行压暗（2026-09-20）：参数行「标签 ＋ 滑杆 ＋ 读数」在不适用时是整行 IsEnabled=false，
+         但 Fluent 只给 Button/MenuItem 那几族自带禁用皮，Slider 与 TextBlock 都没有 ⇒ 不能用的那一行和能用的
+         那一行看着一模一样，用户只会以为"滑杆坏了"。压暗一律挂在**容器**上（整棵子树一起淡、只叠一层）：
+         若逐类去压子控件，容器 0.35 再乘子控件 0.35 会糊成 0.12。取值与 Button.toolIcon:disabled 同档。
+         用法：给行容器挂 Classes="dimWhenDisabled"，代码侧只翻 IsEnabled。 -->
+    <Style Selector="Grid.dimWhenDisabled:disabled">
+        <Setter Property="Opacity" Value="0.35" />
+    </Style>
+
+    <!-- 截图遮罩上的深色参数条专用控件：条子底色恒为 100% 不透明黑 #FF000000、不跟随应用明暗主题，
+         所以这一族的配色一律钉死，不走任何主题资源。
+         （本族原有 Slider.compactSlider.overlayPill，2026-09-17 参数条滑杆退役后已删；
+         Slider.compactSlider 基样式仍在，全软件 22 处滑杆使用者——2026-09-20 起这一族自带"点哪儿指哪儿"，
+         落点行为挂在上面那条样式上，新增滑杆不需要做任何事。） -->
+
+    <!-- 勾选框的**唯一**一份模板（2026-09-21 四份合一份）：方框 16/圆角 4/描边 SctBorderBrush、勾线走
+         SctSegmentedCheckedTextBrush、选中底走品牌紫三色，全部为 Token，故浅底参数条、深底浮层面板、
+         设置窗口三处通用。文字前景不写：交给全局 <Style Selector="TextBlock"> 的 SctTextPrimaryBrush，
+         在主题色底板上本来就该是它。需要压在**钉死深色**底上时再叠一个 CheckBox.overlayPill 修饰类。
+         ⚠ 必须声明在 CheckBox.overlayPill **之前**：两条同权重（元素＋class），后声明者胜出，
+            写反了 overlayPill 的白框就会去盖 Token 值（原本踩过的正是这个方向的坑）。 -->
+    <Style Selector="CheckBox.toolCheck">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*" Background="Transparent">
+                    <Border Width="16" Height="16" CornerRadius="4"
+                            BorderThickness="1"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            VerticalAlignment="Center">
+                        <Path Name="checkMark"
+                              Data="M 0,3.8 L 3,6.8 L 8.8,0"
+                              Stroke="{DynamicResource SctSegmentedCheckedTextBrush}"
+                              StrokeThickness="1.8"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </Border>
+                    <ContentPresenter Grid.Column="1"
+                                      Content="{TemplateBinding Content}"
+                                      Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="Center" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- 勾的显隐必须走带类的选择器（StyleTrigger 层）才压得过模板里的赋值 -->
+    <Style Selector="CheckBox.toolCheck /template/ Path#checkMark">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="CheckBox.toolCheck:checked /template/ Path#checkMark">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="CheckBox.toolCheck:pointerover">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctTextMutedBrush}" />
+    </Style>
+    <Style Selector="CheckBox.toolCheck:checked">
+        <Setter Property="Background" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+    </Style>
+    <!-- 悬浮档统一取品牌 hover #8E93FF（与 Button.primary / Button.tool.primary 同一档）。
+         原先 overlayPill 与录屏参数条各自的 #9598FF 是第四份皮里的漂移值，随四合一并档。 -->
+    <Style Selector="CheckBox.toolCheck:checked:pointerover">
+        <Setter Property="Background" Value="#8E93FF" />
+        <Setter Property="BorderBrush" Value="#8E93FF" />
+    </Style>
+    <Style Selector="CheckBox.toolCheck:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <!-- 截图遮罩上的深色参数条专用**修饰类**：条子底色恒为 100% 不透明黑 #FF000000、不跟随应用明暗主题，
+         所以这一族的配色一律钉死，不走任何主题资源。模板与勾选行为都在上面 CheckBox.toolCheck 里，
+         本类只覆盖那两处需要钉死的量：未勾选的框边（Token 的浅灰 #DCDCDC 在黑栏上几乎看不见）与文字白色。
+         用法：Classes="toolCheck overlayPill"（单挂本类没有模板，会退回 Fluent 默认皮）。
+         ⚠ 文字白色必须单独一条后代规则：全局 <Style Selector="TextBlock"> 给子级 TextBlock 赋的
+            SctTextPrimaryBrush（浅色模式 #222222）优先级高于继承值，只在 CheckBox 上钉 Foreground 压不住它。 -->
+    <Style Selector="CheckBox.overlayPill">
+        <Setter Property="Foreground" Value="#FFFFFFFF" />
+        <Setter Property="BorderBrush" Value="#73FFFFFF" />
+    </Style>
+    <Style Selector="CheckBox.overlayPill TextBlock">
+        <Setter Property="Foreground" Value="#FFFFFFFF" />
+    </Style>
+    <Style Selector="CheckBox.overlayPill:pointerover">
+        <Setter Property="BorderBrush" Value="#A6FFFFFF" />
+    </Style>
+    <Style Selector="CheckBox.overlayPill:checked:pointerover">
+        <Setter Property="Background" Value="#8E93FF" />
+        <Setter Property="BorderBrush" Value="#8E93FF" />
+    </Style>
+
+    <Style Selector="Button.tool.active">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.tool.active /template/ ContentPresenter#PART_ContentPresenter, Button.tool.active /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.tool.active:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tool.active:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.tool.active:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.tool.active:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- 参数条上的主操作钮（录屏「开始录制」）：品牌紫实心 + 白字，三色与 Button.primary 逐值相同，
+         尺寸则跟随 Button.tool 的 28 高。原先底色写的是 SctSizeLabelBackgroundBrush——它不是品牌紫，
+         浅色主题下还近乎纯白，配上这里钉死的白字就是白底白字（该样式此前零使用者，故未暴露）。
+         ⚠ 文字白色必须再有一条 TextBlock 后代规则：全局 <Style Selector="TextBlock"> 的赋值优先级
+            高于按钮 Foreground 的继承值（与 CheckBox.overlayPill TextBlock 同一类坑）。 -->
+    <!-- ⚠ 这里必须是<b>直接子代</b> `>`，不能是后代（空格）。两条理由，都是实测不是推理：
+         ① 该漏过一次：写成后代时，「结束录制」的气泡文字被染成白色（用户实报"只有个白气泡"）。
+            原因是 Avalonia 的 Popup 挂在**宿主按钮之下**（实测祖先链：TextBlock <= Border <= ToolTip.:open
+            <= Popup <= Button.tool.primary），而带 `.class` 的后代规则是 **StyleTrigger** 优先级，
+            压得过 ToolTip 模板里 `Foreground="{TemplateBinding Foreground}"`（**Template**，数字更大＝更弱），
+            于是我们自己那份 ToolTip 主题被这条不相干的按钮规则跨窗染白。
+         ② 收窄不会漏染钮面：实测钮面文字的祖先链就是 TextBlock <= Button.tool.primary
+            （Content 是显式 TextBlock 时 ContentPresenter 不占一层），所以 `>` 正好只圈它自己。
+         全局 <Style Selector="TextBlock"> 的赋值优先级高于按钮 Foreground 的继承值，这条不能整条删掉。 -->
+    <Style Selector="Button.tool.primary">
+        <Setter Property="Background" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctSegmentedCheckedTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSegmentedCheckedBgBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="MinWidth" Value="70" />
+        <Setter Property="Padding" Value="12,4" />
+        <!-- 与 Button.primary 的唯一差别：参数条上同排选项文字全是 12 号常规，主操作不加字重就压不住 -->
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.tool.primary > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctSegmentedCheckedTextBrush}" />
+    </Style>
+    <Style Selector="Button.tool.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tool.primary:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#8E93FF" />
+    </Style>
+    <Style Selector="Button.tool.primary:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.tool.primary:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#6267E6" />
+    </Style>
+    <!-- Button.tool.danger 两条（含其 TextBlock 后代规则）已删：`tool danger` 这个组合全仓库零使用者
+         （`Button.danger`、`MenuItem.danger` 是另外两条自有样式，不受影响）。留着不仅没人用，
+         还多一处会跨进 Popup 的宽后代选择器——与上面 primary 那条同一个坑的第二个雷。 -->
+    <!-- danger.hud 钉黑档四条已随 2026-09-22 预览窗改随主题一并删除（唯一使用者＝预览窗「放弃」钮，
+         该钮本身已在同一轮整改中与 ✕ 合并），此处不再保留无使用者的死样式。 -->
+
+    <!-- 密码框眼睛切换按钮：透明背景、无边框、小尺寸 -->
+    <Style Selector="Button.eyeToggle">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.eyeToggle:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.eyeToggle:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+    </Style>
+    <Style Selector="Button.eyeToggle:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.eyeToggle:pressed /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+
+    <!-- 眼睛图标（睁开：密码隐藏时显示，灰色） -->
+    <Style Selector="Path.eyeIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Fill" Value="{DynamicResource SctEyeIconBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 眼睛图标（关闭：密码可见时显示，强调色） -->
+    <Style Selector="Path.eyeOffIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Fill" Value="{DynamicResource SctEyeOffBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <!-- 显式指定选中态，避免被覆盖的 SystemAccentColor 吃掉选中高亮（浅/深色下均清晰可见） -->
+        <Setter Property="SelectionBrush" Value="#80797EFE" />
+        <Setter Property="CaretBrush" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+
+    <!-- 聚焦时边框变为强调色，不消失 -->
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+    </Style>
+
+    <!-- pointerover 时边框加深 -->
+    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SctComboBoxHoverBrush}" />
+    </Style>
+
+    <!-- 聚焦 + pointerover 时保持强调色边框 -->
+    <Style Selector="TextBox:focus:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
+    </Style>
+
+    <!-- 密码框水印文字颜色 -->
+    <Style Selector="TextBox /template/ TextBlock#PART_Watermark">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="Opacity" Value="0.6" />
+    </Style>
+
+    <!-- 大数值输入（参数面板仪表盘排版）：品牌紫 17px 粗体、透明底无边框、右对齐，可点击直接编辑 -->
+    <Style Selector="TextBox.bigVal">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource SctBadgeTextBrush}" />
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="VerticalContentAlignment" Value="Bottom" />
+    </Style>
+    <Style Selector="TextBox.bigVal /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.bigVal:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.bigVal:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.bigVal:focus:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="Background" Value="{DynamicResource SctComboBoxBgBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="ComboBox:pointerover /template/ Border#Background">
+        <Setter Property="Background" Value="{DynamicResource SctComboBoxHoverBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+    </Style>
+
+    <Style Selector="ComboBoxItem">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Margin" Value="4,2" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <!-- 选中项：品牌紫实底 + 白字（SctNavActiveBrush 晋升为 #797EFE 后文字必须反白，避免紫底紫字不可见） -->
+    <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctNavActiveBrush}" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctNavActiveTextBrush}" />
+    </Style>
+
+    <!-- 可选中文本统一显示选中态（默认被 SystemAccentColor 覆盖后不可见） -->
+    <Style Selector="SelectableTextBlock">
+        <Setter Property="SelectionBrush" Value="#80797EFE" />
+    </Style>
+
+    <!-- ════════ 分段选择器（Segmented）：工业级标准内嵌槽道架构，高亮滑块嵌入轨道内部 ════════ -->
+    <!-- 连体宿主轨道：统一高度 32px，连续外 R8，内边距 1px 形成内嵌凹槽 -->
+    <Style Selector="Border.segmentedGroup">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceTrackBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        <Setter Property="Padding" Value="1" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="MaxHeight" Value="32" />
+        <Setter Property="ClipToBounds" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <!-- 保留邻段占位逻辑；分隔线不再绘制笔画，见 Controls/SegmentedDividerBehavior.cs。 -->
+        <Setter Property="seg:SegmentedDividerBehavior.AutoCollapse" Value="True" />
+    </Style>
+    <!-- 分段项：RadioButton 换模板实现；高亮滑块嵌入在轨道槽道内，连续内 R10（外 R12 减去 2px 内缩） -->
+    <Style Selector="RadioButton.segmented">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <seg:ContinuousBorder x:Name="PART_SegmentBorder"
+                        Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"
+                        Padding="15,0"
+                        CornerRadius="{DynamicResource SctRadiusSegmentInner}"
+                        Height="28"
+                        MinHeight="28"
+                        MaxHeight="28"
+                        Margin="0">
+                    <TextBlock Text="{TemplateBinding Content}"
+                               Foreground="{TemplateBinding Foreground}"
+                               FontWeight="{TemplateBinding FontWeight}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </seg:ContinuousBorder>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 悬停态：微高亮底色 -->
+    <Style Selector="RadioButton.segmented:pointerover /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceHoverBrush}" />
+    </Style>
+    <!-- 选中态：高亮滑块嵌入轨道槽内，受外轨边框完整包裹 -->
+    <Style Selector="RadioButton.segmented:checked /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceSelectedBorderBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segmented:checked">
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceTextBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- ToggleButton 分段项：与 RadioButton.segmented 共享完全相同的内嵌槽道滑块几何与交互态 -->
+    <Style Selector="ToggleButton.segmented">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <seg:ContinuousBorder x:Name="PART_SegmentBorder"
+                        Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"
+                        Padding="13,0"
+                        CornerRadius="{DynamicResource SctRadiusSegmentInner}"
+                        Height="28"
+                        MinHeight="28"
+                        MaxHeight="28"
+                        Margin="0">
+                    <TextBlock Text="{TemplateBinding Content}"
+                               Foreground="{TemplateBinding Foreground}"
+                               FontWeight="{TemplateBinding FontWeight}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </seg:ContinuousBorder>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:pointerover /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceHoverBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:checked /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceSelectedBorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:checked">
+        <Setter Property="Foreground" Value="{DynamicResource SctChoiceTextBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="RadioButton.segmented:pressed /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoicePressedBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segmented:checked:pointerover /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedHoverBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segmented:checked:pressed /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedPressedBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segmented:focus-visible /template/ Border#PART_SegmentBorder">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceAccentBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segmented:disabled /template/ Border#PART_SegmentBorder">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:pressed /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoicePressedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:checked:pointerover /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedHoverBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:checked:pressed /template/ Border#PART_SegmentBorder">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedPressedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:focus-visible /template/ Border#PART_SegmentBorder">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceAccentBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.segmented:disabled /template/ Border#PART_SegmentBorder">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <!-- 保留旧分隔占位与邻段逻辑，但不绘制硬切分隔笔画；窗口侧不另设 IsVisible。 -->
+    <Style Selector="Rectangle.segmentedDivider">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Fill" Value="Transparent" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="Margin" Value="0,3" />
+    </Style>
+
+    <!-- ════════ 键帽按钮（Keycap）：快捷键录制胶囊，统一高度 32px，圆角 6px ════════ -->
+    <Style Selector="Button.keycap">
+        <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="MinWidth" Value="84" />
+        <Setter Property="FontFamily" Value="Consolas, 'Cascadia Code', 'Segoe UI Mono', monospace" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.keycap:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.keycap:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+        <Setter Property="BorderBrush" Value="#797EFE" />
+        <Setter Property="Foreground" Value="#797EFE" />
+    </Style>
+    <!-- 录制中：淡蓝紫底 + 蓝紫描边文字 -->
+    <Style Selector="Button.keycap.recording">
+        <Setter Property="Background" Value="#1F797EFE" />
+        <Setter Property="BorderBrush" Value="#797EFE" />
+        <Setter Property="Foreground" Value="#797EFE" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+    <Style Selector="Button.keycap.recording /template/ ContentPresenter#PART_ContentPresenter, Button.keycap.recording /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="#1F797EFE" />
+        <Setter Property="BorderBrush" Value="#797EFE" />
+        <Setter Property="Foreground" Value="#797EFE" />
+    </Style>
+
+    <!-- ════════ 表单行通用样式（设置页 / 各编辑弹窗统一复用） ════════ -->
+    <Style Selector="TextBlock.fieldLabel">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.fieldHint">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <!-- ════════ 右键菜单与弹出层（统一几何规格、背景、圆角、内边距与交互态） ════════ -->
+    <Style Selector="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource SctMenuBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctMenuBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="5" />
+        <Setter Property="MinWidth" Value="170" />
+    </Style>
+
+    <Style Selector="MenuFlyoutPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctMenuBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctMenuBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="5" />
+        <Setter Property="MinWidth" Value="170" />
+    </Style>
+
+    <!-- 菜单的窄条变体：条目全是短文本（数字档、单字段名）时，170 的下限会把菜单撑成一条空壳。
+         用法是给**生成出来的 MenuFlyoutPresenter 挂上 `compact` 类**——本仓库的 Avalonia 11.2.8 还没有
+         `FlyoutBase.ClassName`（11.3 才加），presenter 又是框架建弹出层时现造的、外部拿不到，
+         所以只能借第一个条目"入树即回溯祖先"补这一笔（统一入口见 Controls/MenuFlyoutPresenterStyle.cs 的
+         Attach，四类下拉共用一份）。**数值只写在这里这一处**，代码只负责挂类、不携带尺寸。
+         只覆盖 MinWidth——圆角 / 描边 / 内距 / 行高 / 悬浮态一律继续吃上面那条基础样式，
+         这样"窄"是一种受管的尺寸档，不是窗口私改规范。96 取内容档（最宽条目 "200 px" 加左右内边距）
+         与画笔线型菜单 MinWidth 72 之间的整数。
+         ⚠ 必须带 `.class` 选择器才压得住基础样式那条：无 activator 的 `MenuFlyoutPresenter` 只有
+         Style 优先级，带类的规则按 StyleTrigger 记账才更高（见 docs/设计规范.md §6.12 与声明顺序红线）。 -->
+    <Style Selector="MenuFlyoutPresenter.compact">
+        <Setter Property="MinWidth" Value="96" />
+    </Style>
+
+    <!-- 窄档的另一半：把快捷键列退场。Fluent 的 MenuItem 模板是三列（图标 / 标题 / 快捷键），第三列即使
+         条目没有手势键也要占 16px（2026-09-20 离屏实测：序号类型四档 133 宽里右侧空 27、左侧只 11）。
+         让标题格跨过第三列 + 把手势键的起手 margin 收掉，两处合力才是"窄档＝图标+名称两列"的语义。
+         真带手势键的条目挂 compact 时只是少 16px 间距，文字仍在最右列正常显示，不会丢。
+         ⚠ /template/ 部件的覆盖必须带 .class 或伪类才压得住模板值（BindingPriority.Template），
+         这条与下面 centered 那条同理，见 docs/设计规范.md §6.12。 -->
+    <Style Selector="MenuFlyoutPresenter.compact MenuItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter.compact MenuItem /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <!-- 菜单的居中变体：窄条仍会留下"内容钉在左边、右边空一片"的失衡——各行宽度本就不同（"8 px" vs "96 px"、
+         "空心圆" vs "罗马数字 ⅠⅡⅢ"），左对齐等于把差值全推到右侧。这一档把标题在行内水平居中，让空白左右均分
+         （实测 31/31、35/35、11/11）。适用面＝无手势键、只有一列内容的下拉：字号档、水印位置、序号类型，
+         以及 2026-09-20 去掉档名后只剩等宽小样的箭头头型十一档。
+         只命中模板部件的 HorizontalAlignment，不动 MenuItem 本身：条目若按内容收缩居中，悬浮底色会变成
+         一条比行窄的短块，全宽高亮是 §6.12 的既有观感，不能破。
+         ⚠ 必须与 <c>compact</c> 同挂：居中作用在标题格内，而标题格要等 compact 那条把 16px 空列收掉才是整行宽，
+         否则只在剩余格内居中会系统性偏左 8px。
+         ⚠ 判据是"同一列各行是否等宽"，不是"是不是小样"：小样＋档名的两列式条目不挂（档名宽窄不一会把整列小样
+         拽得逐行错位——箭头头型上午那版就因此只挂窄条，下午去掉档名后每格统一 46×18 才补上居中）；带图标列的
+         功能型菜单同理不挂，左缘齐平是它们的栏位观感来源。挂类入口见 MenuFlyoutPresenterStyle.Attach。 -->
+    <Style Selector="MenuFlyoutPresenter.centered MenuItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 菜单项几何：行高下限 30 / 圆角 5 / 左右内边距 10。图标列与快捷键列的对齐交给 Fluent 模板的
+         SharedSizeGroup（同列自动等宽），因此状态一律不用"✓ "等文案前缀表达。
+         ⚠ 只锁 MinHeight 不锁 Height：设计稿的 30px 是下限语义，单行条目由下限撑成 30px，
+         而名称+效果提示的双行条目（OCR「清除/校对」子菜单）写死 Height 会让内容溢出压到相邻行 -->
+    <Style Selector="MenuItem">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Margin" Value="0,1" />
+    </Style>
+
+    <!-- 图标槽：Fluent 已把图标锁成 16×16。
+         ⚠ 优先级地雷：ControlTemplate 内的赋值（字面量、DynamicResource、TemplateBinding 都算）
+         一律以 BindingPriority.Template 记账，而普通类型选择器的 Style 是 BindingPriority.Style，
+         低于 Template → 顶不动模板值。只有选择器带 activator（伪类 / .class）时才以 StyleTrigger 记账，
+         这正是 Fluent 自己用 `:checked:toggle` 去翻模板里 `IsVisible="False"` 的原因。
+         因此凡是要覆盖 Fluent 模板已有值的规则，都必须挂在伪类上。
+         （:icon = Icon 非空、:toggle = ToggleType=CheckBox，由框架维护） -->
+    <Style Selector="MenuItem:icon /template/ ContentControl#PART_IconPresenter">
+        <Setter Property="Margin" Value="0,0,10,0" />
+    </Style>
+    <Style Selector="MenuItem:toggle /template/ ContentControl#PART_ToggleIconPresenter">
+        <Setter Property="Margin" Value="0,0,10,0" />
+    </Style>
+
+    <!-- 悬浮 / 按下：Fluent 用 :selected 表达鼠标高亮，:pointerover 只覆盖鼠标直挂的路径，
+         两个伪类都写才会让鼠标与键盘方向键两条链路底色一致，否则未覆盖那条会漏出 Fluent 自带的灰蓝底 -->
+    <Style Selector="MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+    </Style>
+    <Style Selector="MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+    </Style>
+    <Style Selector="MenuItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="MenuItem:pressed /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+    </Style>
+
+    <!-- 单选型菜单项（下拉里"当前是哪一档"）的当前档：文字染品牌紫。§6.12 明令禁止在 Header 里拼 ✓ 字符，
+         颜色就是唯一的状态表达。与 .on（勾选型条目：只染对勾、文字保持主色）刻意分开命名——
+         那一条的注释写死了"文字仍走主文本色"，两种语义不能共用一个类。
+         三条都要写：悬浮 / 键盘高亮那两条通用规则会把标题拉回主文本色，不补就会被盖回黑色 -->
+    <Style Selector="MenuItem.current /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="MenuItem.current:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="MenuItem.current:selected /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+
+    <!-- ⚠ 上面那三条只改得到「字符串 Header」与模板部件：条目 Header 若是代码自建的 TextBlock（水印位置八档；
+         箭头头型十一档当日也属此列，随后按用户要求去掉了档名，其当前档改由 ArrowHeadSwatch.Highlight 自己染紫），
+         全局 <Style Selector="TextBlock"> 给它钉的主文本色是**直接赋值**，优先级高于从
+         PART_HeaderPresenter 继承的前景 ⇒ 品牌紫被压回黑字。2026-09-20 离屏实测：字符串头的字号／序号类型
+         当前档为 #797EFE，自建 TextBlock 的两枚在深浅两态下都仍是 #222222／#FFFFFF。故第四条直接命中子级
+         TextBlock（带 .current 类即 StyleTrigger，压得住那条全局 TextBlock 样式）。 -->
+    <Style Selector="MenuItem.current TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+
+    <!-- 条目右侧的提示小字（"推荐 · 带声音""≤30s · 无声"这类副标注）。为什么要自己摆一列：
+         本仓库锁的 Avalonia 11.2.8 里 MenuItem 没有 InputGestureText，只有 Key 型的 InputGesture
+         （故 AGENTS.md 才有"键名必须是合法 Key 枚举"那条），框架手势列拿不来自由文本。
+         ⚠ 当前档那条 MenuItem.current TextBlock 与本条 class 数相同但多一层元素，压得住本条 ⇒ 选中行的
+         提示字会跟档名一起染紫——这是有意的（整行同色才是"这一档"的读法），警示档要压过它看下面那条 .warn。 -->
+    <Style Selector="TextBlock.menuSub">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+    </Style>
+
+    <!-- 带警示的条目（录屏格式菜单里"超 30 秒选 GIF"那一档）：只把提示小字染危险红，档名仍走主文本色。
+         替掉原先在 code-behind 里 new SolidColorBrush(Color.Parse("#FF5152")) 直接改前景的硬编码写法。
+         比上面 MenuItem.current TextBlock 多挂一个 class（元素数相同），class 数先决胜 ⇒
+         "当前档＋超长"同时成立时红字压得住紫字，与书写先后无关 -->
+    <Style Selector="MenuItem.warn TextBlock.menuSub">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+    </Style>
+
+    <!-- 气泡文字色隔离：防止宿主控件的带类后代规则（如 MenuItem.current TextBlock）穿透污染气泡文字色 -->
+    <Style Selector="ToolTip TextBlock.tooltipText">
+        <Setter Property="Foreground" Value="{DynamicResource SctTooltipFgBrush}" />
+    </Style>
+
+    <Style Selector="MenuItem:disabled">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+
+    <!-- 勾选型菜单项（如托盘"显示贴图"）：对勾本身染品牌紫，文字仍走主文本色
+         （Fluent 的对勾 Fill 绑定 MenuItem.Foreground，故改 Foreground 即改对勾色，再单独把标题拉回主色） -->
+    <Style Selector="MenuItem:checked:toggle">
+        <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="MenuItem:checked:toggle /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+
+    <!-- 危险操作菜单项（如关闭贴图 / 清除 / 删除 / 退出等） -->
+    <Style Selector="MenuItem.danger">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+    </Style>
+    <Style Selector="MenuItem.danger:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SctDangerBgBrush}" />
+    </Style>
+    <Style Selector="MenuItem.danger:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SctDangerBgBrush}" />
+    </Style>
+    <Style Selector="MenuItem.danger:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+    </Style>
+    <Style Selector="MenuItem.danger:selected /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+    </Style>
+
+    <!-- 菜单项单色图标：16×16，静态弱灰，不随悬浮变色（设计稿图标仅危险项染红）；
+         .on 为功能开启态，图标染品牌紫。与通用 Path.sctIcon（14px、随悬浮变深）刻意分开命名，
+         避免两条同名样式在优先级上互相覆盖 -->
+    <Style Selector="MenuItem Path.menuIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Fill" Value="{DynamicResource SctMenuIconBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="MenuItem.on Path.menuIcon">
+        <Setter Property="Fill" Value="{DynamicResource SctAccentBrush}" />
+    </Style>
+    <Style Selector="MenuItem.danger Path.menuIcon">
+        <Setter Property="Fill" Value="{DynamicResource SctDangerBrush}" />
+    </Style>
+
+    <!-- 托盘菜单图标不在这里管尺寸：它由 App.axaml.cs 的 TrayMenuIconFixer 在浮层弹出时
+         把框架塞进 MenuItem.Icon 的裸 Image **整体换成 Path.menuIcon**，从而复用上面那三条
+         Path 样式（同槽 16×16、同色、.on 品牌紫、.danger 危险红），与贴图右键菜单完全同构。
+         为什么不用样式约束那个 Image：框架在 NativeMenuBarPresenter.CreateContainerForNativeItem
+         里写死 `new Image { Source = i }`（不带任何尺寸），位图按自身尺寸参与布局、超出槽位即被
+         裁掉右下角；而该 Image 位于 MenuItem.Icon 属性内、由模板的 PART_IconPresenter 承载，
+         `MenuItem Image` 这类后代选择器匹配不到它（实测四种写法含 /template/ 与全局 Image 均未命中）。
+         结论：与其隔着样式去够框架的私有控件，不如直接把 Icon 换成我们自己的 Path。 -->
+
+    <!-- 菜单项右侧快捷键与二级子菜单箭头：两者共用同一条右轨（设计稿 .sct-item-shortcut 与
+         .sct-submenu-arrow 都是 margin-left:auto 贴右内边缘）。Fluent 模板把快捷键放在第 3 列
+         （SharedSizeGroup MenuItemIGT）、箭头单独放在第 4 列（MenuItemChevron），两条轨必然错开
+         → 把箭头顶进第 3 列右对齐。两个选择器都必须带伪类才压得过模板值（见上方优先级地雷）：
+         :empty = 叶子项（本应用只有叶子项会显示快捷键），:not(:empty) = 有子菜单（MenuItem.HasSubMenu
+         即按 :empty 判定）。不变量：没有任何 MenuItem 同时带 InputGesture 和子菜单
+         （「清除 / 校对」两个父项只有标题），故快捷键文字与箭头不会在同一条目内重叠 -->
+    <Style Selector="MenuItem:empty /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Margin" Value="16,0,0,0" />
+        <!-- 顶掉 Fluent 模板自带的 PlatformKeyGestureConverter：它按平台覆盖表输出 Escape/Delete/PgDn，
+             修饰键顺序也是 Ctrl→Shift→Alt→Meta，与设置页的 Esc/Del + Ctrl→Alt→Shift→Win 对不上。
+             $parent[MenuItem] 从模板部件回溯宿主，正是 Fluent 自己对勾 Fill 用的同一机制 -->
+        <Setter Property="Text"
+                Value="{Binding $parent[MenuItem].InputGesture, Converter={x:Static utils:MenuGestureConverter.Instance}}" />
+    </Style>
+    <Style Selector="MenuItem:pointerover /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="MenuItem:selected /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="MenuItem:not(:empty) /template/ Path#PART_ChevronPath">
+        <Setter Property="Fill" Value="{DynamicResource SctTextTertiaryBrush}" />
+        <Setter Property="Grid.Column" Value="3" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="MenuItem:pointerover /template/ Path#PART_ChevronPath">
+        <Setter Property="Fill" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="MenuItem:selected /template/ Path#PART_ChevronPath">
+        <Setter Property="Fill" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="MenuItem.danger /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="MenuItem.danger:pointerover /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="Opacity" Value="1.0" />
+    </Style>
+    <Style Selector="MenuItem.danger:selected /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        <Setter Property="Opacity" Value="1.0" />
+    </Style>
+
+    <!-- 菜单内分割线：1px + 上下 6px 呼吸（与窗口内的 SctSeparatorBrush 区分，菜单底色更纯，用专用 Token） -->
+    <Style Selector="ContextMenu Separator, MenuFlyoutPresenter Separator, Menu Separator">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="MinHeight" Value="1" />
+        <Setter Property="MaxHeight" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SctMenuSeparatorBrush}" />
+        <Setter Property="Margin" Value="6,4" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+
+    <!-- ══════ 单色图标 / 图标按钮 / 徽标 / 骨架屏（全局通用，翻译浮窗与编辑窗口共用） ══════
+         几何数据不放样式里：由各窗口的 IconGeometry 静态类集中提供，颜色一律走 Sct* Token。 -->
+
+    <!-- 单色图标：默认安静灰，变体用 .brand（品牌紫）/ .warn（警告色） -->
+    <!-- 列表拖拽动态让位：工具栏与动作模块共用一份主题样式。尺寸/圆角由业务控件设定。 -->
+    <Style Selector="Rectangle.reorderPlaceholder">
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Stroke" Value="{DynamicResource SctAccentBrush}" />
+        <Setter Property="StrokeThickness" Value="1.5" />
+        <Setter Property="StrokeDashArray" Value="3,2" />
+        <Setter Property="Fill" Value="{DynamicResource SctAccentSoftBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Path.sctIcon">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Fill" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Path.sctIcon.brand">
+        <Setter Property="Fill" Value="{DynamicResource SctBadgeTextBrush}" />
+    </Style>
+    <Style Selector="Path.sctIcon.warn">
+        <Setter Property="Fill" Value="{DynamicResource SctWarnBrush}" />
+    </Style>
+
+    <!-- 幽灵图标按钮：透明底、hover 浅底；.on 为品牌紫选中态（如浮窗固定） -->
+    <Style Selector="Button.sctIconBtn">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="MinWidth" Value="24" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.sctIconBtn /template/ ContentPresenter#PART_ContentPresenter, Button.sctIconBtn /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <!-- 基础悬浮态必须先声明，后声明的 .on 变体才不会被覆盖回灰底 -->
+    <Style Selector="Button.sctIconBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.sctIconBtn:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.sctIconBtn.on">
+        <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+    </Style>
+    <Style Selector="Button.sctIconBtn.on /template/ ContentPresenter#PART_ContentPresenter, Button.sctIconBtn.on /template/ ContentPresenter#PART_ContinuousPresenter">
+        <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+    </Style>
+
+    <!-- 徽标：引擎名 / 语言名等小标签，颜色走 SctBadge*（深色自动亮紫） -->
+    <Style Selector="Border.badge">
+        <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.badgeText">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 加载骨架条：宽度由使用方指定（固定宽用 HorizontalAlignment=Left，占栏宽用 Stretch），
+         shimmer 呼吸动画由样式承担 -->
+    <Style Selector="Border.skeleton">
+        <Setter Property="Height" Value="11" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+        <Style.Animations>
+            <Animation Duration="0:0:1.3" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.45" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="0.9" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+    <!-- ══════ 划词浮条（全局通用：OCR 结果窗口与贴图共用同一套配方） ══════
+         2026-09-29 由 OcrWindow 私有样式 ocrFloatBar 上提而来并改名 selectionFloatBar。
+         同日第二次收口：按用户口径整条改抄 §7.5 截图工具栏的双浮层配方——外环只做那一圈 1px 环
+         与投影，底色／圆角／内边距／最小高全部交给内板，两处宿主一律写成「外环 ⊃ 内板 ⊃ 内容」。
+         ⚠ 投影不抄截图侧那两条栏的字面值，走 §3.6 浮层档 Token SctShadowOverlay：截图那两条贴在
+           全屏遮罩之内（界面内部条），本条脱离窗口浮在桌面上，判据见 §3.6 第五铁律。
+         ⚠ 内板禁止再挂 BorderBrush/BorderThickness（外环那圈就是唯一的 1px 环，叠第二圈会变 2 DIP 厚、
+           圆角也失同心）。条内按钮直接用全局 Button.toolIcon／Button.tool、图标用全局 Path.icon，
+           本处不再另立浮条专属按钮类（原先的 floatBtn／floatBtnWide 与那两条款逐值重复，已删）。
+         浮条本身只定外观，定位一律由使用方写 Margin（Left/Top 对齐 + 常驻可视树用 Opacity 控显隐）。 -->
+    <Style Selector="Border.selectionFloatBar">
+        <Setter Property="Background" Value="{DynamicResource SctControlBarOuterBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="1" />
+        <Setter Property="BoxShadow" Value="{DynamicResource SctShadowOverlay}" />
+    </Style>
+    <Style Selector="Border.selectionFloatBarPlate">
+        <Setter Property="Background" Value="{DynamicResource SctPanelBrush}" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="MinHeight" Value="42" />
+    </Style>
+
+    <!-- ══════ 全局精细滚动条：窄轨道 + 半透明圆角滑块（浅色/暗色主题均适用） ══════
+         2026-10-09 由 App.axaml 上提到本文件：值一字未改，只是搬成一份。
+         成因＝离屏 UI 探针（02_构建工具/自测/CloudSyncProbe/RenderUi.ps1）只 StyleInclude
+         Colors/Controls 两份主题，吃不到留在 App.axaml 里的这几条，于是探针渲染出的滚动条是
+         Fluent 默认的粗档，比真机宽一倍——看图验收会照着假象去改界面。上提后主程序与探针同源。
+         ⚠ 装载顺序不变量：这几条必须排在 FluentTheme 之后才压得过框架默认档（App.axaml 里
+           FluentTheme → Colors → Controls 的顺序即由本文件承担这一职责）。 -->
+    <Style Selector="ScrollBar:vertical">
+        <Setter Property="Width" Value="8" />
+    </Style>
+    <Style Selector="ScrollBar:horizontal">
+        <Setter Property="Height" Value="8" />
+    </Style>
+    <Style Selector="ScrollBar Thumb">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="ScrollBar Thumb:pointerover">
+        <Setter Property="Opacity" Value="0.8" />
+    </Style>
+    <!-- 独立选择钮与参数条文字钮统一中性表面；伪类落在连续轮廓层。 -->
+    <Style Selector="ToggleButton.selectBtn:pointerover /template/ Border#PART_ContinuousChoice, Button.textSegment:pointerover /template/ Border#PART_ContinuousChoice">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceHoverBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:pressed /template/ Border#PART_ContinuousChoice, Button.textSegment:pressed /template/ Border#PART_ContinuousChoice">
+        <Setter Property="Background" Value="{DynamicResource SctChoicePressedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:checked /template/ Border#PART_ContinuousChoice, Button.textSegment.active /template/ Border#PART_ContinuousChoice">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceSelectedBorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:checked:pointerover /template/ Border#PART_ContinuousChoice, Button.textSegment.active:pointerover /template/ Border#PART_ContinuousChoice">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedHoverBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:checked:pressed /template/ Border#PART_ContinuousChoice, Button.textSegment.active:pressed /template/ Border#PART_ContinuousChoice">
+        <Setter Property="Background" Value="{DynamicResource SctChoiceSelectedPressedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:focus-visible /template/ Border#PART_ContinuousChoice, Button.textSegment:focus-visible /template/ Border#PART_ContinuousChoice">
+        <Setter Property="BorderBrush" Value="{DynamicResource SctChoiceAccentBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.selectBtn:disabled /template/ Border#PART_ContinuousChoice, Button.textSegment:disabled /template/ Border#PART_ContinuousChoice">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <!-- 后声明覆盖 Fluent 与既有伪类的内容层底色，前景仍沿用原状态规则。 -->
+    <Style Selector="ToggleButton.selectBtn /template/ ContentPresenter.continuousChoiceContent, Button.textSegment /template/ ContentPresenter.continuousChoiceContent">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+    </Style>
+</Styles>

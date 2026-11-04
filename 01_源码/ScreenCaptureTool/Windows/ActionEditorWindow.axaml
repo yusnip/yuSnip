@@ -1,0 +1,304 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:win="clr-namespace:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.ActionEditorWindow"
+        Icon="/Assets/Black.ico"
+        Title="动作设置 - yuSnip"
+        Width="520"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14">
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <!--
+          样式规范：通用控件样式（titleIcon / primary / secondary / fieldLabel / fieldHint /
+          keycap 及其录制态 / TextBox / ComboBox / ComboBoxItem）一律复用 Themes/Controls.axaml
+          全局样式，禁止在本文件重复定义，详见 docs/设计规范.md。此处仅保留窗口专属样式。
+        -->
+
+        <!-- 预设动作名称只读样式（灰掉 + 斜体提示） -->
+        <Style Selector="TextBox.locked">
+            <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+            <Setter Property="Opacity" Value="0.65" />
+        </Style>
+
+        <!-- 预设下拉分类分组标题（不可选、不可聚焦、带顶部分隔线与副标题字色） -->
+        <Style Selector="ComboBoxItem.groupHeader:disabled">
+            <Setter Property="Opacity" Value="1.0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Padding" Value="12,7,12,3" />
+            <Setter Property="Margin" Value="4,4,4,0" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+        </Style>
+        <Style Selector="ComboBoxItem.groupHeader:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- 预设动作子项：左缩进与分类标题形成清晰父子层级 -->
+        <Style Selector="ComboBoxItem.presetAction">
+            <Setter Property="Padding" Value="20,7,12,7" />
+        </Style>
+
+        <!-- 鼠标键帽回落窗口字体：全局 Button.keycap 的 Consolas 系无中文字形（与设置列表鼠标键帽同一处理） -->
+        <Style Selector="Button.keycap.mouseKeycap">
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        </Style>
+
+        <!-- 模块行只展示类型与摘要；拖拽提示独立覆盖，不改变行的位置。 -->
+        <Style Selector="Border.actionModuleRow">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+        </Style>
+        <Style Selector="Border.actionModuleRow:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SctRowHoverBrush}" />
+        </Style>
+        <Style Selector="Border.actionModuleRow.expanded">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="Border.actionModuleRow.dragging">
+            <Setter Property="Opacity" Value="0.45" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="Button.actionModuleButton">
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        </Style>
+        <Style Selector="Border.actionModuleDropPlaceholder">
+            <Setter Property="Background" Value="{DynamicResource SctAccentSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Path.actionModuleStroke">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Fill" Value="{x:Null}" />
+            <Setter Property="Stroke" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 系统负责窗口曲率与阴影；保留原表单骨架与有效内容宽度。 -->
+    <Border Background="{DynamicResource SctBackgroundBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="48,*,Auto">
+
+            <!-- ════ 自绘标题栏 ════ -->
+            <Border Grid.Row="0" Background="Transparent" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="TxtWindowTitle" Grid.Column="0" Text="新增动作" VerticalAlignment="Center"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" Margin="22,0,0,0" />
+                    <Button Grid.Column="1" Classes="titleIcon" CornerRadius="{DynamicResource SctRadiusControl}" AutomationProperties.Name="关闭"
+                            ToolTip.Tip="关闭" Click="OnCloseClick" Margin="0,0,6,0">
+                        <Path Classes="sctIcon" Data="{x:Static win:OcrIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ════ 内容表单 ════ -->
+            <ScrollViewer Grid.Row="1" x:Name="MouseFormScroll" MaxHeight="620" HorizontalScrollBarVisibility="Disabled">
+            <Border Background="{DynamicResource SctBackgroundBrush}" Padding="22,8,22,16">
+                <StackPanel Spacing="14">
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="动作类型" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <round:ContinuousBorder Grid.Column="1" Classes="segmentedGroup">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="RadPresetType" GroupName="ActionType" Classes="segmented" Content="预设动作" Click="OnActionTypeChanged" />
+                                <RadioButton x:Name="RadCustomType" GroupName="ActionType" Classes="segmented" Content="自定义动作" IsChecked="True" Click="OnActionTypeChanged" />
+                            </StackPanel>
+                        </round:ContinuousBorder>
+                    </Grid>
+                    <StackPanel x:Name="PresetField" Spacing="6">
+                        <TextBlock Text="选择动作" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <ComboBox x:Name="CmbPreset" HorizontalAlignment="Stretch" MaxDropDownHeight="400" SelectionChanged="OnPresetSelectionChanged" />
+                    </StackPanel>
+                    <StackPanel x:Name="NameField" Spacing="6">
+                        <TextBlock Text="动作名称" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <TextBox x:Name="TxtName" Watermark="给这个动作起个容易记住的名字" />
+                    </StackPanel>
+                    <Grid x:Name="StepModeRow" ColumnDefinitions="*,Auto">
+                        <TextBlock Text="模块编排" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <round:ContinuousBorder Grid.Column="1" Classes="segmentedGroup">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="RadStepMode" GroupName="StepMode" Classes="segmented" Content="步骤编辑" IsChecked="True" Click="OnStepModeChanged" />
+                                <RadioButton x:Name="RadScriptMode" GroupName="StepMode" Classes="segmented" Content="高级指令" Click="OnStepModeChanged" />
+                            </StackPanel>
+                        </round:ContinuousBorder>
+                    </Grid>
+                    <StackPanel x:Name="StepEditorPanel" Spacing="10">
+                        <TextBlock Classes="fieldHint" LineHeight="NaN" Text="拖动调整顺序，点击模块展开或收起参数。" />
+                        <StackPanel x:Name="StepListPanel" Spacing="6" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Button x:Name="BtnAddStep" Content="添加模块" Classes="secondary" HorizontalAlignment="Left" />
+                            <Button Grid.Column="1" Content="使用示例" Classes="secondary">
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuItem Header="截图复制并贴图" Tag="copy-pin" Click="OnUseExampleClick" />
+                                        <MenuItem Header="切换贴图显示后截图" Tag="hide-shot" Click="OnUseExampleClick" />
+                                        <MenuItem Header="截图翻译并复制译文" Tag="translate" Click="OnUseExampleClick" />
+                                        <MenuItem Header="识别后翻译并复制" Tag="ocr-translate" Click="OnUseExampleClick" />
+                                        <MenuItem Header="截图抠图并贴图" Tag="matting" Click="OnUseExampleClick" />
+                                        <MenuItem Header="截图、翻译与 OCR 分别输出" Tag="branch" Click="OnUseExampleClick" />
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock x:Name="TxtStepError" Classes="fieldHint" LineHeight="NaN" IsVisible="False" />
+                    <StackPanel x:Name="AdvancedScriptPanel" Spacing="6">
+                        <TextBlock Text="脚本指令" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <TextBox x:Name="TxtScript" FontFamily="Consolas, 'Cascadia Code', monospace" FontSize="13"
+                                 MinHeight="120" MaxHeight="260" TextWrapping="Wrap" AcceptsReturn="True"
+                                 VerticalContentAlignment="Top"
+                                 TextChanged="OnScriptTextChanged" />
+                        <TextBlock x:Name="TxtScriptInsertHint" Classes="fieldHint" LineHeight="NaN"
+                                   Text="输入 @ 选择操作；处理或输出时，可继续选择前面的结果。" />
+                        <round:ContinuousBorder x:Name="CommandPreviewBorder" Background="{DynamicResource SctSubtleBrush}"
+                                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource SctRadiusControl}"
+                                Padding="10,6" Cursor="Hand" PointerPressed="OnCommandPreviewClick" ToolTip.Tip="点击复制完整命令行">
+                            <TextBlock x:Name="TxtCommandPreview" FontFamily="Consolas, 'Cascadia Code', monospace"
+                                       FontSize="12" Foreground="{DynamicResource SctAccentBrush}" TextTrimming="CharacterEllipsis" />
+                        </round:ContinuousBorder>
+                        <Button x:Name="ScriptHelpBorder" Content="格式说明" Classes="secondary" IsVisible="False"
+                                HorizontalAlignment="Left" Click="OnScriptHelpClick" />
+                        <Border x:Name="ScriptHelpContent" IsVisible="False" Padding="0,4">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="fieldHint" LineHeight="NaN" Text="一行一个操作。可以先用步骤编辑选好操作，再切到这里查看对应指令。" />
+                                <TextBlock Classes="fieldHint" LineHeight="NaN" Text="示例：保存原图、译文和识别文字，分别选择输出。名称必须先产生再引用。" />
+                                <TextBlock FontFamily="Consolas, 'Cascadia Code', monospace" FontSize="13"
+                                           Foreground="{DynamicResource SctTextPrimaryBrush}"
+                                           Text="yuSnip.captureImage('原图');&#10;yuSnip.translateResult('Text', '原图', '译文');&#10;yuSnip.recognizeResult('原图', '识别文字');&#10;yuSnip.copyResult('原图');&#10;yuSnip.copyResult('译文');&#10;yuSnip.showResult('识别文字');" />
+                                <TextBlock Classes="fieldHint" LineHeight="NaN" Text="获取：captureImage('结果名')；readClipboard('Image/Text', '结果名')。处理：recognizeResult('输入名', '结果名')；translateResult('Text/Image', '输入名', '结果名')；mattingResult('Default/General/Portrait', '输入名', '结果名')。" />
+                                <TextBlock Classes="fieldHint" LineHeight="NaN" Text="输出：copyResult、pinResult、saveResult、showResult('输入名')，可放在任何位置。多次复制按顺序覆盖。AI：visionResult('Default/Prompt', '图片名')，回复暂不能引用。// 开头是备注；一行一个调用，不支持通用 JavaScript。录屏使用独立动作。" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- 点击键帽即可录制，无需重复的录制按钮 -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="键盘快捷键" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Button x:Name="HotKeyDisplayBorder" Classes="keycap" CornerRadius="{DynamicResource SctRadiusControl}" HorizontalAlignment="Stretch"
+                                    Click="OnRecordHotKeyClick" ToolTip.Tip="点击录制快捷键">
+                                <TextBlock x:Name="TxtHotKey" Text="未绑定 · 点击录制" />
+                            </Button>
+                            <Button x:Name="BtnClearHotKey" Grid.Column="1" Content="清除" Classes="secondary"
+                                    MinWidth="58" Margin="6,0,0,0" Click="OnClearHotKeyClick" />
+                        </Grid>
+                        <TextBlock x:Name="TxtHotKeyTip" IsVisible="False" Classes="fieldHint" LineHeight="NaN" />
+                    </StackPanel>
+
+                    <!-- 全局鼠标：与键盘快捷键同一形态（一行键帽＋清除），三项选项收进键帽浮层。
+                         「添加/展开」那套双向显隐会同时改变键帽宽度与窗高，属出现后二次摆位缺陷 -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="全局鼠标" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Grid>
+                                <Button x:Name="BtnMouseBinding" Classes="keycap mouseKeycap" CornerRadius="{DynamicResource SctRadiusControl}" HorizontalAlignment="Stretch"
+                                        Content="未绑定 · 点击设置"
+                                        ToolTip.Tip="点击设置引导键与鼠标键" Click="OnMouseBindingClick" />
+                                <Popup x:Name="MousePickPopup" PlacementTarget="{Binding #BtnMouseBinding}"
+                                       Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="True" VerticalOffset="4">
+                                    <round:ContinuousBorder Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusControl}" BoxShadow="{StaticResource SctWorkspaceCardShadow}">
+                                        <StackPanel Spacing="8">
+                                            <!-- 辅助键为多选，未勾选任何一项即视为未绑定 -->
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="辅助键" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                                                <round:ContinuousBorder Classes="segmentedGroup" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <ToggleButton x:Name="ChkMouseShift" Classes="segmented" Content="Shift" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <ToggleButton x:Name="ChkMouseCtrl" Classes="segmented" Content="Ctrl" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <ToggleButton x:Name="ChkMouseAlt" Classes="segmented" Content="Alt" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <ToggleButton x:Name="ChkMouseWin" Classes="segmented" Content="Win" IsCheckedChanged="OnMouseModifierChanged" />
+                                                    </StackPanel>
+                                                </round:ContinuousBorder>
+                                            </StackPanel>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="鼠标键" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                                                <round:ContinuousBorder Classes="segmentedGroup" HorizontalAlignment="Left">
+                                                    <StackPanel x:Name="MouseButtonOptions" Orientation="Horizontal">
+                                                        <RadioButton GroupName="MouseButton" Classes="segmented" Content="左键" Tag="1" IsChecked="True" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <RadioButton GroupName="MouseButton" Classes="segmented" Content="右键" Tag="2" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <RadioButton GroupName="MouseButton" Classes="segmented" Content="中键" Tag="3" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <RadioButton GroupName="MouseButton" Classes="segmented" Content="X1" Tag="4" IsCheckedChanged="OnMouseModifierChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <RadioButton GroupName="MouseButton" Classes="segmented" Content="X2" Tag="5" IsCheckedChanged="OnMouseModifierChanged" />
+                                                    </StackPanel>
+                                                </round:ContinuousBorder>
+                                            </StackPanel>
+                                            <!-- 只有一种触发方式可用时整组不摆，键帽文案已经带上那两个字段 -->
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="引导键（可选）" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <Button x:Name="BtnMousePrefix" Classes="keycap mouseKeycap" Content="点击录制任意键" Click="OnRecordMousePrefixClick" />
+                                                    <Button x:Name="BtnClearMousePrefix" Classes="secondary" Content="清除" Click="OnClearMousePrefixClick" />
+                                                </StackPanel>
+                                                <TextBlock Classes="fieldHint" LineHeight="NaN" Text="单独按键松开后补发；用于鼠标组合时不输出原键。" />
+                                                <TextBlock x:Name="TxtMousePrefixTip" Classes="fieldHint" LineHeight="NaN" IsVisible="False" />
+                                            </StackPanel>
+                                            <StackPanel x:Name="TriggerRow" Spacing="4">
+                                                <TextBlock Text="触发方式" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                                                <round:ContinuousBorder Classes="segmentedGroup" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <RadioButton x:Name="RadMouseDrag" GroupName="MouseTrigger" Classes="segmented" Content="拖动" IsCheckedChanged="OnMouseModifierChanged" ToolTip.Tip="拖动直接框选，松手执行" />
+                                                        <RadioButton x:Name="RadMouseClick" GroupName="MouseTrigger" Classes="segmented" Content="点击" IsCheckedChanged="OnMouseModifierChanged" ToolTip.Tip="松开鼠标执行动作" />
+                                                    </StackPanel>
+                                                </round:ContinuousBorder>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </round:ContinuousBorder>
+                                </Popup>
+                            </Grid>
+                            <Button x:Name="BtnClearMouse" Grid.Column="1" Content="清除" Classes="secondary"
+                                    MinWidth="58" Margin="6,0,0,0" IsEnabled="False" Click="OnClearMouseClick" />
+                        </Grid>
+                        <TextBlock x:Name="TxtMouseTip" Classes="fieldHint" LineHeight="NaN" IsVisible="False" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            </ScrollViewer>
+
+            <!-- ════ 底部操作栏 ════ -->
+            <Border Grid.Row="2" Background="{DynamicResource SctBackgroundBrush}" Padding="22,12"
+                    BorderBrush="{DynamicResource SctBorderBrush}" BorderThickness="0,1,0,0">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Button Grid.Column="0" x:Name="BtnTest" Content="试运行" Classes="secondary" Click="OnTestClick" />
+                    <Button Grid.Column="2" x:Name="BtnCancel" Content="取消" Classes="secondary" Click="OnCloseClick" Margin="0,0,8,0" />
+                    <Button Grid.Column="3" x:Name="BtnSave" Content="保存" Classes="primary" Click="OnSaveClick" />
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Border>
+</Window>

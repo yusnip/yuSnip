@@ -1,0 +1,108 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.RecordPresetEditWindow"
+        Icon="/Assets/Black.ico"
+        Title="编辑画质预设 - yuSnip"
+        Width="460"
+        MaxHeight="560"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14">
+
+    <Window.Styles>
+        <!-- 仅接入共享皮肤；保留原表单布局、字号与间距。 -->
+        <!-- 四行保持 Spacing=10，不添加字段分割线（用户 2026-09-29 要求）。 -->
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+    </Window.Styles>
+
+    <!-- 系统负责窗口曲率与阴影；保持原容器边距，不新增表单卡片。 -->
+    <Border x:Name="EditorSurface" Background="{DynamicResource SctBackgroundBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="48,*,Auto">
+
+            <!-- ════ 自绘标题栏 ════ -->
+            <Border Grid.Row="0" Background="Transparent" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="TxtWindowTitle" Grid.Column="0" Text="编辑画质预设" VerticalAlignment="Center"
+                               FontSize="14.5" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" Margin="20,0,0,0" />
+                    <Button Grid.Column="1" Classes="titleIcon closeBtn"
+                            CornerRadius="{DynamicResource SctRadiusControl}" AutomationProperties.Name="关闭"
+                            ToolTip.Tip="关闭（不保存）" Click="OnCancelClick" Margin="0,0,6,0">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static win:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ════ 内容表单：四行，左＝名称＋说明，右＝控件（列宽 200 与 AI 服务商那扇同一套骨架） ════ -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="10" Margin="20,4,20,16">
+
+                    <!-- 1. 预设名称 -->
+                    <Grid ColumnDefinitions="*,200">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="预设名称" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock x:Name="TxtNameHint" Text="最多 8 个字" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtName" AutomationProperties.Name="预设名称" Grid.Column="1" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- 2. 帧率 -->
+                    <Grid ColumnDefinitions="*,200">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="帧率 FPS" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock x:Name="TxtFpsHint" Text="5~60" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtFps" AutomationProperties.Name="帧率 FPS" Grid.Column="1" VerticalAlignment="Center"
+                                 Watermark="整数" />
+                    </Grid>
+
+                    <!-- 3. 分辨率上限：六档下拉（用户 2026-09-29 明确要求不再用分段按钮，也不给自由输入） -->
+                    <Grid ColumnDefinitions="*,200">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="分辨率上限" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="只缩不放" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <ComboBox x:Name="CmbHeight" AutomationProperties.Name="分辨率上限" Grid.Column="1" VerticalAlignment="Center"
+                                  HorizontalAlignment="Stretch" />
+                    </Grid>
+
+                    <!-- 4. 码率 -->
+                    <Grid ColumnDefinitions="*,200">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="码率 Mbps" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock x:Name="TxtBitrateHint" Text="0.5~50" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtBitrate" AutomationProperties.Name="码率 Mbps" Grid.Column="1" VerticalAlignment="Center"
+                                 Watermark="可带小数" />
+                    </Grid>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ════ 底部操作栏：左＝这一档的动作（还原默认／删除），右＝取消→保存 ════ -->
+            <Border Grid.Row="2" Background="{DynamicResource SctBackgroundBrush}"
+                    BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Button x:Name="BtnAction" Grid.Column="0" HorizontalAlignment="Left"
+                            MinWidth="88" CornerRadius="{DynamicResource SctRadiusControl}" IsVisible="False" Click="OnActionClick" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                        <Button Classes="secondary" Content="取消" Click="OnCancelClick" />
+                        <Button Classes="primary" Content="保存" Click="OnSaveClick" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

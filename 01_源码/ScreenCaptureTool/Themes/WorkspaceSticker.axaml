@@ -1,0 +1,9 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <!-- 独立语义键，无旧 Token 别名；可供混合贴图窗普通附层消费而不污染工具条。 -->
+        <SolidColorBrush x:Key="SctStickerOverlayFrameBrush" Color="{DynamicResource SctWorkspaceBorderColor}" />
+        <SolidColorBrush x:Key="SctStickerOverlayPlateBrush" Color="{DynamicResource SctWorkspaceElevatedColor}" />
+        <SolidColorBrush x:Key="SctStickerOverlayTextBrush" Color="{DynamicResource SctWorkspaceTextColor}" />
+        <SolidColorBrush x:Key="SctStickerOverlayMutedBrush" Color="{DynamicResource SctWorkspaceMutedColor}" />
+    </Styles.Resources>
+</Styles>

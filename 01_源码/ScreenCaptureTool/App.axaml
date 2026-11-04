@@ -1,0 +1,74 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.App">
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://yuSnip/Themes/Colors.axaml" />
+        <StyleInclude Source="avares://yuSnip/Themes/Controls.axaml" />
+        <!-- 全局精细滚动条那四条样式 2026-10-09 上提进 Themes/Controls.axaml（值未改）：
+             留在这里会让只 StyleInclude 主题两份文件的离屏探针吃不到，探针图里的滚动条比真机粗。 -->
+    </Application.Styles>
+
+    <Application.Resources>
+        <!-- 输入框原生右键菜单文案（Fluent 模板以 DynamicResource 取这三个键）；
+             几何/快捷键列/悬浮态已由 Themes/Controls.axaml 的全局 MenuItem 样式统一 -->
+        <x:String x:Key="StringTextFlyoutCutText">剪切</x:String>
+        <x:String x:Key="StringTextFlyoutCopyText">复制</x:String>
+        <x:String x:Key="StringTextFlyoutPasteText">粘贴</x:String>
+    </Application.Resources>
+
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <!-- 托盘右键菜单必须保留 NativeMenu：Win32 侧 TrayIconImpl.OnRightClicked() 里
+                 `_exporter.GetNativeMenu()` 为空就直接不弹菜单，右键入口完全由它驱动
+                 （TrayIcon 只暴露 Clicked 左键事件，没有右键事件可接管）。
+                 浮层由框架自绘：TrayPopupRoot（独立无边框 Window）→ TrayIconMenuFlyoutPresenter
+                 → 每个条目一个 NativeMenuItemPresenter : MenuItem。 -->
+            <TrayIcon Icon="/Assets/Black.ico"
+                      ToolTipText="yuSnip"
+                      Clicked="OnTrayClicked">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="截图"
+                                        Click="OnMenuCaptureClick" />
+                        <NativeMenuItem Header="贴图"
+                                        Click="OnMenuStickerClick" />
+                        <NativeMenuItemSeparator />
+                        <!-- 显示贴图：刻意不设 ToggleType/IsChecked（去掉勾选列）。
+                             开关态与贴图右键菜单的「文本可选择」同一表达：开启＝图标染品牌紫、
+                             关闭＝闭眼图标 + 常规弱灰，由 UpdateTrayMenuIcons() 按 _stickersHidden 渲染。 -->
+                        <NativeMenuItem Header="显示贴图"
+                                        Click="OnMenuToggleStickersVisibilityClick" />
+                        <!-- 截图历史：⚠ TrayGeometryFor 里本项的判定必须写在「截图」之前，
+                             否则会被「截图」前缀抢走图标（同「显示贴图」vs「贴图」那个坑）。 -->
+                        <NativeMenuItem Header="截图历史"
+                                        Click="OnMenuCaptureHistoryClick" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="保存目录"
+                                        Click="OnMenuOpenSaveDirClick" />
+                        <NativeMenuItem Header="使用统计"
+                                        Click="OnMenuUsageStatsClick" />
+                        <NativeMenuItem Header="主题颜色"
+                                        Click="OnMenuToggleThemeClick" />
+                        <NativeMenuItem Header="设置..."
+                                        Click="OnMenuSettingsClick" />
+                        <NativeMenuItem Header="运行日志..."
+                                        Click="OnMenuLogClick" />
+                        <!-- 管理员模式：Header 文案**永久不变**（HookTrayMenuIconFixer 只按 Header 匹配图标，
+                             改文案就等于改键）。开启态与「显示贴图」同一表达：实心盾 + 品牌紫。
+                             点一下 = 切到另一档权限：未提权→提权重启（UAC），已提权→降权重启。 -->
+                        <NativeMenuItem Header="管理员模式"
+                                        Click="OnMenuAdminModeClick" />
+                        <!-- 重新启动程序：同权限重启（子进程带 -restart-relay 标记等单实例锁交接） -->
+                        <NativeMenuItem Header="重新启动程序"
+                                        Click="OnMenuRestartClick" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="退出"
+                                        Click="OnMenuExitClick" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
+</Application>

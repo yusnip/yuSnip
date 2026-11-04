@@ -1,0 +1,330 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.AiProviderEditWindow"
+        Icon="/Assets/Black.ico"
+        Title="编辑 API 服务商 - yuSnip"
+        Width="540"
+        MaxHeight="720"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14">
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceCheckBoxes.axaml" />
+        <!--
+          样式规范：本窗口所有通用控件样式（titleIcon / primary / secondary / fieldLabel / fieldHint /
+          TextBox / eyeToggle / eyeIcon / eyeOffIcon / segmented 分段选择器 / segmentedGroup 宿主）
+          一律复用 Themes/Controls.axaml 全局样式，禁止在本文件重复定义，详见 docs/设计规范.md。
+          此处仅保留窗口专属样式。
+        -->
+
+        <!-- 分割线（窗口专属：边距与本窗口表单间距绑定） -->
+        <Style Selector="Border.softDivider">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="Margin" Value="0,6" />
+        </Style>
+
+        <!-- 模型勾选列表（窗口专属：条目悬浮底色与无选中高亮） -->
+        <Style Selector="ListBox.modelCheckList">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+        <Style Selector="ListBox.modelCheckList ListBoxItem">
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <round:ContinuousBorder Name="PART_ModelSurface"
+                        Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Name="PART_ContentPresenter" Background="Transparent"
+                            Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+                    </round:ContinuousBorder>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.modelCheckList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.modelCheckList ListBoxItem:pointerover /template/ Border#PART_ModelSurface">
+            <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+        </Style>
+        <Style Selector="ListBox.modelCheckList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 系统负责窗口曲率与阴影；保持原容器边距，不新增表单卡片。 -->
+    <Border x:Name="EditorSurface" Background="{DynamicResource SctBackgroundBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="48,*,Auto">
+
+            <!-- ════ 自绘标题栏 ════ -->
+            <Border Grid.Row="0" Background="Transparent" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="TxtWindowTitle" Grid.Column="0" Text="编辑 API 服务商" VerticalAlignment="Center"
+                               FontSize="14.5" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" Margin="20,0,0,0" />
+                    <Button Grid.Column="1" Classes="titleIcon closeBtn"
+                            CornerRadius="{DynamicResource SctRadiusControl}" AutomationProperties.Name="关闭"
+                            ToolTip.Tip="关闭" Click="OnCancelClick" Margin="0,0,6,0">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static local:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ════ 内容表单 ════ -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="10" Margin="20,4,20,16">
+
+                    <!-- 1. 服务商名称 -->
+                    <Grid ColumnDefinitions="*,310">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="服务商名称" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="为该 API 端点设置易于辨识的名称" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtName" AutomationProperties.Name="服务商名称" Grid.Column="1" Watermark="例如：OpenAI 官方 / DeepSeek / 本地 Ollama" />
+                    </Grid>
+
+                    <Border Classes="softDivider" />
+
+                    <!-- 2. 启用状态 -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="启用状态" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="控制是否在 AI 识图模型菜单中展示此服务商" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <round:ContinuousBorder Grid.Column="1" Classes="segmentedGroup">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="RadDisable" GroupName="GrpAiEnable" Classes="segmented" Content="停用" />
+                                <RadioButton x:Name="RadEnable" GroupName="GrpAiEnable" Classes="segmented" Content="启用" IsChecked="True" />
+                            </StackPanel>
+                        </round:ContinuousBorder>
+                    </Grid>
+
+                    <Border Classes="softDivider" />
+
+                    <!-- 3. 服务协议 -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="服务协议" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="支持 OpenAI 与 Anthropic 兼容协议" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <round:ContinuousBorder Grid.Column="1" Classes="segmentedGroup">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="RadOpenAi" GroupName="GrpProto" Classes="segmented" Content="OpenAI" IsChecked="True" />
+                                <RadioButton x:Name="RadAnthropic" GroupName="GrpProto" Classes="segmented" Content="Anthropic" />
+                            </StackPanel>
+                        </round:ContinuousBorder>
+                    </Grid>
+
+                    <Border Classes="softDivider" />
+
+                    <!-- 4. API Base URL -->
+                    <Grid ColumnDefinitions="*,310">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="API Base URL" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="大模型服务的基础接口地址" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtBaseUrl" AutomationProperties.Name="API Base URL" Grid.Column="1" Watermark="https://api.openai.com/v1" />
+                    </Grid>
+
+                    <Border Classes="softDivider" />
+
+                    <!-- 5. API Key -->
+                    <Grid ColumnDefinitions="*,310">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="API Key" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="调用大模型服务所需的身份验证密钥" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <Grid Grid.Column="1" VerticalAlignment="Center">
+                            <TextBox x:Name="TxtApiKey" AutomationProperties.Name="API Key"
+                                     Watermark="输入 API Key (sk-...)"
+                                     PasswordChar="*"
+                                     Padding="10,6,36,6" />
+                            <Button x:Name="BtnTogglePassword" AutomationProperties.Name="切换 API Key 显示"
+                                    Classes="eyeToggle"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,0,4,0"
+                                    Click="OnTogglePasswordVisibility">
+                                <Panel>
+                                    <Path x:Name="EyeIcon" Classes="eyeIcon"
+                                          Data="M12,4.5C7,4.5 2.73,7.61 1,12c1.73,4.39 6,7.5 11,7.5s9.27,-3.11 11,-7.5c-1.73,-4.39 -6,-7.5 -11,-7.5zM12,17c-2.76,0 -5,-2.24 -5,-5s2.24,-5 5,-5 5,2.24 5,5 -2.24,5 -5,5zM12,9c-1.66,0 -3,1.34 -3,3s1.34,3 3,3 3,-1.34 3,-3 -1.34,-3 -3,-3z" />
+                                    <Path x:Name="EyeOffIcon" Classes="eyeOffIcon" IsVisible="False"
+                                          Data="M12,7c2.76,0 5,2.24 5,5 0,0.65 -0.13,1.26 -0.36,1.83l2.92,2.92c1.51,-1.26 2.7,-2.89 3.43,-4.75 -1.73,-4.39 -6,-7.5 -11,-7.5 -1.4,0 -2.74,0.25 -3.98,0.7l2.16,2.16C10.74,7.13 11.35,7 12,7zM2,4.27l2.28,2.28 0.46,0.46C3.08,8.3 1.78,10.02 1,12c1.73,4.39 6,7.5 11,7.5 1.55,0 3.03,-0.3 4.38,-0.84l0.42,0.42L19.73,22 21,20.73 3.27,3 2,4.27zM7.53,9.8l1.55,1.55c-0.05,0.21 -0.08,0.43 -0.08,0.65 0,1.66 1.34,3 3,3 0.22,0 0.44,-0.03 0.65,-0.08l1.55,1.55c-0.67,0.33 -1.41,0.53 -2.2,0.53 -2.76,0 -5,-2.24 -5,-5 0,-0.79 0.2,-1.53 0.53,-2.2z" />
+                                </Panel>
+                            </Button>
+                        </Grid>
+                    </Grid>
+
+                    <Border Classes="softDivider" />
+
+                    <!-- 6. 指定模型型号 -->
+                    <Grid ColumnDefinitions="*,310">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="指定模型型号" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                            <TextBlock Text="直接指定默认模型，或从下方获取选择" Classes="fieldHint" LineHeight="NaN" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtSpecifiedModel" AutomationProperties.Name="指定模型型号" Grid.Column="1" Watermark="例如：gpt-4o / deepseek-chat" />
+                    </Grid>
+
+                    <Border Classes="softDivider" />
+
+                    <!-- 7. 获取模型列表与测试 -->
+                    <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="获取模型列表与测试" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                                <TextBlock Text="从上游 API 拉取可用模型，勾选要在识图窗口展示的常用模型" Classes="fieldHint" LineHeight="NaN" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Button x:Name="BtnFetchModels" Content="获取模型" Padding="10,5" CornerRadius="{DynamicResource SctRadiusControl}" FontSize="12.5" Click="OnFetchModelsClick" />
+                                <Button x:Name="BtnTestConnection" Classes="primary" Content="测试连接" Padding="12,5" CornerRadius="{DynamicResource SctRadiusControl}" FontSize="12.5" Click="OnTestConnectionClick" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock x:Name="TxtStatus"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SctTextMutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="可直接在上方填写模型型号，或点击「获取模型」拉取上游模型列表。" />
+
+                        <!-- 模型筛选与勾选面板 -->
+                        <round:ContinuousBorder x:Name="PnlModelManagement"
+                                Background="{DynamicResource SctInputBgBrush}"
+                                BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource SctRadiusControl}"
+                                Padding="10,8"
+                                Margin="0,2,0,0"
+                                IsVisible="False">
+                            <StackPanel Spacing="8">
+                                <!-- 顶部过滤工具栏：搜索框 + 快捷动作 -->
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox x:Name="TxtModelSearch" AutomationProperties.Name="过滤模型"
+                                             Grid.Column="0"
+                                             Watermark="输入关键字过滤模型..."
+                                             Height="28"
+                                             MinHeight="28"
+                                             FontSize="12"
+                                             Padding="8,2"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="OnModelSearchTextChanged" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <Button x:Name="BtnFilterVision"
+                                                Content="视觉推荐"
+                                                ToolTip.Tip="仅勾选多模态识图常用模型 (如 gpt-4o, claude-3-5, gemini, vl 等)"
+                                                Height="28" MinHeight="28" Padding="8,0" FontSize="11.5" CornerRadius="{DynamicResource SctRadiusControl}"
+                                                Click="OnFilterVisionClick" />
+                                        <Button x:Name="BtnSelectAll"
+                                                Content="全选"
+                                                ToolTip.Tip="勾选当前过滤出的全部模型"
+                                                Height="28" MinHeight="28" Padding="8,0" FontSize="11.5" CornerRadius="{DynamicResource SctRadiusControl}"
+                                                Click="OnSelectAllClick" />
+                                        <Button x:Name="BtnClearAll"
+                                                Content="清空"
+                                                ToolTip.Tip="取消勾选当前过滤出的全部模型"
+                                                Height="28" MinHeight="28" Padding="8,0" FontSize="11.5" CornerRadius="{DynamicResource SctRadiusControl}"
+                                                Click="OnClearAllClick" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 模型勾选列表容器 -->
+                                <round:ContinuousBorder Height="176"
+                                        Background="{DynamicResource SctCardFillBrush}"
+                                        BorderBrush="{DynamicResource SctSoftBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource SctRadiusControl}">
+                                    <Panel>
+                                        <TextBlock x:Name="TxtEmptyModels"
+                                                   Text="未找到匹配的模型"
+                                                   Classes="muted"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="False" />
+                                        <ListBox x:Name="LstModels"
+                                                 Classes="modelCheckList"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="local:AiSelectableModelItem">
+                                                    <Grid ColumnDefinitions="*,Auto" Margin="2,0">
+                                                        <CheckBox Grid.Column="0" Classes="workspaceCheck"
+                                                                  IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                                  AutomationProperties.Name="{Binding DisplayName}"
+                                                                  FontSize="12"
+                                                                  HorizontalContentAlignment="Stretch"
+                                                                  VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayName}" />
+                                                        </CheckBox>
+                                                        <Panel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,2,0">
+                                                            <round:ContinuousBorder IsVisible="{Binding IsDefault}"
+                                                                    Background="{DynamicResource SctBadgeBgBrush}"
+                                                                    CornerRadius="{DynamicResource SctRadiusSmall}"
+                                                                    Padding="6,2"
+                                                                    VerticalAlignment="Center">
+                                                                <TextBlock Text="默认"
+                                                                           FontSize="11"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource SctBadgeTextBrush}" />
+                                                            </round:ContinuousBorder>
+                                                            <Button IsVisible="{Binding !IsDefault}"
+                                                                    Classes="link"
+                                                                    Content="设为默认"
+                                                                    FontSize="11"
+                                                                    Foreground="{DynamicResource SctTextTertiaryBrush}"
+                                                                    Padding="4,2"
+                                                                    Tag="{Binding ModelId}"
+                                                                    Click="OnSetAsDefaultClick" />
+                                                        </Panel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Panel>
+                                </round:ContinuousBorder>
+
+                                <!-- 底部已启用计数说明 -->
+                                <TextBlock x:Name="TxtModelStats"
+                                           FontSize="11.5"
+                                           Classes="muted"
+                                           Text="已启用 0 / 0 个模型（仅勾选的模型会展示在识图对话下拉框中）" />
+                            </StackPanel>
+                        </round:ContinuousBorder>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ════ 底部操作栏 ════ -->
+            <Border Grid.Row="2" Background="{DynamicResource SctBackgroundBrush}"
+                    BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0"
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                    <Button Classes="secondary" Content="取消" Click="OnCancelClick" />
+                    <Button Classes="primary" Content="保存" Click="OnSaveClick" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

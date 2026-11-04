@@ -1,0 +1,13 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+    <!-- 分裂格几何已提升至全局 Controls，所有场景及独立长截图工程共用。 -->
+    <Style Selector="Button.tool, Button.toolIcon, Button.counterStyle, Button.counterCell">
+        <Setter Property="Template" Value="{StaticResource SctToolbarButtonTemplate}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusToolButton}" />
+    </Style>
+    <Style Selector="Button.swatch">
+        <Setter Property="Template" Value="{StaticResource SctToolbarButtonTemplate}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusSmall}" />
+    </Style>
+</Styles>

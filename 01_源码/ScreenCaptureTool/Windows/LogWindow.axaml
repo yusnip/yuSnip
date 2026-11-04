@@ -1,0 +1,193 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d" d:DesignWidth="920" d:DesignHeight="620"
+        x:Class="ScreenCaptureTool.Windows.LogWindow"
+        x:DataType="local:LogWindow"
+        Icon="/Assets/Black.ico"
+        Title="运行日志 - yuSnip"
+        Width="920" Height="620"
+        MinWidth="720" MinHeight="440"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctTitleBarBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13.5">
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceCheckBoxes.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceLists.axaml" />
+        <!-- 圆角列表皮复用全局 sctList；日志行不接收键盘焦点。 -->
+        <Style Selector="ListBox.logList ListBoxItem">
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+
+        <!-- 级别徽章：纯样式类驱动，C# 零画刷 -->
+        <Style Selector="Border.logBadge">
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusSmall}" />
+            <Setter Property="Padding" Value="6,1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.logBadge.levelERROR">
+            <Setter Property="Background" Value="{DynamicResource SctDangerBgBrush}" />
+        </Style>
+        <Style Selector="Border.logBadge.levelWARN">
+            <Setter Property="Background" Value="{DynamicResource SctWarnBgBrush}" />
+        </Style>
+        <Style Selector="Border.logBadge.levelINFO">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+        </Style>
+        <Style Selector="Border.logBadge.levelDEBUG">
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.logBadgeText.levelERROR">
+            <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        </Style>
+        <Style Selector="TextBlock.logBadgeText.levelWARN">
+            <Setter Property="Foreground" Value="{DynamicResource SctWarnBrush}" />
+        </Style>
+        <Style Selector="TextBlock.logBadgeText.levelINFO">
+            <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+        </Style>
+        <Style Selector="TextBlock.logBadgeText.levelDEBUG">
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+
+        <!-- 消息正文颜色映射 -->
+        <Style Selector="TextBlock.logMsg">
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontFamily" Value="Consolas, 'Microsoft YaHei UI'" />
+            <Setter Property="LineHeight" Value="18" />
+        </Style>
+        <Style Selector="TextBlock.logMsg.levelERROR">
+            <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
+        </Style>
+        <Style Selector="TextBlock.logMsg.levelWARN">
+            <Setter Property="Foreground" Value="{DynamicResource SctWarnBrush}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="36,46,*,30">
+
+        <!-- ══════ 1. 顶栏 Header (36px) ══════ -->
+        <Border Grid.Row="0" Height="36" Background="{DynamicResource SctTitleBarBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,0,0,1"
+                Padding="14,0,0,0" PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                <Image x:Name="ImgAppLogo" Grid.Column="0" Width="18" Height="18"
+                       Source="/Assets/Black.ico" Margin="0,0,10,0" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="运行日志" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Stretch" Margin="0" Spacing="0">
+                    <Button Classes="titleIcon titleBarBtn" ToolTip.Tip="最小化" AutomationProperties.Name="最小化" Click="OnMinimizeClick">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static local:WorkspaceIconGeometry.Minimize}" />
+                    </Button>
+                    <Button Classes="titleIcon titleBarBtn closeBtn" ToolTip.Tip="关闭 (Esc)" AutomationProperties.Name="关闭" Click="OnCloseClick">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static local:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══════ 2. 工具栏 (46px) ══════ -->
+        <Border Grid.Row="1" Height="46" Background="{DynamicResource SctBackgroundBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,0,0,1"
+                Padding="16,0">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                <!-- 级别过滤 -->
+                <ComboBox x:Name="CmbLogLevelFilter" Grid.Column="0" Width="100" Height="32"
+                          VerticalAlignment="Center" Margin="0,0,10,0" SelectedIndex="0"
+                          SelectionChanged="OnLogLevelFilterChanged">
+                    <ComboBoxItem Content="全部" />
+                    <ComboBoxItem Content="信息" />
+                    <ComboBoxItem Content="警告" />
+                    <ComboBoxItem Content="错误" />
+                </ComboBox>
+
+                <!-- 关键词搜索 -->
+                <TextBox x:Name="TxtLogSearch" Grid.Column="1" Width="220" Height="32"
+                         VerticalAlignment="Center" Margin="0,0,14,0"
+                         Watermark="搜索日志内容…" TextChanged="OnLogSearchTextChanged" />
+
+                <!-- 自动滚动开关 -->
+                <CheckBox x:Name="ChkAutoScroll" Classes="workspaceCheck" Grid.Column="2" Content="滚动至最新"
+                          IsChecked="True" VerticalAlignment="Center" Margin="0,0,10,0"
+                          ToolTip.Tip="有新日志进入时自动定位到底部" />
+
+                <!-- 右侧操作按钮组 -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="复制" Padding="14,0" Click="OnLogCopyClick"
+                            ToolTip.Tip="将当前过滤显示的日志复制到剪贴板" />
+                    <Button Content="导出" Padding="14,0" Click="OnLogExportClick"
+                            ToolTip.Tip="将当前过滤显示的日志保存为 txt 文件" />
+                    <Button x:Name="BtnLogOpenFolder" Content="打开文件夹" Padding="14,0"
+                            Click="OnLogOpenFolderClick" ToolTip.Tip="在文件资源管理器中定位日志文件" />
+                    <Button Content="清空" Padding="14,0" Click="OnLogClearClick"
+                            ToolTip.Tip="清空当前日志界面（重新打开或点击刷新可恢复）" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══════ 3. 内容区 (日志列表 + 空态) ══════ -->
+        <Panel Grid.Row="2" Background="{DynamicResource SctInputBgBrush}">
+            <!-- 高性能虚拟化日志列表 -->
+            <ListBox x:Name="LstLogs" Classes="sctList logList"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:LogEntryViewModel">
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding TimeText}"
+                                           Foreground="{DynamicResource SctTextMutedBrush}"
+                                           FontSize="11" FontFamily="Consolas, 'Microsoft YaHei UI'"
+                                           VerticalAlignment="Center" />
+                                <round:ContinuousBorder Classes="logBadge" Classes.levelERROR="{Binding IsError}"
+                                        Classes.levelWARN="{Binding IsWarn}"
+                                        Classes.levelINFO="{Binding IsInfo}"
+                                        Classes.levelDEBUG="{Binding IsDebug}">
+                                    <TextBlock Text="{Binding Level}" FontSize="10" FontWeight="SemiBold"
+                                               Classes="logBadgeText" Classes.levelERROR="{Binding IsError}" Classes.levelWARN="{Binding IsWarn}" Classes.levelINFO="{Binding IsInfo}" Classes.levelDEBUG="{Binding IsDebug}" VerticalAlignment="Center" />
+                                </round:ContinuousBorder>
+                            </StackPanel>
+                            <TextBlock Classes="logMsg" Classes.levelERROR="{Binding IsError}"
+                                       Classes.levelWARN="{Binding IsWarn}"
+                                       Text="{Binding Message}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 空态提示 -->
+            <StackPanel x:Name="PnlLogEmpty" IsVisible="False"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                <TextBlock Text="暂无符合条件的日志记录"
+                           Foreground="{DynamicResource SctTextMutedBrush}"
+                           HorizontalAlignment="Center" FontSize="13" />
+            </StackPanel>
+        </Panel>
+
+        <!-- ══════ 4. 底部状态条 (30px) ══════ -->
+        <Border Grid.Row="3" Height="30" Background="{DynamicResource SctBackgroundBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0"
+                Padding="16,0">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <TextBlock x:Name="TxtLogMeta" Grid.Column="0" VerticalAlignment="Center"
+                           Classes="fieldHint" LineHeight="NaN" Margin="0" Text="—" />
+                <TextBlock x:Name="TxtLogFile" Grid.Column="2" VerticalAlignment="Center"
+                           Classes="fieldHint" LineHeight="NaN" Margin="0" Text="" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

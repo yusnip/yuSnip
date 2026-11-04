@@ -1,0 +1,174 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+    <RootNamespace>ScreenCaptureTool</RootNamespace>
+    <AssemblyName>yuSnip</AssemblyName>
+    <Product>yuSnip</Product>
+    <Title>yuSnip</Title>
+    <ApplicationIcon>Assets\Black.ico</ApplicationIcon>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!--
+      自动更新版本源：单一版本号文件（02_构建工具\版本号.txt，每行一个 x.y.z），
+      编译时注入程序集 Version/FileVersion，客户端据此计算 build 号与服务端 version.json 比较。
+      改版本只需改 版本号.txt 后重新发布，无需手改 csproj。
+    -->
+    <VersionFilePath>$(MSBuildProjectDirectory)\..\..\02_构建工具\版本号.txt</VersionFilePath>
+    <RawVersion Condition="'$(VersionFilePath)' != ''">$([System.IO.File]::ReadAllText('$(VersionFilePath)').Trim())</RawVersion>
+    <Version Condition="'$(RawVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(RawVersion)', '^[vV\s]+|[^\d\.].*', ''))</Version>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <FileVersion>$(Version).0</FileVersion>
+    <ProductVersion>$(Version)</ProductVersion>
+
+    <!--
+      代码保护 / 原生编译：发布时使用 NativeAOT，把 C# 编译为 x64 原生机器码，
+      产物 exe 中不含 .NET IL，ILSpy/dnSpy 无法还原为 C# 源码。
+      这些属性只在 `dotnet publish` 时生效，不影响日常 `dotnet build` / 调试。
+      - PublishAot：开启 NativeAOT（需 VS C++ 工具链 link.exe，已随 VS 一起安装）。
+      - RunIdentifier：发布时固定 win-x64，与 Platforms=x64 / PlatformTarget=x64 对齐。
+      - IlcOptimizationPreference：速度优先；如要更小体积可改为 Size。
+      注意：PublishAot 与 PublishSingleFile 互斥，AOT 本身已是单文件原生 exe，不要叠加。
+    -->
+    <PublishAot>true</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <RunIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RunIdentifier>
+    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+
+    <!--
+      抑制 NativeAOT 下两个已确认无害的警告：
+      - IL2104：dll 级"曾产生 trim 警告"汇总标记。具体源 (IL2050 MSAA COM) 已用
+        [UnconditionalSuppressMessage] 在 NativeMethods.cs 精准抑制，并经 AOT 实测运行正常。
+      - IL3000：OpenCvSharp4 内部 WindowsLibraryLoader 读取 Assembly.Location 的提示。
+        该库非我们源码，单文件下虽返回空字符串，但 OpenCvSharp 实际能正常加载 native dll
+        （长截图/OCR 实测跑通）。纯信息性，不影响功能。
+      - AVLN3001：Avalonia 对「无 public 无参构造」的 XAML 可达性提示。OcrWindow 采用
+        私有构造函数的静态单例模式（new OcrWindow(text,bmp) → InitializeComponent()），
+        并非经 avares:// 运行时加载器装载，属确认误报。
+    -->
+    <NoWarn>IL2104;IL3000;AVLN3001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.2.8">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <!-- SkiaSharp 2.88.9 由 Avalonia.Skia 传递提供；聚光灯成品复用已内嵌的 Skia 原生运行时抗锯齿。 -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenCaptureTool.Core\ScreenCaptureTool.Core.csproj" />
+    <ProjectReference Include="..\ScreenCaptureTool.Platform\ScreenCaptureTool.Platform.csproj" />
+    <ProjectReference Include="..\ScreenCaptureTool.LongScroll\ScreenCaptureTool.LongScroll.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 测试工程直接验证内部标注事务，不为测试扩大生产公开 API。 -->
+    <InternalsVisibleTo Include="TestApp" />
+    <InternalsVisibleTo Include="SettingsThemeProbe" />
+    <InternalsVisibleTo Include="PrefixKeyProbe" />
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+
+  <!-- 自动同步 02_构建工具\更新记录.txt 到 Assets 作为 AvaloniaResource 供软件内关于页读取展示 -->
+  <Target Name="SyncUpdateLogAsset" BeforeTargets="BeforeBuild;CoreCompile;PrepareForBuild">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\02_构建工具\更新记录.txt"
+          DestinationFiles="$(MSBuildProjectDirectory)\Assets\更新记录.txt"
+          Condition="Exists('$(MSBuildProjectDirectory)\..\..\02_构建工具\更新记录.txt')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!--
+    单 exe 发布专用：把第三方 native dll 与一整套 VC++ 运行库（CRT）作为 EmbeddedResource 打进程序集，
+    配合 EmbeddedNativeLoader 在启动时释放到配置目录的 native 子目录并加载，使最终分发产物只剩单个 exe。
+    用 $(EmbedNativeForSingleExe) 开关门控——只有 CompileStandalone.ps1 传 true 时才触发，
+    不影响日常 dotnet run / 调试（调试时 dll 仍在输出目录原样存在）。
+    @(NativeLibrary) 项由 ResolvePackageAssets 产出，包含所有经 NuGet 拷到输出目录的 native dll。
+  -->
+  <Target Name="ExcludeUnneededNativeFiles" AfterTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::new('%(Filename)').StartsWith('opencv_videoio_ffmpeg'))" />
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.lib'" />
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::new('%(Filename)').StartsWith('onnxruntime_providers_shared'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="EmbedNativeDllsForSingleExe"
+          AfterTargets="ResolveAssemblyReferences"
+          BeforeTargets="CoreCompile"
+          Condition="'$(EmbedNativeForSingleExe)' == 'true'">
+    <MakeDir Directories="$(IntermediateOutputPath)CompressedNative" />
+    <MakeDir Directories="$(IntermediateOutputPath)win-x64\native" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)paths.txt" Lines="@(ReferenceCopyLocalPaths)" Overwrite="true" Encoding="utf-8" />
+    <!--
+      VC++ 运行库（CRT）app-local 携带。
+      背景：onnxruntime.dll 静态导入 MSVCP140 / MSVCP140_1 / VCRUNTIME140 / VCRUNTIME140_1。用户机器上
+      这几件常被"半更新"——装过旧版 redist 又装了新版，旧 core 文件被占用/未覆盖，形成新卫星
+      msvcp140_1 挂在老 msvcp140 上的混装态，CRT 自初始化直接在 DllMain 里失败，
+      LoadLibrary 报 Win32 1114（ERROR_DLL_INIT_FAILED）→ OCR 整条链子起不来。
+      对策：随 exe 携带一组版本严格一致的 CRT，EmbeddedNativeLoader 在主实例初始化第三方库前按全路径预加载，
+      后续 onnxruntime 的同名依赖全部命中已加载模块，与用户机器的 redist 状态彻底解耦。
+      来源优先级：-p:VcRuntimeDir=<目录> 显式指定 > 构建机 VS redist（取版本最高）> System32。
+      低于 $(VcRuntimeMinVersion) 直接让构建失败——避免"构建机 CRT 太旧，打出的 exe 在用户机上照样 1114"
+      这种静默退化。升级 onnxruntime 后若报版本过低，换新 redist 或显式传 VcRuntimeDir 即可。
+    -->
+    <PropertyGroup>
+      <VcRuntimeMinVersion Condition="'$(VcRuntimeMinVersion)' == ''">14.30</VcRuntimeMinVersion>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference='Stop'; $crt='vcruntime140.dll','vcruntime140_1.dll','vcruntime140_threads.dll','msvcp140.dll','msvcp140_1.dll','msvcp140_codecvt_ids.dll'; $cand=@(); if ('$(VcRuntimeDir)') { $cand += '$(VcRuntimeDir)' }; $cand += Get-ChildItem ($env:SystemDrive + '\Program Files\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT') -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; $cand += Get-ChildItem ($env:SystemDrive + '\Program Files (x86)\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT') -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; $cand += $env:SystemRoot + '\System32'; $best=$null; $bestVer=[version]'0.0'; foreach ($d in $cand) { if (-not $d) { continue }; if (-not (Test-Path ($d + '\msvcp140.dll'))) { continue }; $miss=$false; foreach ($f in $crt) { if (-not (Test-Path ($d + '\' + $f))) { $miss=$true } }; if ($miss) { continue }; $vi=(Get-Item ($d + '\msvcp140.dll')).VersionInfo; $v=[version]($vi.FileMajorPart.ToString() + '.' + $vi.FileMinorPart.ToString() + '.' + $vi.FileBuildPart.ToString() + '.' + $vi.FilePrivatePart.ToString()); if ($v -gt $bestVer) { $best=$d; $bestVer=$v } }; if (-not $best) { throw 'VC++ runtime CRT set not found: pass -p:VcRuntimeDir=&lt;dir&gt; containing the 6 CRT dlls' }; if ($bestVer -lt [version]'$(VcRuntimeMinVersion)') { throw ('VC++ runtime version ' + $bestVer + ' is below the required minimum $(VcRuntimeMinVersion) (onnxruntime needs a consistently new CRT group)') }; $out='$(IntermediateOutputPath.Replace('\', '\\'))CompressedNative'; foreach ($f in $crt) { $s=$best + '\' + $f; $dest=$out + '\' + $f + '.gz'; if ((-not (Test-Path $dest)) -or ((Get-Item $s).LastWriteTime -gt (Get-Item $dest).LastWriteTime)) { Write-Host 'Compressing CRT' $f 'from' $best; $b=[IO.File]::ReadAllBytes($s); $ms=[IO.MemoryStream]::new(); $gs=[IO.Compression.GZipStream]::new($ms, [IO.Compression.CompressionLevel]::Optimal); $gs.Write($b, 0, $b.Length); $gs.Dispose(); [IO.File]::WriteAllBytes($dest, $ms.ToArray()) } }; Write-Host 'VC runtime source=' $best 'version=' $bestVer &quot;" />
+    <Exec Command="powershell -NoProfile -Command &quot;$files = Get-Content -Encoding UTF8 '$(IntermediateOutputPath.Replace('\', '\\'))paths.txt'; foreach ($f in $files) { if ($f -and ($f -match 'runtimes[/\\]win-x64[/\\]native[/\\](libSkiaSharp|libHarfBuzzSharp|av_libglesv2|OpenCvSharpExtern|onnxruntime)\.dll$')) { $name = [System.IO.Path]::GetFileName($f); $dest = [System.IO.Path]::Combine('$(IntermediateOutputPath.Replace('\', '\\'))CompressedNative', $name + '.gz'); if (!(Test-Path $dest) -or (Get-Item $f).LastWriteTime -gt (Get-Item $dest).LastWriteTime) { Write-Host 'Compressing' $name 'to' $dest; $bytes = [System.IO.File]::ReadAllBytes($f); $ms = [System.IO.MemoryStream]::new(); $gs = [System.IO.Compression.GZipStream]::new($ms, [System.IO.Compression.CompressionLevel]::Optimal); $gs.Write($bytes, 0, $bytes.Length); $gs.Dispose(); [System.IO.File]::WriteAllBytes($dest, $ms.ToArray()); } } }&quot;" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\libSkiaSharp.dll.gz">
+        <LogicalName>yuSnip.Native.libSkiaSharp.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\libHarfBuzzSharp.dll.gz">
+        <LogicalName>yuSnip.Native.libHarfBuzzSharp.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\av_libglesv2.dll.gz">
+        <LogicalName>yuSnip.Native.av_libglesv2.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\OpenCvSharpExtern.dll.gz">
+        <LogicalName>yuSnip.Native.OpenCvSharpExtern.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\onnxruntime.dll.gz">
+        <LogicalName>yuSnip.Native.onnxruntime.dll</LogicalName>
+      </EmbeddedResource>
+      <!-- VC++ 运行库：LogicalName 必须与 EmbeddedNativeLoader.VcRuntimeFileNames 逐项对应 -->
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\vcruntime140.dll.gz">
+        <LogicalName>yuSnip.Native.vcruntime140.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\vcruntime140_1.dll.gz">
+        <LogicalName>yuSnip.Native.vcruntime140_1.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\vcruntime140_threads.dll.gz">
+        <LogicalName>yuSnip.Native.vcruntime140_threads.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\msvcp140.dll.gz">
+        <LogicalName>yuSnip.Native.msvcp140.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\msvcp140_1.dll.gz">
+        <LogicalName>yuSnip.Native.msvcp140_1.dll</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)CompressedNative\msvcp140_codecvt_ids.dll.gz">
+        <LogicalName>yuSnip.Native.msvcp140_codecvt_ids.dll</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+    <Message Text="EmbeddedNativeLoader: 已压缩并内嵌 native dll（含 VC++ 运行库 6 件，共 @(EmbeddedResource->Count()) 项）" Importance="high" />
+  </Target>
+</Project>
+

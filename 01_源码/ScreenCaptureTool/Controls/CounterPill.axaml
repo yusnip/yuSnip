@@ -1,0 +1,190 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.CounterPill"
+             ClipToBounds="False"
+             IsVisible="False">
+    <!--
+      选中序号后从它上方浮出的黑条（2026-09-18，设计稿《序号标注-方案对比》第三条的方案甲）：
+      `− 3 + · 圆角 100 · → · A/说明文字 · ×`，改这一个的编号、（胶囊时）它的圆角、藏不藏引线、加一句说明、只删这一个。
+
+      ⚠ 条底配色与选区参数条、聚光灯圆角浮条**逐值一致**（100% 不透明黑 + #38FFFFFF 一圈淡白细线、
+      高 30、内边距 8,3、圆角 8、不跟随明暗主题）。两族共用的那一半（标签/数值/整组热区/悬浮底片/
+      让位过渡/浮起层刻度）住在 Themes/PillStyles.axaml，由本控件与 SpotlightRadiusPill 各 StyleInclude
+      一份；本文件里只留序号浮条**独有**的那几样（按钮、分隔线、说明文字输入框）。
+
+      ⚠ 刻意**没有** PixPin 那种常驻在序号左上角的角标（设计稿方案乙）：本项目口径是
+      "图元没被选中时画面上不出现任何操作件"，且角标会进导出成品。
+    -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://yuSnip/Themes/PillStyles.axaml" />
+        <Style Selector="TextBlock.pillText">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFFFFFFF" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- 三枚小按钮（− / + / A / ×）：底色平时透明、悬浮才浮一层半透明白。
+             ⚠ 底片走 Opacity 过渡而不是 Background 的 BrushTransition（设计规范 §9 陷阱 9）。 -->
+        <Style Selector="Button.pillBtn">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.pillBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1FFFFFFF" />
+        </Style>
+        <Style Selector="Button.pillBtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#33FFFFFF" />
+        </Style>
+        <Style Selector="Border.pillSep">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- 说明文字的输入框：看起来就是那行字，点下去才露光标（与参数条的 toolVal 同一手感，
+             但那一条是主题色、这一条钉死白字黑底，故不复用）。 -->
+        <Style Selector="TextBox.noteEdit">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#FFFFFFFF" />
+            <Setter Property="CaretBrush" Value="#FFFFFFFF" />
+            <Setter Property="SelectionBrush" Value="#80797EFE" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBox.noteEdit /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.noteEdit:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.noteEdit:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- 与聚光灯圆角浮条同构：Panel 而不是直接的 Border，因为本控件也带**数值微调浮起层**
+         （圆角那一格按住左右拖动，见 PillValueFineController），浮起层与黑条重叠摆放、刻度横向会越出黑条。
+         ClipToBounds 必须保持 False（UserControl / Panel / Canvas 的默认值即 False）。
+
+         ⚠ 这里是 `MinWidth` 而**不是** `Width="260"`（聚光灯那一条写死 260）：本条的内容宽度会变——
+         说明文字最长 220px，整条可以远超 260，写死会把说明那一格挤掉。用 MinWidth 的两个前提都成立：
+         ① 浮起层的可绘制区只需 ≥ 整排刻度（3 位数约 176），260 已够；
+         ② 微调态下黑条被控制器撑宽后**不会**把 Panel 再撑宽（撑宽目标 = max(自然宽, 刻度宽)，
+            而刻度宽恒 < 260 ≤ Panel 宽），故不存在"Panel 变宽 → 锚点右移 → 又变宽"的自激。
+         黑条靠 HorizontalAlignment="Center" 居中 ⇒ **控件居中 ⇔ 黑条居中**，宿主的居中算式不用改；
+         但**命中判定与让位判定必须用 PillBounds**（可见黑条矩形），不能用控件矩形。 -->
+    <Panel x:Name="RootPanel" MinWidth="260">
+        <!-- 描边 `#38FFFFFF`（22% 白）：条底色是 100% 不透明黑，在深色截图背景上原本与背景糊成一片；
+             一圈淡白细线是唯一能在**任意**背景上把条的轮廓"抠"出来的办法（同选区参数条）。
+             高度 30 / 内边距 8,3 / 圆角 8 与参数条逐值一致，两条并排时不会一高一矮。
+             ⚠ 宽度平时是 auto（由内容决定）、居中在可绘制区里。**只有微调态**才由控制器写显式 Width——
+             浮起时它要横向撑开去装下整排刻度，收回时先过渡回自然宽、再还原成 auto。
+             （写显式 Width 不会推动它的中心：它居中于可绘制区，中心恒等于可绘制区中心——
+             这正是"以黑条中心为锚点撑开"不会自激的前提，见控制器的锚点注释。） -->
+        <controls:ContinuousBorder x:Name="PillHost"
+                HorizontalAlignment="Center"
+                Background="#FF000000"
+                BorderBrush="#38FFFFFF"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource SctRadiusToolButton}"
+                Height="30"
+                Padding="8,3"
+                VerticalAlignment="Center">
+            <!-- ⚠ HorizontalAlignment="Center" 不是装饰：微调态下黑条会被控制器写显式 Width 撑宽，
+                 水平 StackPanel 默认 Stretch ⇒ 撑宽后内容会贴到左缘、数值跟着往左漂。 -->
+            <StackPanel x:Name="PillContent" Classes="pillContent"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button x:Name="BtnMinus" Classes="pillBtn" ToolTip.Tip="编号减 1（Ctrl+滚轮同效）" Click="OnMinusClick">
+                    <TextBlock Classes="pillText" Text="−" />
+                </Button>
+                <Border MinWidth="18" Padding="2,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="ValueText" Classes="pillText" Text="1" TextAlignment="Center"
+                               HorizontalAlignment="Center" />
+                </Border>
+                <Button x:Name="BtnPlus" Classes="pillBtn" ToolTip.Tip="编号加 1（Ctrl+滚轮同效）" Click="OnPlusClick">
+                    <TextBlock Classes="pillText" Text="+" />
+                </Button>
+
+                <!-- 胶囊圆角那一格（2026-09-19）：只有选中的这颗是胶囊时才出现，宿主按图元外形决定
+                     （SetState 的 showCorner）。交互与聚光灯圆角浮条、选区参数条「圆角」那一组**完全同源**
+                     （同一个 PillValueFineController、同一套"按下即浮起 → 5 档刻度 → 松手 300ms 收回"）。
+                     量程 0–100 是**百分比**不是像素：胶囊两端的高度恒等于序号大小，只能按半高的比例收。 -->
+                <Border x:Name="SepCorner" Classes="pillSep" IsVisible="False" />
+                <Border x:Name="GroupCorner" Classes="pillGroup" IsVisible="False"
+                        ToolTip.Tip="按住数值左右拖动微调（滚轮 ±1）：胶囊两端的圆角，0＝方头、100＝两端全圆">
+                    <Grid>
+                        <!-- 悬浮底片是**独立一层**（与文字平级、先声明 ⇒ 在文字之下），淡入淡出只染它自己。 -->
+                        <Border Classes="pillChip" CornerRadius="4" IsHitTestVisible="False" />
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,0" VerticalAlignment="Center">
+                            <TextBlock Classes="pillLabel" Text="圆角" />
+                            <TextBlock x:Name="CornerValue" Classes="pillValue" Text="100" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- 引线开关（2026-09-19）：点一下＝整条引线藏掉，再点回来。刻意**不是**删除引线——
+                     引线那头仍留在图元里（CounterShape.TailShown），只是不画、也点不中。
+                     只在"选中这颗确实带引线"时才出现（与上面「圆角」那一格同一处理：整格连分隔线一起收）。
+                     状态只靠图标明暗表达（设计规范 §6.12：颜色是唯一的状态表达），不加文字也不加角标。 -->
+                <Border x:Name="SepTail" Classes="pillSep" IsVisible="False" />
+                <Button x:Name="BtnTail" Classes="pillBtn" IsVisible="False"
+                        ToolTip.Tip="显示／藏掉整条引线（藏掉只是不画、也点不中，引线那头仍留着）" Click="OnTailClick">
+                    <!-- Stretch 必须显式写 None：默认 Fill 会把几何非等比拉满 20×20，箭头压扁、线宽也跟着拉伸。
+                         路径按 20×20 盒子居中排（水平 3–17、竖直中心 10），与条上那几枚 12px 字形同轻重。 -->
+                    <Path x:Name="TailIcon" Width="20" Height="20" Stretch="None" Fill="Transparent"
+                          Stroke="#FFFFFFFF" StrokeThickness="1.5"
+                          StrokeLineCap="Round" StrokeJoin="Round"
+                          Data="M3,10 L13.5,10 M11,6.5 L16,10 L11,13.5" />
+                </Button>
+
+                <Border Classes="pillSep" />
+
+                <!-- 说明文字那一格：没有说明时显示字母 A（PixPin 的口径：点 A 加一句简短说明），
+                     有了说明就显示说明本身。点击切进编辑态，Enter/失焦提交、Esc 取消。 -->
+                <Button x:Name="BtnNote" Classes="pillBtn" MinWidth="20" Padding="4,0"
+                        ToolTip.Tip="加/改说明文字（同行右排，随圆点一起移动）" Click="OnNoteClick">
+                    <TextBlock x:Name="NoteLabel" Classes="pillText" Text="A" />
+                </Button>
+                <TextBox x:Name="NoteBox" Classes="noteEdit" Width="150" MaxLength="40" IsVisible="False">
+                    <TextBox.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></TextBox.Styles>
+                </TextBox>
+
+                <Border Classes="pillSep" />
+
+                <Button x:Name="BtnDelete" Classes="pillBtn" ToolTip.Tip="只删这一个序号（区别于工具栏的清空）" Click="OnDeleteClick">
+                    <TextBlock Classes="pillText" Text="×" />
+                </Button>
+            </StackPanel>
+        </controls:ContinuousBorder>
+
+        <!-- 数值微调浮起层：必须声明在 PillHost **之后**（同一 Panel 内后声明者压前者）。
+             五个刻度按 −2 / −1 / 当前 / +1 / +2 排开，整层以**黑条中心**对齐（本控件传了 plate）；
+             越界档位直接不显示。位置与动画全部由 PillValueFineController 驱动，这里只摆结构。 -->
+        <Canvas x:Name="FineLayer" IsVisible="False" IsHitTestVisible="False">
+            <TextBlock x:Name="FineM2" Classes="fineStep2" Text="" />
+            <TextBlock x:Name="FineM1" Classes="fineStep1" Text="" />
+            <TextBlock x:Name="FineCur" Classes="fineCurrent" Text="0" />
+            <TextBlock x:Name="FineP1" Classes="fineStep1" Text="" />
+            <TextBlock x:Name="FineP2" Classes="fineStep2" Text="" />
+        </Canvas>
+    </Panel>
+</UserControl>

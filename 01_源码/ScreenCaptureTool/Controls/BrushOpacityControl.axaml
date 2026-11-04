@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.BrushOpacityControl">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock Text="透明度" VerticalAlignment="Center" Classes="secondary" Margin="1,0,3,0"
+                   ToolTip.Tip="整笔不透明度：自交处不叠加变深（最低 5%，避免画出完全看不见的笔迹）" />
+        <Slider x:Name="OpacitySlider" Classes="compactSlider" Width="76" Minimum="5" Maximum="100" Value="100"
+                TickFrequency="1" IsSnapToTickEnabled="True" />
+        <!-- 数值标签预留最宽取值容量：实测 "100" 在 14px SemiBold 下要 26 DIP，原 Width="24" 会把末位裁掉。
+             用 MinWidth 而非 Width＝万一将来取值更宽是长出去而不是被切。 -->
+        <TextBlock x:Name="OpacityText" Text="100" MinWidth="32" Height="28" LineHeight="28"
+                   TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+    </StackPanel>
+</UserControl>

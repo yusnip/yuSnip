@@ -1,0 +1,57 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.ThirdPartyNoticesWindow"
+        Icon="/Assets/Black.ico" Title="开源组件与许可 - yuSnip"
+        Width="900" Height="640" MinWidth="740" MinHeight="480"
+        ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full" ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}" FontFamily="Microsoft YaHei UI" FontSize="13.5">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceLists.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+    </Window.Styles>
+    <Border BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="48,Auto,*,Auto">
+            <Border Background="Transparent" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="开源组件与许可" FontSize="14.5" FontWeight="SemiBold" Margin="20,0,0,0" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="titleIcon closeBtn" AutomationProperties.Name="关闭" ToolTip.Tip="关闭" Margin="0,0,6,0" Click="OnCloseClick">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static win:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+            <StackPanel Grid.Row="1" Spacing="6" Margin="20,8,20,18">
+                <TextBlock Text="感谢开源，让好用的工具成为可能。" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="yuSnip 使用了以下开源项目与第三方资源，感谢每一位作者与贡献者的付出。各项目的版权与许可声明保留如下。"
+                           Classes="fieldHint" Margin="0" TextWrapping="Wrap" />
+            </StackPanel>
+            <Grid Grid.Row="2" ColumnDefinitions="210,16,*" Margin="20,0,20,16">
+                <controls:ContinuousBorder CornerRadius="{DynamicResource SctRadiusControl}" BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" Padding="4">
+                    <ListBox x:Name="ComponentList" Classes="sctList" Background="Transparent" BorderThickness="0"
+                             AutomationProperties.Name="第三方项目" SelectionChanged="OnComponentChanged" />
+                </controls:ContinuousBorder>
+                <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,Auto,*">
+                    <TextBlock x:Name="ComponentName" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ComponentMeta" Grid.Row="1" Classes="fieldHint" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ComponentPurpose" Grid.Row="2" Foreground="{DynamicResource SctTextSecondaryBrush}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                    <Button x:Name="ProjectLink" Grid.Row="3" Classes="link" Content="访问项目与许可来源" HorizontalAlignment="Left" Margin="0,8,0,12" Click="OnOpenProjectClick" />
+                    <TextBox x:Name="NoticeText" Grid.Row="4" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                             FontSize="12.5" AutomationProperties.Name="版权与许可正文"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </Grid>
+            </Grid>
+            <Border Grid.Row="3" BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0" Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto,12,Auto">
+                    <TextBlock x:Name="StatusText" Text="许可正文可离线查看、选中与复制。" Classes="fieldHint" Margin="0,0,12,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <Button x:Name="CopyNoticeButton" Grid.Column="1" Content="复制本项声明" Click="OnCopyNoticeClick" />
+                    <Button Grid.Column="3" Content="关闭" MinWidth="80" Click="OnCloseClick" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.DepProgressWindow"
+        Icon="/Assets/Black.ico"
+        Title="运行组件 - yuSnip"
+        Width="340"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="True"
+        Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13">
+
+    <!-- 设计稿 05 节 · 已定乙（紧凑重构）：三处功能入口共用的一枚居中进度卡。
+         零新配色，皮上不许出现任何私有 ThemeDictionary。 -->
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+    </Window.Styles>
+
+    <!-- 保留紧凑布局，系统负责窗口曲率与阴影；进度条仍为原高度的 pill。 -->
+    <Border Background="{DynamicResource SctBackgroundBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="32,Auto,Auto">
+
+            <!-- ════ 自绘标题栏 ════ -->
+            <Border Grid.Row="0" Background="{DynamicResource SctPanelBrush}" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Column="0" Text="运行组件" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" Margin="14,0,0,0" />
+                    <Button Grid.Column="2" Classes="titleIcon" CornerRadius="{DynamicResource SctRadiusControl}" AutomationProperties.Name="关闭"
+                            Width="30" Height="26" MinWidth="30" MinHeight="26"
+                            ToolTip.Tip="关闭（下载继续）" Click="OnCloseClick" Margin="0,0,3,0">
+                        <Path Classes="workspaceIcon" Width="10" Height="10" Data="{x:Static win:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ════ 内容区 ════ -->
+            <Border Grid.Row="1" Background="{DynamicResource SctBackgroundBrush}" Padding="16,12,16,10">
+                <StackPanel Spacing="8">
+
+                    <!-- 下载中：标题＋进度条＋一行读数，四件之内不许再加东西 -->
+                    <StackPanel x:Name="PanelRunning" Spacing="8" IsVisible="True">
+                        <TextBlock x:Name="TxtTitle" FontSize="12.5" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                        <ProgressBar x:Name="Pb" Height="5" Minimum="0" Maximum="100" CornerRadius="2.5"
+                                     Foreground="{DynamicResource SctAccentBrush}"
+                                     Background="{DynamicResource SctRowBgBrush}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock x:Name="TxtDetail" Grid.Column="0" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource SctTextTertiaryBrush}" />
+                            <TextBlock x:Name="TxtEta" Grid.Column="1" FontSize="11.5" Margin="8,0,0,0"
+                                       Foreground="{DynamicResource SctTextTertiaryBrush}" />
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- 失败：标题说清是哪一步，正文只留一句外因 -->
+                    <StackPanel x:Name="PanelFailed" Spacing="6" IsVisible="False">
+                        <TextBlock x:Name="TxtFailTitle" FontSize="12.5" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource SctDangerBrush}" />
+                        <TextBlock x:Name="TxtFailWhy" FontSize="11.5" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource SctTextTertiaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ════ 底部按钮区 ════ -->
+            <Border Grid.Row="2" Background="{DynamicResource SctBackgroundBrush}" Padding="16,2,16,12">
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button x:Name="BtnCancel" Classes="secondary" Content="取消下载"
+                            Height="26" MinHeight="26" MaxHeight="26" MinWidth="64" Padding="10,0" FontSize="12"
+                            Click="OnCancelClick" />
+                    <Button x:Name="BtnRetry" Classes="secondary" Content="重试" IsVisible="False"
+                            Height="26" MinHeight="26" MaxHeight="26" MinWidth="56" Padding="10,0" FontSize="12"
+                            Click="OnRetryClick" />
+                    <Button x:Name="BtnSettings" Classes="secondary" Content="去设置" IsVisible="False"
+                            Height="26" MinHeight="26" MaxHeight="26" MinWidth="60" Padding="10,0" FontSize="12"
+                            Click="OnSettingsClick" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

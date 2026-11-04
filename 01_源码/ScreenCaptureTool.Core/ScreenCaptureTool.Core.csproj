@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenCaptureTool.Platform\ScreenCaptureTool.Platform.csproj" />
+    <InternalsVisibleTo Include="HdrCaptureProbe" />
+    <InternalsVisibleTo Include="SettingsThemeProbe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.1" />
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.27" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- OCR／抠图模型不再内嵌（改按需下载，见 Core/Deps）；Models\ 下的文件仅作打包源，
+       必须显式排除，否则 SDK 的 *.txt 隐式通配会把字典当资源嵌回 EXE。 -->
+  <ItemGroup>
+    <EmbeddedResource Remove="Models\**\*" />
+    <None Include="Models\**\*" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+</Project>

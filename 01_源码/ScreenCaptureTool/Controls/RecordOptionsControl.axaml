@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:ScreenCaptureTool.Windows"
+             x:Class="ScreenCaptureTool.Controls.RecordOptionsControl">
+    <UserControl.Styles>
+        <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+    </UserControl.Styles>
+    <!--
+      录屏前置参数条（2026-09-21 UI 统一化）：整条只挂 Themes/Controls.axaml 里的全局类
+      （Button.tool / toolIcon / tool.primary、Border.textPopupPanel、CheckBox.toolCheck、
+      Path.icon / iconFill），本文件不再自带一份皮；「声音」那枚图标的路径也已归位到共享库 OcrIconGeometry，不再内联。
+      排布：画质＝当前档名＋下拉箭头（不写"画质"二字）；录制延迟＝当前档名＋下拉箭头（六档，表在 Core 的 RecordCountdown）；
+      ⚠ 两枚下拉指示箭头已是全局统一那枚（2026-09-22 与「序号」对齐，见 docs/设计规范.md §6.12「下拉指示箭头」）：
+      写法是 <c>Path.icon</c> + <c>Data="M0,2 L4,6 L8,2"</c> + <c>Width/Height=8</c> + <c>Stretch="None"</c>，
+      不再套 Viewbox、不再引 <c>OcrIconGeometry.ArrowDown</c>（那条走 Fill 实心三角，与序号的描边 V 形不同源）。
+      声音＝纯图标钮 + 下挂勾选面板；键鼠操作＝纯图标钮（键盘＋右下角箭头）+ 下挂勾选面板（2026-09-22 从录制中控制条搬回，
+      两处同功能：录制前先设初值、录制中还能改）；
+      最右只留「开始录制」（取消钮已删，取消出口＝Esc / 右键）。光标录制默认开启，导出格式后移至录制完成后的预览贴图窗口。
+      紧凑：不再用 Auto,*,Auto 把操作组推到最右、中间留一大片空——整条随内容收缩，组间用 1×16 发丝线分栏。
+    -->
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+        <!-- ① 画质：只显当前档名＋小箭头（自定义档名最长 8 字，宽度随档名变）。
+             下挂 MenuFlyout 按可见预设现铺，当前档由 code-behind 挂 MenuItem.current 染品牌紫（§6.12） -->
+        <Button x:Name="BtnQuality" Classes="tool" ToolTip.Tip="录制画质">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtQuality" Text="标准" VerticalAlignment="Center" />
+                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+            </StackPanel>
+            <Button.Flyout>
+                <!-- 档位条目由 code-behind 按「设置 → 录屏 → 画质预设」里勾了显示的那些现铺（2026-09-29 预设可自定义），
+                     当前档挂 MenuItem.current 染品牌紫（§6.12），每条 Tooltip 是该档参数摘要 -->
+                <MenuFlyout Placement="BottomEdgeAlignedLeft" />
+            </Button.Flyout>
+        </Button>
+
+        <Border Width="1" Height="16" Margin="4,0" VerticalAlignment="Center"
+                Background="{DynamicResource SctSeparatorBrush}" />
+
+        <!-- ② 录制延迟：一枚下拉（与「画质」同一配方，§6.12 唯一菜单档）。原先三枚 textSegment 占两格宽，
+             现收成一格；六档表住在 Core 的 RecordCountdown，条目由 code-behind 现铺（不在此重抄档位）。
+             TxtCountdown 的 MinWidth 只为止损——档名从"无延迟"到"10 秒"长短不一，钉住宽度免得整条左右抽动。 -->
+        <Button x:Name="BtnCountdown" Classes="tool" ToolTip.Tip="点「开始录制」后留几秒准备时间">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtCountdown" Text="3 秒" MinWidth="36" TextAlignment="Center" VerticalAlignment="Center" />
+                <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+            </StackPanel>
+            <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft" />
+            </Button.Flyout>
+        </Button>
+
+        <Border Width="1" Height="16" Margin="4,0" VerticalAlignment="Center"
+                Background="{DynamicResource SctSeparatorBrush}" />
+
+        <!-- ③ 声音：一枚描边喇叭（拍板 A 丁·喇叭改良档；路径已归位到 OcrIconGeometry，见 §6.9） -->
+        <Grid>
+            <Button x:Name="BtnAudio" Classes="toolIcon" ToolTip.Tip="声音（系统声音 / 麦克风）"
+                    Click="OnAudioClick">
+                <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.AudioSource}" />
+            </Button>
+            <!-- ⚠ 轻点关闭一律**不开**（与水印参数条同一条理由）：Avalonia 的 light dismiss 会把这一下透传给
+                 下层，而本窗是全屏遮罩——透传下去就是挪选区／另起新框。收面板走 code-behind 的窗口根 Tunnel 预捕获。 -->
+            <Popup x:Name="AudioPopup" PlacementTarget="{Binding #BtnAudio}"
+                   Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="4">
+                <controls:ContinuousBorder x:Name="AudioPanel" Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                    <StackPanel Width="104" Spacing="4">
+                        <!-- 六项参数一律"选择即落盘"（记成上次使用，与设置页的默认值分开两族键，
+                             见 AppSettings 的 RecLast* 族注释）⇒ 改完不按「开始录制」也不会丢。 -->
+                        <CheckBox x:Name="ChkSystemAudio" Classes="toolCheck" Content="系统声音" IsChecked="True"
+                                  Checked="OnAudioCheckChanged" Unchecked="OnAudioCheckChanged" />
+                        <CheckBox x:Name="ChkMicAudio" Classes="toolCheck" Content="麦克风" IsChecked="True"
+                                  Checked="OnAudioCheckChanged" Unchecked="OnAudioCheckChanged" />
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </Popup>
+        </Grid>
+
+        <!-- ④ 键鼠操作：2026-09-22 按用户要求回到参数条（原先 09-21 第（七）轮整格搬去了录制中控制条，
+             理由"同一件事不在两处出现"被本次拍板覆盖——录制前要能先勾好，录制中还能再改）。
+             图标＝右下角开口的键盘＋三排键位与半宽空格＋探进开口那角的实心鼠标指针（三件套常量 KeyMouseFrame /
+             KeyMouseKeys / KeyMouseCursor，2026-09-24 重画成 16×16 方件，换算与居中推导见 OcrIconGeometry.cs）。
+             两处按钮功能一致，但下挂面板的**收面板机制不同**：
+             本窗是全屏遮罩，轻点关闭那一下会透传给下层画布 ⇒ 与「声音」同走窗口根 Tunnel 预捕获。 -->
+        <Grid>
+            <Button x:Name="BtnKeyMouse" Classes="toolIcon" ToolTip.Tip="键鼠操作" Click="OnKeyMouseClick">
+                <Panel>
+                    <!-- Stretch=None：三件几何的坐标空间就是 0..16（墨区自己填满元素盒），None 下几何单位 1:1
+                         落在元素盒**左上角** ⇒ 居中在数据里一次烘死。改回 Uniform 就前功尽弃：Uniform 按紧包围盒
+                         左上角锚定（Shape 无 AlignmentX/Y），非方件必偏高 (元素高 − 墨高)/2，本件曾因此偏高 3.5 DIP
+                         ≈ 屏上 5.5 像素。⇒ 换皮成别的图标时这行不能删。
+                         元素盒用全局 Path.icon 的 16 档（2026-09-24 几何重画成方件后，专属的 18 档 keymouse 已删）。 -->
+                    <Path Classes="icon" Stretch="None" Data="{x:Static local:OcrIconGeometry.KeyMouseFrame}" />
+                    <Path Classes="icon iconFill" Stretch="None" Data="{x:Static local:OcrIconGeometry.KeyMouseKeys}" />
+                    <Path Classes="icon iconFill" Stretch="None" Data="{x:Static local:OcrIconGeometry.KeyMouseCursor}" />
+                </Panel>
+            </Button>
+            <Popup x:Name="KeyMousePopup" PlacementTarget="{Binding #BtnKeyMouse}"
+                   Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="4">
+                <controls:ContinuousBorder x:Name="KeyMousePanel" Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                    <StackPanel Width="104" Spacing="4">
+                        <CheckBox x:Name="ChkKeycapPre" Classes="toolCheck" Content="记录键盘操作"
+                                  Checked="OnFxCheckChanged" Unchecked="OnFxCheckChanged" />
+                        <CheckBox x:Name="ChkRipplePre" Classes="toolCheck" Content="记录鼠标操作"
+                                  Checked="OnFxCheckChanged" Unchecked="OnFxCheckChanged" />
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </Popup>
+        </Grid>
+
+        <Border Width="1" Height="16" Margin="4,0" VerticalAlignment="Center"
+                Background="{DynamicResource SctSeparatorBrush}" />
+
+        <!-- ⑤ 操作组：只留「开始录制」（取消钮按用户要求删除，取消出口＝Esc / 右键，见
+             CaptureWindow 的 TryCancelByKeyboard 与遮罩既有撤框口径）。
+             2026-09-22 按用户要求去掉钮内那枚红点：钮底已是品牌紫实底，「录制中」的语义由右上徽标那枚红点
+             独担就够了，一处语义两个载体反而互相抢。 -->
+        <Button x:Name="BtnStart" Classes="tool primary" Click="OnStartClick">
+            <TextBlock Text="开始录制" VerticalAlignment="Center" />
+        </Button>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.ShapeFillControl">
+    <!--
+      形状工具的「填充」参数：勾选＝用当前线条颜色把形状内部填上，滑杆调浓淡。
+      截图遮罩的参数条（CaptureWindow.axaml 的 RectangleOptionsPanel）与贴图标注浮窗
+      （AnnotationToolbar.axaml 的 RectangleOptionsPanel）共用本控件——两套工具栏"逐字对应"是
+      设计规范的同步义务，能收成一个 UserControl 就别抄两份。
+      文字前景不写死：全局 TextBlock 样式已给 SctTextPrimaryBrush，本条所在容器底色是 SctPanelBrush，
+      明暗两态自动跟着走（设计规范：窗口内不重复定义全局已有样式）。
+    -->
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <CheckBox x:Name="FillCheck" Content="填充" IsChecked="False" Focusable="False"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="填充：用当前线条颜色填住形状内部。不填充时只有边线能点选，填充后整块都能点选" />
+        <!-- 滑杆＋读数包成一行：未填充时整行禁用并压暗（dimWhenDisabled 的全局皮，与水印「间距」那一行同一档），
+             勾选框留在行外保持可用。原先只禁滑杆自身＝读数照明亮着、滑杆看着跟能用时一模一样，属误导 -->
+        <Grid x:Name="FillRow" Classes="dimWhenDisabled" ColumnDefinitions="Auto,Auto" Margin="4,0,0,0" IsEnabled="False">
+            <Slider x:Name="FillSlider" Classes="compactSlider" Width="76" Minimum="5" Maximum="100" Value="30"
+                    TickFrequency="1" IsSnapToTickEnabled="True"
+                    ToolTip.Tip="填充浓淡：数值越大越不透明（最低 5%，避免填出一层看不见的色）" />
+            <!-- 数值标签预留最宽取值容量（同 BrushOpacityControl 那条实测：3 位数在 14px SemiBold 下要 26 DIP） -->
+            <TextBlock x:Name="FillText" Grid.Column="1" Text="30" MinWidth="32" Height="28" LineHeight="28"
+                       TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+        </Grid>
+    </StackPanel>
+</UserControl>

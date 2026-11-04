@@ -1,0 +1,1010 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ctrl="using:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="780"
+        x:Class="ScreenCaptureTool.Windows.OcrWindow"
+        Icon="/Assets/Black.ico"
+        Title="OCR 识别结果"
+        Width="1200" Height="780"
+        MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctTitleBarBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13.5">
+
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceFlyouts.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToggleButtons.axaml" />
+        <!-- ══════ 栏片与栏头 ══════ -->
+        <Style Selector="Border.ocrPaneHead">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Height" Value="36" />
+        </Style>
+
+        <!-- ══════ 分行卡片列表项 ══════
+             静息态即卡片底 + 细边框（页面底 SctBackgroundBrush / 卡片底 SctCardFillBrush 两级层次），
+             避免整片透明底造成的"空白感" -->
+        <Style Selector="Border.lineCard">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="8,4" />
+            <!-- 只保留描边过渡：背景（不透明卡片底 → 半透明悬浮/选中紫）走 BrushTransition 会
+                 插值出中段约 50% 饱和度的中紫色，视觉上"先变深再变浅"很割裂——
+                 悬浮/选中背景色直接瞬时切换（浅色一开始就是浅色） -->
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <!-- 悬浮态：淡紫（6% 品牌紫）——轻于选中态 12% 软紫、重于静息卡片底，
+             与"点击选中"拉开"点击了 / 只是悬浮"的层级（替代原灰色悬浮） -->
+        <Style Selector="Border.lineCard:pointerover, Border.lineCard.hovered">
+            <Setter Property="Background" Value="{DynamicResource SctOcrHoverBrush}" />
+        </Style>
+        <!-- 选中态：品牌软紫底（12% 半透明）+ 品牌紫实色描边，正文保持主题文字色，深浅双态均清晰可读 -->
+        <Style Selector="Border.lineCard.selected">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <!-- 选中卡悬浮保护：鼠标停在选中卡上时选中视觉不退场（显式声明，消除伪类/类样式优先级歧义） -->
+        <Style Selector="Border.lineCard.selected:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <!-- 已改状态：编辑橙 #E8862B（与原图叠层 BrushEdit、设计稿决策一致；与选中态品牌紫区分） -->
+        <Style Selector="Border.lineCard.edited">
+            <Setter Property="Background" Value="{DynamicResource SctOcrEditSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctOcrEditBrush}" />
+        </Style>
+        <Style Selector="Border.lineCard.dropMerge">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="Border.lineCard.dragged">
+            <Setter Property="Opacity" Value="0.55" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+
+        <!-- 行序号徽章 -->
+        <Style Selector="Border.lineBadge">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusSmall}" />
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,1,0,0" />
+        </Style>
+        <Style Selector="TextBlock.lineBadgeText">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.lineCard.selected Border.lineBadge">
+            <Setter Property="Background" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="Border.lineCard.selected TextBlock.lineBadgeText">
+            <Setter Property="Foreground" Value="{DynamicResource SctTitleBarCloseTextBrush}" />
+        </Style>
+        <Style Selector="Border.lineCard.edited Border.lineBadge">
+            <Setter Property="Background" Value="{DynamicResource SctOcrEditBrush}" />
+        </Style>
+        <Style Selector="Border.lineCard.edited TextBlock.lineBadgeText">
+            <Setter Property="Foreground" Value="{DynamicResource SctTitleBarCloseTextBrush}" />
+        </Style>
+
+        <!-- 行内编辑输入框 -->
+        <Style Selector="TextBox.ocrEditBox">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="FontSize" Value="13.5" />
+        </Style>
+
+        <!-- ══════ 合并视图：整段编辑框（文档纸张卡：卡片底 + 细边框 + 圆角，文本顶对齐） ══════
+             框体拉伸铺满文本面板（固定最大高度，内部滚动），不随内容动态增高 -->
+        <Style Selector="TextBox.ocrMergedBox">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="LineHeight" Value="24" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource SctOcrSelectionBrush}" />
+            <!-- 文本顶对齐：少文本时从左上角开始，不垂直居中 -->
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBox.ocrMergedBox /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+        </Style>
+
+        <!-- 模式开关复用全局 selectBtn，明暗表面与交互不再私有覆盖。 -->
+
+        <!-- ══════ 标题栏右上角关闭按钮 ══════ -->
+        <Style Selector="Button.titleCloseBtn">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.titleCloseBtn /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.titleCloseBtn:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarCloseBrush}" />
+        </Style>
+        <Style Selector="Button.titleCloseBtn:pointerover Path">
+            <Setter Property="Fill" Value="{DynamicResource SctTitleBarCloseTextBrush}" />
+        </Style>
+
+        <!-- ══════ 对照查看开关（图标 + 文字的描边胶囊） ══════
+             纯图标无法传达"初始识别 ⇄ 修改后结果"的对照语义，
+             改为图标 + 「对照查看」文字的组合胶囊：默认细描边次级色，
+             悬浮/选中切品牌紫描边，选中时文字图标同步品牌紫，无灰底填充。
+             基础伪类在前声明，:checked 变体在后（同优先级后声明者胜出）。 -->
+        <Style Selector="ToggleButton.cmpBtn">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn Path.sctIcon">
+            <Setter Property="Fill" Value="{DynamicResource SctTextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn TextBlock.cmpBtnText">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+        </Style>
+        <!-- 基础伪类在前声明，:checked 变体在后（同优先级后声明者胜出） -->
+        <Style Selector="ToggleButton.cmpBtn:pointerover Path.sctIcon">
+            <Setter Property="Fill" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn:pointerover TextBlock.cmpBtnText">
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn:checked Path.sctIcon">
+            <Setter Property="Fill" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn:checked TextBlock.cmpBtnText">
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn:checked /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.cmpBtn:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+
+        <!-- ══════ 智能排版视图专用样式 ══════ -->
+        <Style Selector="Border.rfToolbar">
+            <Setter Property="Background" Value="{DynamicResource SctTitleBarBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Padding" Value="14,0" />
+        </Style>
+
+        <Style Selector="Border.rfPill">
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.rfPill.on">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="Border.rfPill Ellipse">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Fill" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+        <Style Selector="Border.rfPill.on Ellipse">
+            <Setter Property="Fill" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="Border.rfPill TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.rfPill.on TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- 连通灯 -->
+        <Style Selector="Ellipse.lampChecking">
+            <Setter Property="Fill" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+        <Style Selector="Ellipse.lampOk">
+            <Setter Property="Fill" Value="{DynamicResource SctOcrOkBrush}" />
+        </Style>
+        <Style Selector="Ellipse.lampBad">
+            <Setter Property="Fill" Value="{DynamicResource SctOcrBadBrush}" />
+        </Style>
+
+        <!-- 智能排版文档渲染 -->
+        <!-- ══════ 排版视图统一纸张卡（ocrPaperCard）══════
+             原文卡 / 排版文档 / MD 预览共用同一个框（复用，不做两个框）：
+             排版前后只有内容变化，容器视觉与固定视口高度完全一致。
+             与合并视图 ocrMergedBox 纸张卡同一套 Token 视觉。 -->
+        <Style Selector="Border.ocrPaperCard">
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+        </Style>
+        <!-- 文档卡内容内边距（与 ocrPaperCard 组合使用：卡片视觉归 ocrPaperCard，这里只管内边距） -->
+        <Style Selector="Border.rfDocView">
+            <Setter Property="Padding" Value="18,16" />
+        </Style>
+        <Style Selector="SelectableTextBlock.rfDocTitle1, TextBlock.rfDocTitle1">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,4,0,10" />
+        </Style>
+        <Style Selector="SelectableTextBlock.rfDocPara, TextBlock.rfDocPara">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="LineHeight" Value="24" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <!-- 独立行：次色弱化（重构时样式块遗失，按文档"独立行次色"补回） -->
+        <Style Selector="SelectableTextBlock.rfDocLine, TextBlock.rfDocLine">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="LineHeight" Value="21" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style Selector="Border.rfDocCodeBox">
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style Selector="SelectableTextBlock.rfDocCode, TextBlock.rfDocCode">
+            <Setter Property="FontFamily" Value="Consolas, monospace" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Border.rfDocQuote">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="Padding" Value="10,2,0,6" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style Selector="SelectableTextBlock.rfDocQuoteText, TextBlock.rfDocQuoteText">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!-- ══════ 智能排版：进度卡 / 进度条 / 步骤芯片 / 状态条（旧版设计回归） ══════ -->
+        <!-- 排版进度卡 -->
+        <Style Selector="Border.rfProgCard">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="Padding" Value="16,13" />
+        </Style>
+        <!-- 进度条（自定义模板：圆角轨道 + 品牌渐变填充 + 流光，恢复旧版设计。
+             禁用 Width Transition：进度计时器每 100ms 设一次值，任何时长的 DoubleTransition
+             在高频重定位下都会冻结指示条——100ms 步进本身就是平滑动画，叠加流光动感足够顺滑） -->
+        <Style Selector="ProgressBar.rfProg">
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="100" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border Height="6" CornerRadius="3" ClipToBounds="True"
+                                Background="{DynamicResource SctSoftBorderBrush}">
+                            <Border x:Name="PART_Indicator" Height="6" CornerRadius="3" HorizontalAlignment="Left" ClipToBounds="True">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                        <GradientStop Color="{DynamicResource SctOcrProgressStartColor}" Offset="0" />
+                                        <GradientStop Color="{DynamicResource SctOcrProgressEndColor}" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <!-- 流光 -->
+                                <Rectangle Width="80" Height="6" VerticalAlignment="Stretch">
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                            <GradientStop Color="{DynamicResource SctOcrShimmerClearColor}" Offset="0" />
+                                            <GradientStop Color="{DynamicResource SctOcrShimmerColor}" Offset="0.5" />
+                                            <GradientStop Color="{DynamicResource SctOcrShimmerClearColor}" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                    <Rectangle.RenderTransform>
+                                        <TranslateTransform X="-80" />
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Border>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- 步骤芯片：待做 / 进行中（紫） / 完成（绿） -->
+        <Style Selector="Border.rfStep">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="9,2.5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.rfStep TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+        <Style Selector="Border.rfStep.doing">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+        </Style>
+        <Style Selector="Border.rfStep.doing TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style Selector="Border.rfStep.done">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctOcrOkBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctOcrOkSoftBrush}" />
+        </Style>
+        <Style Selector="Border.rfStep.done TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SctOcrOkBrush}" />
+        </Style>
+        <!-- 步骤芯片圆点：待做灰 / 进行紫 · 闪烁 / 完成绿 -->
+        <Style Selector="Ellipse.rfStepDot">
+            <Setter Property="Fill" Value="{DynamicResource SctSoftBorderBrush}" />
+        </Style>
+        <Style Selector="Border.rfStep.doing Ellipse.rfStepDot">
+            <Setter Property="Fill" Value="{DynamicResource SctAccentBrush}" />
+            <Style.Animations>
+                <Animation Duration="0:0:0.9" IterationCount="INFINITE" Easing="CubicEaseInOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0.3" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="Border.rfStep.done Ellipse.rfStepDot">
+            <Setter Property="Fill" Value="{DynamicResource SctOcrOkBrush}" />
+        </Style>
+        <!-- 进度条流光：指示条内白色高光带循环平移 -->
+        <Style Selector="ProgressBar.rfProg Rectangle">
+            <Style.Animations>
+                <Animation Duration="0:0:1.4" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="TranslateTransform.X" Value="-80" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="TranslateTransform.X" Value="260" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <!-- 状态条操作小胶囊按钮（rfStateBar 右侧动作） -->
+        <Style Selector="Button.rfChip">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="11,0" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.rfChip:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+        </Style>
+
+        <!-- 排版视图统一状态条：状态点 + 主状态词 + 说明 + 右侧操作（初态查看/未排版/完成/失败 四态共用） -->
+        <Style Selector="Border.rfStateBar">
+            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="12,7" />
+        </Style>
+        <Style Selector="Border.rfStateBar Ellipse.rfStateDot">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.rfStateBar TextBlock.rfStateTitle">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.rfStateBar TextBlock.rfStateDesc">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!-- ══════ 选中文本浮动工具栏与生长菜单 ══════
+             浮条外观（Border.selectionFloatBar ＋内板 selectionFloatBarPlate）已上提到
+             Themes/Controls.axaml 全局，逐值抄 §7.5 截图工具栏，与贴图侧划词工具栏共用同一份配方；
+             条内按钮与图标直接用全局 Button.toolIcon／Button.tool／Path.icon，本窗不再另立浮条专属类。 -->
+        <Style Selector="Border.ocrGrowMenu">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <!-- 清除／校对下拉：单行操作，说明留在提示里，不重复标题与徽标。 -->
+        <Style Selector="Border.ocrGrowItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.ocrGrowItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+        </Style>
+        <Style Selector="TextBlock.ocrGrowText">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- 本窗的划词操作条在覆盖范围内；原布局和外内两层度量保持。 -->
+        <Style Selector="Border.selectionFloatBar">
+            <Setter Property="Background" Value="{DynamicResource SctBorderBrush}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
+        </Style>
+        <Style Selector="Border.selectionFloatBarPlate">
+            <Setter Property="Background" Value="{DynamicResource SctMenuBackgroundBrush}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusSegmentInner}" />
+        </Style>
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusSmall}" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 窗口主网格 -->
+    <Grid RowDefinitions="36,46,*,30">
+
+        <!-- ══════ 1. 顶栏 Header (36px) ══════ -->
+        <Border Grid.Row="0" Height="36" Background="{DynamicResource SctTitleBarBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,0,0,1"
+                Padding="14,0,0,0" PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                <!-- Logo -->
+                <Image x:Name="ImgAppLogo" Grid.Column="0" Width="18" Height="18"
+                       Source="/Assets/Black.ico" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                <!-- 标题 -->
+                <TextBlock Grid.Column="1" Text="OCR 识别结果" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+
+                <!-- Meta 引擎/耗时徽章 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <ctrl:ContinuousBorder Classes="badge">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="引擎" FontSize="11" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="PP-OCRv6" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ctrl:ContinuousBorder>
+                    <ctrl:ContinuousBorder Classes="badge">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="耗时" FontSize="11" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtMetaTime" Text="0.00s" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ctrl:ContinuousBorder>
+                </StackPanel>
+
+                <!-- 关闭按钮 (44x36 贴死右上角) -->
+                <Button Grid.Column="4" Classes="titleCloseBtn" ToolTip.Tip="关闭" Click="OnCloseClick">
+                    <Path Classes="sctIcon" Data="{x:Static local:OcrIconGeometry.Close}" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ══════ 2. 工具栏 Toolbar (46px) ══════ -->
+        <Border Grid.Row="1" Height="46" Background="{DynamicResource SctBackgroundBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,0,0,1"
+                Padding="16,0">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                <!-- 输出组（左）：复制 + 重新识别 + 导出 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="BtnCopy" Classes="primary" Content="复制" Click="OnCopyAllClick" />
+                    <Button x:Name="BtnReOcr" Classes="secondary" Content="重新识别" Click="OnReOcrClick" ToolTip.Tip="基于原图重新进行文字识别" />
+                    <Button x:Name="BtnExport" Classes="secondary" Content="导出 ▾">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuItem Header="纯文本 TXT" Click="OnExportTxtClick">
+                                    <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FileDoc}" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Markdown" Click="OnExportMdClick">
+                                    <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FileDoc}" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Word 文档" Click="OnExportDocxClick">
+                                    <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FileDoc}" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="带原图 PDF" Click="OnExportPdfClick">
+                                    <MenuItem.Icon><Path Classes="menuIcon" Data="{x:Static local:OcrIconGeometry.FileDoc}" /></MenuItem.Icon>
+                                </MenuItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+
+                <!-- 模式组（中）：联动高亮 + 文本编辑（两个独立开关；仅分行视图可用，
+                     合并/智能排版下禁用并降透明度作互斥反馈） -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Rectangle Width="1" Height="20" Fill="{DynamicResource SctSoftBorderBrush}" VerticalAlignment="Center" Margin="14,0,6,0" />
+
+                    <ToggleButton x:Name="TglLinkage" Classes="selectBtn" Content="联动高亮" IsChecked="True"
+                                  IsCheckedChanged="OnLinkageSwitchChanged"
+                                  ToolTip.Tip="原图-文本双向联动高亮（仅分行视图可用）" />
+
+                    <ToggleButton x:Name="TglEdit" Classes="selectBtn" Content="文本编辑"
+                                  IsCheckedChanged="OnEditSwitchChanged"
+                                  ToolTip.Tip="全局文本编辑模式（仅分行视图可用）" />
+                </StackPanel>
+
+                <!-- 视图组（右）：对照开关 + 分行/合并分段选择器 + 智能排版独立按钮 -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <!-- 初始/修改对照开关（图标 + 文字胶囊） -->
+                    <ToggleButton x:Name="BtnInitMod" Classes="cmpBtn workspaceToggle" IsEnabled="False"
+                                  IsCheckedChanged="OnInitModToggleChanged"
+                                  ToolTip.Tip="对照查看：初始识别 ⇄ 修改后结果（初始态为只读）">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Path Classes="sctIcon" Data="{x:Static local:OcrIconGeometry.SwapHorizontal}" />
+                            <TextBlock Classes="cmpBtnText" Text="对照查看" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <!-- 分行 / 合并 互斥分段选择器（二段互斥状态，无硬分割线） -->
+                    <ctrl:ContinuousBorder Classes="segmentedGroup">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RadViewLines" GroupName="GrpOcrViewMode" Classes="segmented" Content="分行" IsChecked="True" IsCheckedChanged="OnViewModeChanged" />
+                            <RadioButton x:Name="RadViewMerged" GroupName="GrpOcrViewMode" Classes="segmented" Content="合并" IsCheckedChanged="OnViewModeChanged" />
+                        </StackPanel>
+                    </ctrl:ContinuousBorder>
+
+                    <!-- 智能排版独立选择型按钮 -->
+                    <ToggleButton x:Name="BtnReflowView" Classes="selectBtn" Content="智能排版"
+                                  IsCheckedChanged="OnReflowViewToggleChanged"
+                                  ToolTip.Tip="AI 结构化排版：标题/列表/代码/引用" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══════ 3. 主体分栏 Body ══════ -->
+        <Grid Grid.Row="2" x:Name="BodyGrid" ColumnDefinitions="4.7*,1,5.3*">
+
+            <!-- ── 左栏：原图面板 ── -->
+            <Grid x:Name="ImgPane" Grid.Column="0" RowDefinitions="36,*">
+                <!-- 栏头 -->
+                <Border Grid.Row="0" Classes="ocrPaneHead">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="原图预览" FontSize="12.5" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 原图滚动区域 -->
+                <Border Grid.Row="1" Background="{DynamicResource SctBackgroundBrush}" ClipToBounds="True"
+                        x:Name="CanvasHost"
+                        PointerWheelChanged="OnCanvasWheel"
+                        DoubleTapped="OnCanvasDoubleTapped"
+                        PointerPressed="OnCanvasPointerPressed"
+                        PointerMoved="OnCanvasPointerMoved"
+                        PointerReleased="OnCanvasPointerReleased"
+                        PointerCaptureLost="OnCanvasPointerCaptureLost"
+                        SizeChanged="OnCanvasSizeChanged">
+                    <Grid>
+                        <ScrollViewer x:Name="ScrollImg"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="20">
+                            <Panel x:Name="ImgContainer" HorizontalAlignment="Center" VerticalAlignment="Top">
+                                <Image x:Name="ImgPreview" Stretch="Fill"
+                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                <ctrl:OcrHighlightOverlay x:Name="HighlightOverlay"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalAlignment="Stretch" />
+                            </Panel>
+                        </ScrollViewer>
+
+                        <!-- 无图占位 -->
+                        <StackPanel x:Name="PanelNoImage" IsVisible="False"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                            <Path Classes="sctIcon" Width="36" Height="36" Opacity="0.4"
+                                  Data="{x:Static local:OcrIconGeometry.Image}" HorizontalAlignment="Center" />
+                            <TextBlock Text="截图预览" FontSize="12.5" Foreground="{DynamicResource SctTextMutedBrush}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ── 两栏分割线 ── -->
+            <Rectangle x:Name="BodySplitter" Grid.Column="1" Width="1" Fill="{DynamicResource SctSoftBorderBrush}" />
+
+            <!-- ── 右栏：文本面板 ── -->
+            <Grid x:Name="TxtPane" Grid.Column="2" RowDefinitions="36,*">
+                <!-- 栏头 -->
+                <Border Grid.Row="0" Classes="ocrPaneHead">
+                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="0" Text="识别文本" FontSize="12.5" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- 文本内容区 -->
+                <Grid x:Name="TxtContentHost" Grid.Row="1" SizeChanged="OnTxtContentHostSizeChanged">
+                    <!-- 分行视图 -->
+                    <ScrollViewer x:Name="ScrollTxt"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Background="{DynamicResource SctBackgroundBrush}"
+                                  PointerPressed="OnScrollTxtPointerPressed">
+                        <ItemsControl x:Name="ItemsTextLines" Margin="12,10,12,14">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="local:OcrLineItem">
+                                    <Grid Margin="0,0,0,3">
+                                        <!-- 顶部拖拽插入指示线 -->
+                                        <Border Height="2" Background="{DynamicResource SctAccentBrush}"
+                                                CornerRadius="1" VerticalAlignment="Top" Margin="2,-2,2,0"
+                                                IsVisible="{Binding IsDropTop}" />
+
+                                        <!-- 主行卡片 -->
+                                        <ctrl:ContinuousBorder x:Name="LineCard" Classes="lineCard"
+                                                Classes.selected="{Binding IsSelected}"
+                                                Classes.hovered="{Binding IsHovered}"
+                                                Classes.edited="{Binding IsEdited}"
+                                                Classes.dropMerge="{Binding IsDropMerge}"
+                                                Classes.dragged="{Binding IsDragged}"
+                                                Cursor="{Binding CardCursor}"
+                                                Opacity="{Binding CardOpacity}"
+                                                DoubleTapped="OnLineCardDoubleTapped"
+                                                PointerPressed="OnLineCardPointerPressed"
+                                                PointerMoved="OnLineCardPointerMoved"
+                                                PointerReleased="OnLineCardPointerReleased"
+                                                PointerCaptureLost="OnLineCardPointerCaptureLost"
+                                                PointerEntered="OnLineCardPointerEntered"
+                                                PointerExited="OnLineCardPointerExited">
+                                            <Control.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="复制本行" Click="OnCtxCopyLineClick" />
+                                                    <MenuItem Header="复制全部文本" Click="OnCtxCopyAllClick" />
+                                                    <Separator />
+                                                    <MenuItem Header="编辑本行" InputGesture="F2" Click="OnCtxEditLineClick" />
+                                                    <MenuItem Header="删除行" Classes="danger" InputGesture="Delete" Click="OnCtxDeleteLineClick" />
+                                                </ContextMenu>
+                                            </Control.ContextMenu>
+                                            <Grid ColumnDefinitions="22,*,Auto" VerticalAlignment="Top">
+                                                <!-- 序号徽章 -->
+                                                <ctrl:ContinuousBorder Grid.Column="0" Classes="lineBadge">
+                                                    <TextBlock Classes="lineBadgeText" Text="{Binding IndexNumber}" />
+                                                </ctrl:ContinuousBorder>
+
+                                                <!-- 展示模式 -->
+                                                <TextBlock Grid.Column="1" Text="{Binding CurrentText}"
+                                                           IsVisible="{Binding IsDisplayMode}"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource SctTextPrimaryBrush}"
+                                                           FontSize="13.5" LineHeight="22"
+                                                           Margin="8,1,0,1" VerticalAlignment="Top" />
+
+                                                <!-- 编辑模式 -->
+                                                <TextBox Grid.Column="1" x:Name="EditBox"
+                                                         Classes="ocrEditBox"
+                                                         Text="{Binding CurrentText, Mode=TwoWay}"
+                                                         IsVisible="{Binding IsEditMode}"
+                                                         TextWrapping="Wrap" AcceptsReturn="False"
+                                                         Margin="8,1,0,1" VerticalAlignment="Top"
+                                                         TextChanged="OnLineTextBoxTextChanged"
+                                                         GotFocus="OnLineTextBoxGotFocus"
+                                                         LostFocus="OnLineTextBoxLostFocus"
+                                                         KeyDown="OnLineTextBoxKeyDown" />
+
+                                                <!-- 状态指示徽标 -->
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="8,2,0,0">
+                                                    <ctrl:ContinuousBorder Classes="badge" IsVisible="{Binding IsDropMerge}">
+                                                        <TextBlock Text="松开合并" FontSize="11" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                                                    </ctrl:ContinuousBorder>
+                                                    <ctrl:ContinuousBorder Classes="badge" IsVisible="{Binding IsEdited}" Background="{DynamicResource SctOcrEditSoftBrush}">
+                                                        <TextBlock Text="已改" FontSize="10" Foreground="{DynamicResource SctOcrEditBrush}" VerticalAlignment="Center" />
+                                                    </ctrl:ContinuousBorder>
+                                                </StackPanel>
+                                            </Grid>
+                                        </ctrl:ContinuousBorder>
+
+                                        <!-- 底部拖拽插入指示线 -->
+                                        <Border Height="2" Background="{DynamicResource SctAccentBrush}"
+                                                CornerRadius="1" VerticalAlignment="Bottom" Margin="2,0,2,-2"
+                                                IsVisible="{Binding IsDropBottom}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- 合并视图：整段自由编辑（页面底 + 纸张卡编辑框两级层次） -->
+                    <Border x:Name="PanelMergedEditor" IsVisible="False" Background="{DynamicResource SctBackgroundBrush}" Padding="16,10,16,14">
+                        <TextBox x:Name="TxtAllLines" Classes="ocrMergedBox"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 LostFocus="OnMergedBoxLostFocus"
+                                 KeyDown="OnMergedBoxKeyDown">
+                            <TextBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="全选" InputGesture="Ctrl+A" Click="OnSelectAllTextClick" />
+                                    <Separator />
+                                    <MenuItem Header="复制" InputGesture="Ctrl+C" Click="OnTtCopyClick" />
+                                    <MenuItem Header="粘贴" InputGesture="Ctrl+V" Click="OnTtPasteClick" />
+                                    <Separator />
+                                    <MenuItem x:Name="MnuCtxClear" Header="清除" />
+                                    <MenuItem x:Name="MnuCtxProof" Header="校对" />
+                                </ContextMenu>
+                            </TextBox.ContextMenu>
+                        </TextBox>
+                    </Border>
+
+                    <!-- 智能排版视图 -->
+                    <DockPanel x:Name="PanelReflow" IsVisible="False" Background="{DynamicResource SctBackgroundBrush}">
+                        <!-- 底部工具栏 -->
+                        <Border Classes="rfToolbar" DockPanel.Dock="Bottom">
+                            <DockPanel LastChildFill="True">
+                                <Button x:Name="BtnStartReflow" DockPanel.Dock="Right" Classes="primary" Click="OnStartReflowClick"
+                                        ToolTip.Tip="AI 治理断句 / 空格 / 符号 / 段落结构，零改写保留原文">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <Path Classes="sctIcon" Fill="{DynamicResource SctTitleBarCloseTextBrush}" Data="{x:Static local:OcrIconGeometry.Play}" />
+                                        <TextBlock x:Name="TxtStartReflow" Text="开始排版" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource SctTitleBarCloseTextBrush}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                                    <!-- 连通灯 -->
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Cursor="Hand"
+                                                PointerPressed="OnConnLampClick"
+                                                ToolTip.Tip="实时检测大模型连通性 · 点击重新检测">
+                                        <Ellipse x:Name="ConnLamp" Width="8" Height="8" Classes="lampChecking" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="TxtConnState" Text="检测中…" FontSize="11.5" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource SctTextPrimaryBrush}" />
+                                            <TextBlock x:Name="TxtConnSub" Text="AI 智能排版服务" FontSize="9.5"
+                                                       Foreground="{DynamicResource SctTextMutedBrush}" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Rectangle Width="1" Height="20" Fill="{DynamicResource SctSoftBorderBrush}" />
+
+                                    <!-- 润色药丸 -->
+                                    <Border x:Name="LampPolish" Classes="rfPill" VerticalAlignment="Center"
+                                            PointerPressed="OnPolishLampClick"
+                                            ToolTip.Tip="润色级别：轻度 仅修错字 · 中度 错字+补全 · 深度 全面治理（切换后重新排版生效）">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Ellipse />
+                                            <TextBlock x:Name="TxtPolishLabel" Text="润色" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Markdown 药丸 -->
+                                    <Border x:Name="LampMd" Classes="rfPill" VerticalAlignment="Center"
+                                            PointerPressed="OnMdLampClick"
+                                            ToolTip.Tip="开启后完成态显示并复制 Markdown 源码（# / - / ``` 语法）">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Ellipse />
+                                            <TextBlock Text="Markdown排版" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <Panel x:Name="ReflowStateHost" DockPanel.Dock="Bottom" />
+
+                        <!-- 智能排版专用的只读文本框（套用 ocrMergedBox 样式，与合并模式 100% 相同配置与交互） -->
+                        <Border Background="{DynamicResource SctBackgroundBrush}" Padding="16,10,16,14">
+                            <Grid>
+                                <TextBox x:Name="TxtReflowBox" Classes="ocrMergedBox"
+                                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap">
+                                    <TextBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="全选" InputGesture="Ctrl+A" Click="OnRfSelectAllClick" />
+                                            <Separator />
+                                            <MenuItem Header="复制" InputGesture="Ctrl+C" Click="OnRfCopyClick" />
+                                        </ContextMenu>
+                                    </TextBox.ContextMenu>
+                                </TextBox>
+                                <Panel x:Name="ReflowRichHost" IsVisible="False" />
+                            </Grid>
+                        </Border>
+                    </DockPanel>
+
+                    <!-- 选中文本浮动工具栏：外环 ⊃ 内板逐值抄 §7.5 截图工具栏（全局
+                         selectionFloatBar／selectionFloatBarPlate），格内按钮走全局 toolIcon／tool，
+                         图标走全局 Path.icon 描边族——与贴图那条划词浮条同一份配方。 -->
+                    <ctrl:ContinuousBorder x:Name="ToolbarTextTools" Classes="selectionFloatBar" CornerRadius="{DynamicResource SctRadiusToolbar}" Opacity="0" IsHitTestVisible="False"
+                            HorizontalAlignment="Left" VerticalAlignment="Top" ZIndex="9">
+                <ctrl:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+                </ctrl:ContinuousBorder.Styles>
+                        <ctrl:ContinuousBorder Classes="selectionFloatBarPlate" CornerRadius="{DynamicResource SctRadiusToolbarInner}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Classes="toolIcon" Focusable="False" Click="OnTtCutClick" ToolTip.Tip="剪切 (Ctrl+X)">
+                                    <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.CutIcon}" />
+                                </Button>
+                                <Button Classes="toolIcon" Focusable="False" Click="OnTtCopyClick" ToolTip.Tip="复制 (Ctrl+C)">
+                                    <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.CopyOutline}" />
+                                </Button>
+                                <Button Classes="toolIcon" Focusable="False" Click="OnTtPasteClick" ToolTip.Tip="粘贴 (Ctrl+V)">
+                                    <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.PasteIcon}" />
+                                </Button>
+                                <Border Width="1" Height="16" Margin="4,0" VerticalAlignment="Center"
+                                        Background="{DynamicResource SctSeparatorBrush}" />
+                                <Button x:Name="BtnTtClear" Classes="tool" Focusable="False" Click="OnTtClearMenuClick" ToolTip.Tip="清除">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <TextBlock Text="清除" />
+                                        <Panel x:Name="TxtGrowCaretClear" Width="8" Height="8" VerticalAlignment="Center">
+                                            <Path Classes="icon" Width="8" Height="8" Stretch="None" Data="{x:Static local:OcrIconGeometry.CaretDown}" />
+                                        </Panel>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="BtnTtProof" Classes="tool" Focusable="False" Click="OnTtProofMenuClick" ToolTip.Tip="校对">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <TextBlock Text="校对" />
+                                        <Panel x:Name="TxtGrowCaretProof" Width="8" Height="8" VerticalAlignment="Center">
+                                            <Path Classes="icon" Width="8" Height="8" Stretch="None" Data="{x:Static local:OcrIconGeometry.CaretDown}" />
+                                        </Panel>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ctrl:ContinuousBorder>
+                    </ctrl:ContinuousBorder>
+
+                    <!-- 生长式菜单 -->
+                    <Border x:Name="GrowMenuHost" Classes="ocrGrowMenu" Opacity="0" IsHitTestVisible="False"
+                            HorizontalAlignment="Left" VerticalAlignment="Top" ZIndex="10">
+                        <Border.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="0.9" ScaleY="0.9" />
+                                <TranslateTransform Y="-6" />
+                            </TransformGroup>
+                        </Border.RenderTransform>
+                        <Panel>
+                            <ctrl:ContinuousBorder Margin="-1" CornerRadius="{DynamicResource SctRadiusControl}"
+                                Background="{DynamicResource SctMenuBackgroundBrush}"
+                                BorderBrush="{DynamicResource SctMenuBorderBrush}" BorderThickness="1"
+                                BoxShadow="{DynamicResource SctOcrGrowShadow}" IsHitTestVisible="False" />
+                            <ScrollViewer x:Name="GrowMenuScroll"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="GrowMenuBody" Margin="6" Spacing="2" />
+                            </ScrollViewer>
+                            <Border x:Name="GrowMenuStem" Width="10" Height="10" Background="{DynamicResource SctMenuBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SctMenuBorderBrush}"
+                                    RenderTransform="rotate(45deg)" RenderTransformOrigin="50%,50%"
+                                    HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        </Panel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- ══════ 4. 底部状态栏 StatusBar (30px) ══════ -->
+        <Border Grid.Row="3" Height="30" Background="{DynamicResource SctTitleBarBrush}"
+                BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0"
+                Padding="16,0">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                <!-- 总行数 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" Margin="0,0,18,0" VerticalAlignment="Center">
+                    <TextBlock Text="共" FontSize="12" Foreground="{DynamicResource SctTextMutedBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TxtTotalLines" Text="0" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextSecondaryBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="行" FontSize="12" Foreground="{DynamicResource SctTextMutedBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- 已选择区域 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="0,0,18,0" VerticalAlignment="Center">
+                    <TextBlock Text="已选择" FontSize="12" Foreground="{DynamicResource SctTextMutedBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TxtSelectedCount" Text="0" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextSecondaryBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="区域" FontSize="12" Foreground="{DynamicResource SctTextMutedBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- 已修改行数 -->
+                <StackPanel Grid.Column="2" x:Name="PanelEditedCount" Orientation="Horizontal" Spacing="4" Margin="0,0,18,0"
+                            VerticalAlignment="Center" IsVisible="False">
+                    <TextBlock Text="已修改" FontSize="12" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TxtEditedLines" Text="0" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="行" FontSize="12" Foreground="{DynamicResource SctBadgeTextBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- 状态指示（识别完成） -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Ellipse Width="6" Height="6" Fill="{DynamicResource SctOcrOkBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="识别完成" FontSize="12" Foreground="{DynamicResource SctTextSecondaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══════ 5. 悬浮 Toast 提示 ══════ -->
+        <ctrl:ContinuousBorder x:Name="ToastPanel" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                Margin="0,0,0,30" Background="{DynamicResource SctMenuBackgroundBrush}"
+                BorderBrush="{DynamicResource SctBorderBrush}" BorderThickness="1"
+                CornerRadius="{DynamicResource SctRadiusControl}" Padding="16,8"
+                BoxShadow="{DynamicResource SctOcrToastShadow}"
+                IsHitTestVisible="False" Opacity="0" IsVisible="False">
+
+            <TextBlock x:Name="TxtToast" Text="已复制全部文本" FontSize="13"
+                       Foreground="{DynamicResource SctTextPrimaryBrush}" VerticalAlignment="Center" />
+        </ctrl:ContinuousBorder>
+    </Grid>
+</Window>

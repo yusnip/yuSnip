@@ -1,0 +1,160 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d"
+        x:Class="ScreenCaptureTool.Windows.RecordControlBarWindow"
+        Title="yuSnip 录屏控制条"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        WindowStartupLocation="Manual"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Microsoft YaHei UI">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/ToolbarCorners.axaml" />
+    </Window.Styles>
+    <!--
+      皮归零（2026-09-21 第9份 §06）：本文件仅按窗启用工具栏几何皮，不写字面色值、不钉整窗字号。
+      条上每一枚控件都挂全局类（Button.toolIcon / .primary、Button.tool / .danger），
+      字号由控件类给（§2 三层架构：窗口不钉整窗字号，否则日后任何"随主题字号"的全局类都被压住）。
+    -->
+    <!-- 光晕余量由根 Grid 的行列持有（§3.6 第二铁律）：浮层档 0 6 20 的包络＝左/右 20、下 26、上 14。
+         这四条值同时是摆位算式的输入（见 .cs 的 ShadowInset，单一来源＝这里）。 -->
+    <Grid x:Name="Root" RowDefinitions="14,Auto,Auto,26" ColumnDefinitions="20,Auto,20"
+          PointerPressed="OnBarPointerPressed">
+        <controls:ContinuousBorder x:Name="BarPlate" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left"
+                Background="{DynamicResource SctControlBarOuterBrush}"
+                CornerRadius="{DynamicResource SctRadiusToolbar}" Padding="1"
+                BoxShadow="{DynamicResource SctShadowOverlay}">
+            <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}" CornerRadius="{DynamicResource SctRadiusToolbarInner}" Padding="8,4" MinHeight="42">
+                <!-- ⚠ VerticalAlignment 必须显式给 Center：本容器的净高由 MinHeight=42 撑出来，而 Border 的子元素
+                     默认 Stretch ⇒ 28 高的那一行顶在上沿、空出下面 14 DIP，这就是"整条按钮垂直不居中"的根因
+                     （内边距上下各 4 是对称的，没问题）。2026-09-21 第（七）轮修。
+                     ⚠ 栏内每一格都各自 VerticalAlignment=Center（那两枚钮由全局类给，发丝线与时间组在下方逐条写）：
+                     漏写一格，那一格就顶到上沿，整条轴线立刻错位——用户原话"icon 跟按钮一定要跟工具栏水平对齐"。 -->
+                <StackPanel x:Name="NormalRow" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- ① 录制时间（位点 ⑬：状态色（红／琥珀）只给色点、描边、图标；这一行是文字，走主文字色）
+                         ⚠ 组内 8、四头发丝线左右各 8（2026-09-22 第二批第 3 项）：原先 6 与 4 挤成一片，
+                         用户实报"这里感觉有点拥挤"。四栏一起放宽、不留只调读数近旁那一条的半吊子。
+                         🔴 这一组只有"红点＋读数"两枚，**状态文字不再上条**：原先这里挂一枚「已暂停」，
+                         一显一隐就改变整条宽度 ⇒ 点暂停时条子自己闪一下（用户实报）。暂停与否现在只由
+                         右上 REC 徽标那枚「暂停中」承载（读数旁不再有字，条宽恒定，Repin 量到同值即不动）。 -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Ellipse x:Name="BarDot" Width="6" Height="6" Fill="{DynamicResource SctRecRedBrush}"
+                                 VerticalAlignment="Center" />
+                        <!-- 时长读数去 Consolas（§4.1：等宽只留给键帽/日志/代码盒）。
+                             MinWidth 由 .cs 现场量"00:00"得到，只防条宽抖动，不手算。 -->
+                        <TextBlock x:Name="TxtBarTime" Text="00:00" FontSize="12" MinWidth="0"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource SctTextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="8,0"
+                            VerticalAlignment="Center" />
+
+                    <!-- ② 键鼠操作：与「预录制参数条」第④格**同引一套常量**（KeyMouseFrame / KeyMouseKeys /
+                         KeyMouseCursor，2026-09-24 重画成 16×16 方件）。此前这两处一枚两笔、一枚三笔，
+                         同一功能两种画法。初值走 AppSettings 的 RecVisKeycap / RecVisRipple，
+                         勾选即改本段录制的钩子开关（不写回设置，与参数条原有口径一致）。
+                         ⚠ 三枚 Path 的 Stretch="None" 与参数条那三行是一对，改一处必须改两处（居中烘在坐标里）；
+                         元素盒两边同走全局 Path.icon 的 16 档，尺寸不在本处定义。 -->
+                    <Grid VerticalAlignment="Center">
+                        <Button x:Name="BtnFx" Classes="toolIcon" ToolTip.Tip="键鼠操作" Click="OnFxClick">
+                            <Panel>
+                                <Path Classes="icon" Stretch="None" Data="{x:Static local:OcrIconGeometry.KeyMouseFrame}" />
+                                <Path Classes="icon iconFill" Stretch="None" Data="{x:Static local:OcrIconGeometry.KeyMouseKeys}" />
+                                <Path Classes="icon iconFill" Stretch="None" Data="{x:Static local:OcrIconGeometry.KeyMouseCursor}" />
+                            </Panel>
+                        </Button>
+                        <!-- 本窗不是全屏遮罩：轻点关闭透传出去的那一下落在桌面上，不必像参数条那样改走窗口根 Tunnel
+                             钩子（那条路是为了不透传给自家画布，本窗没有画布）。
+                             ⚠ 本窗是 WS_EX_NOACTIVATE 置顶小窗，Popup 的开合与轻点关闭需实测（稿定版时列为残留）。 -->
+                        <Popup x:Name="FxPopup" PlacementTarget="{Binding #BtnFx}"
+                               Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="True" VerticalOffset="4">
+                            <controls:ContinuousBorder Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                                <StackPanel Width="104" Spacing="4">
+                                    <CheckBox x:Name="ChkKeycap" Classes="toolCheck" Content="记录键盘操作"
+                                              Checked="OnFxCheckChanged" Unchecked="OnFxCheckChanged" />
+                                    <CheckBox x:Name="ChkRipple" Classes="toolCheck" Content="记录鼠标操作"
+                                              Checked="OnFxCheckChanged" Unchecked="OnFxCheckChanged" />
+                                </StackPanel>
+                            </controls:ContinuousBorder>
+                        </Popup>
+                    </Grid>
+
+                    <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="8,0"
+                            VerticalAlignment="Center" />
+
+                    <!-- ③ 标注工具：常用工具＋独立的清除全部与撤销按钮
+                         （画笔→箭头→文本→形状→序号，聚光灯是录屏独有的一档排在末）。再点已选中的那一枚＝退出画板，
+                         这条开关语义在宿主 RecordOverlayWindow 那一份里。 -->
+                    <controls:AnnotationToolButton ToolKey="brush" ToolTip.Tip="画笔" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton ToolKey="arrow" ToolTip.Tip="箭头" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton ToolKey="text" ToolTip.Tip="文本（双击已有文字可改字）" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton ToolKey="rectangle" ToolTip.Tip="矩形 / 椭圆（Shift 锁 1:1）" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton ToolKey="counter" ToolTip.Tip="序号" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton ToolKey="spotlight" ToolTip.Tip="聚光灯" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton ToolKey="eraser" ToolTip.Tip="橡皮擦：局部擦除标注" Click="OnAnnotationToolClick" />
+                    <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="8,0"
+                            VerticalAlignment="Center" />
+                    <controls:AnnotationToolButton ToolKey="clearall" ToolTip.Tip="清除全部标注" Click="OnAnnotationToolClick" />
+                    <controls:AnnotationToolButton x:Name="BtnAnnoUndo" ToolKey="undo"
+                                                   ToolTip.Tip="撤销上一笔" IsEnabled="False" Click="OnAnnotationUndoClick" />
+
+                    <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="8,0"
+                            VerticalAlignment="Center" />
+
+                    <!-- ④ 暂停／继续：互斥两枚，与「录屏」组里那条"暂停 / 继续录制"同义。键名不写在这里：
+                         四枚的 tooltip 由 ApplyShortcutHints() 从 shortcuts.ini 的 record 组现取（红线与截图工具栏一致——
+                         写死会出现"tooltip 标着 F10、用户改成别的键后仍在教 F10"）。两枚的几何都引共享常量
+                         （本条那枚"重新录制"已经是 x:Static，这两枚此前却各内联一份，与预览窗播放键还是两套坐标）。
+                         上色不写局部值：Path.icon 已给 Stroke=SctIconBrush，实心那枚挂 iconFill 由同一条族给 Fill，
+                         写死只会盖住全局覆盖通路。播放三角是纯 Fill 件 ⇒ 盒子按 §6.9 取 17.8 与描边件同带。 -->
+                    <Button x:Name="BtnPause" Classes="toolIcon" ToolTip.Tip="暂停" Click="OnPauseClick">
+                        <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.Pause}" />
+                    </Button>
+                    <Button x:Name="BtnResume" Classes="toolIcon" IsVisible="False" ToolTip.Tip="继续" Click="OnPauseClick">
+                        <Path Classes="icon iconFill" Width="17.8" Height="17.8"
+                              Data="{x:Static local:OcrIconGeometry.Play}" />
+                    </Button>
+
+                    <!-- ⑤ 重新录制：本段已录全部作废（杀进程＋删临时段）→ 时长归零 → 退出画板 → 重跑开录倒计时。
+                         2026-09-22 换件：逆时针环（左上斜口）＋环端实心三角箭头＋圆心录制点，两件套同盒叠放
+                         （描边件 RestartStroke 自身墨区 16×16，填充件 RestartFill 挂零面积子图钉到同一盒）。
+                         旧件那枚直角折头实测读成"带缺口的 C"，且与通用"刷新"同形、认不出"录制"。 -->
+                    <Button x:Name="BtnRestart" Classes="toolIcon" ToolTip.Tip="重新录制（已录内容作废）" Click="OnRestartClick">
+                        <Panel>
+                            <Path Classes="icon" Data="{x:Static local:OcrIconGeometry.RestartStroke}" />
+                            <Path Classes="icon iconFill" Data="{x:Static local:OcrIconGeometry.RestartFill}" />
+                        </Panel>
+                    </Button>
+
+                    <!-- ⑥ 结束录制：中文文字钮、无 icon，与参数条「开始录制」同一条全局类（MinWidth 70 与横向
+                         内边距由 .tool.primary 给）。放弃出口已按用户要求整体删除——要留要弃都从这一枚走，
+                         落不落盘在录完后的预览贴图窗里决定。 -->
+                    <Button x:Name="BtnComplete" Classes="tool primary" ToolTip.Tip="结束录制并预览" Click="OnCompleteClick">
+                        <TextBlock Text="结束录制" />
+                    </Button>
+                </StackPanel>
+            </controls:ContinuousBorder>
+        </controls:ContinuousBorder>
+
+        <!-- ② 标注参数行（第10份案丙的第二行）。宿主供容器：共享 AnnotationToolbar 关掉自己的 §7.5 外环与
+             阴影余量（Embedded），只出参数条那一行；两栏之间 6 DIP 是 §7.5 的栏间距，光晕余量仍由本窗根 Grid
+             那圈行列持有。未选工具时整段收起，Auto 行随之塌成 0。 -->
+        <Grid x:Name="OptionsHost" Grid.Row="2" Grid.Column="1" RowDefinitions="6,Auto"
+              HorizontalAlignment="Left" IsVisible="False">
+            <controls:AnnotationToolbar x:Name="AnnoOptions" Grid.Row="1" Embedded="True" />
+            <!-- 缝合三角：声明在参数条之后才盖得住它的顶边（与贴图工具栏同一先后），尖朝上指向所选工具钮 -->
+            <Path x:Name="OptionsArrow" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Top"
+                  Margin="0,2,0,0" Width="14" Height="7" Data="M0,7 L7,0 L14,7 Z"
+                  Fill="{DynamicResource SctPanelBrush}" IsHitTestVisible="False" />
+        </Grid>
+    </Grid>
+</Window>

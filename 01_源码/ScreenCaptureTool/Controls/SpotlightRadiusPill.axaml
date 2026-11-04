@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:ScreenCaptureTool.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.SpotlightRadiusPill"
+             ClipToBounds="False">
+    <!--
+      聚光灯圆角浮条（2026-09-18）：选中矩形档聚光灯后浮在元素上方，按住数值左右拖动调圆角。
+      它是**选区参数条「圆角」那一组的同款交互**（同一套 PillValueFineController、同一条
+      「按下即浮起 → 5 档刻度 → 松手 300ms 收回」），只是量程与落点不同。
+
+      ⚠ 这一族的样式住在 Themes/PillStyles.axaml，由本控件与 CounterPill 各 StyleInclude 一份，
+        而不是挂到 App.Styles 全局——理由写在那份文件的头注里（窗口级样式会盖掉全局那一份）。
+    -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://yuSnip/Themes/PillStyles.axaml" />
+    </UserControl.Styles>
+
+    <!-- Panel 而不是 StackPanel：浮起层与浮条重叠摆放，且浮起层的刻度横向会越出黑条——
+         ClipToBounds 必须保持 False（UserControl / Panel / Canvas 的默认值即 False），
+         一旦被裁掉，浮起的当前值会只剩半个数字。
+
+         🔴 这里的 Width 是**给浮起层留的可绘制区**（2026-09-18 实机回归）：
+         Panel 的自然宽度＝子元素最大 DesiredSize，而 FineLayer 是 Canvas（DesiredSize 恒 0×0），
+         不写 Width 的话整块可绘制区只有黑条那么宽（约 75px），浮起层的刻度会被裁掉。
+         260 的来路：3 位数时整排刻度约 160，两侧各留 8 余量 ⇒ 约 176；260 留了约 1.5 倍余量
+         吸收字体与 DPI 差异。改这个值前按 `PillValueFineController.Layout()` 重算一遍。
+
+         ⚠ **"算得够宽"不保证看得见**——这是同日两轮返工的教训，别再照着上一轮的结论改：
+         第一轮以为"够宽就不裁"，第二轮又把"整排夹进可绘制区"补上，用户仍然看不见右边的刻度。
+         真正的原因是**对比度**：刻度是白系字（`#99FFFFFF` / `#5CFFFFFF`），压在黑条上永远可读，
+         落到条外就只能看背景脸色——白底截图或白卡片贴图上就是"白字压白底"，一个字都看不见
+         （用户截图实测：条内 32/33 清晰、条外两段纯白）。参数条从没暴露，只因为它本身够宽（320）。
+         正解在 `PillValueFineController` 的"底片"那段：**浮起时把黑条自己撑开**去装下整排刻度。
+         所以这块可绘制区只是"别把刻度裁掉"的兜底，不是可见性的保证。
+
+         黑条靠 HorizontalAlignment="Center" 居中，故**容器居中 ⇔ 黑条居中**，
+         两个宿主的定位算式（都按控件宽度居中）一行都不用改。 -->
+    <Panel x:Name="RootPanel" Width="260">
+        <!-- 描边 `#38FFFFFF`（22% 白）：条底色是 100% 不透明黑，在深色截图背景上原本与背景糊成一片；
+             一圈淡白细线是唯一能在**任意**背景上把条的轮廓"抠"出来的办法（同选区参数条）。
+             高度 30 / 内边距 8,3 / 圆角 8 与参数条逐值一致，两条并排时不会一高一矮。
+             ⚠ 宽度平时是 auto（由内容决定）、居中在可绘制区里。**只有微调态**才由控制器写显式 Width——
+             浮起时它要横向撑开去装下整排刻度（`PillValueFineController.Layout()` 里"底片"那段），
+             收回时先过渡回自然宽、再还原成 auto。除那一段外任何地方都不该写这个 Width。
+             （写显式 Width 不会推动它的中心：它居中于可绘制区，中心恒等于可绘制区中心——
+             这正是"以黑条中心为锚点撑开"不会自激的前提，见控制器的锚点注释。） -->
+        <controls:ContinuousBorder x:Name="PillHost"
+                HorizontalAlignment="Center"
+                Background="#FF000000"
+                BorderBrush="#38FFFFFF"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource SctRadiusToolButton}"
+                Height="30"
+                Padding="8,3">
+            <!-- ⚠ HorizontalAlignment="Center" 不是装饰：微调态下黑条会被控制器写显式 Width 撑宽
+                 （见 PillHost 注释），水平 StackPanel 默认 Stretch ⇒ 撑宽后内容会**贴到左缘**、
+                 数值跟着往左漂。居中则内容恒在条的中间，条的宽窄与内容位置解耦。 -->
+            <StackPanel x:Name="PillContent" Classes="pillContent"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Border x:Name="GroupRadius" Classes="pillGroup"
+                        ToolTip.Tip="按住数值左右拖动微调（滚轮 ±1）">
+                    <Grid>
+                        <!-- 悬浮底片是**独立一层**（与文字平级、先声明 ⇒ 在文字之下），
+                             淡入淡出只染它自己：既不违反"禁止对 Background 做 BrushTransition"，
+                             也不会带着文字一起半透明。内边距做在文字层上，底片才能铺满整组的命中区。 -->
+                        <Border Classes="pillChip" CornerRadius="4" IsHitTestVisible="False" />
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,0" VerticalAlignment="Center">
+                            <TextBlock Classes="pillLabel" Text="圆角" />
+                            <TextBlock x:Name="RadiusValue" Classes="pillValue" Text="0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </controls:ContinuousBorder>
+
+        <!-- 数值微调浮起层：必须声明在 PillHost **之后**（同一 Panel 内后声明者压前者）。
+             独立成兄弟节点而不是塞进 PillHost：24px 的当前值会溢出 30 高的条，
+             且它只跟随被按的那一个数值、不参与浮条的量宽。
+             五个刻度按 −2 / −1 / 当前 / +1 / +2 排开，整层以被按数值的中心对齐；越界档位直接不显示。
+             位置与动画全部由 PillValueFineController 驱动，这里只摆结构。 -->
+        <Canvas x:Name="FineLayer" IsVisible="False" IsHitTestVisible="False">
+            <TextBlock x:Name="FineM2" Classes="fineStep2" Text="" />
+            <TextBlock x:Name="FineM1" Classes="fineStep1" Text="" />
+            <TextBlock x:Name="FineCur" Classes="fineCurrent" Text="0" />
+            <TextBlock x:Name="FineP1" Classes="fineStep1" Text="" />
+            <TextBlock x:Name="FineP2" Classes="fineStep2" Text="" />
+        </Canvas>
+    </Panel>
+</UserControl>

@@ -1,0 +1,142 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+        xmlns:local="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d"
+        x:Class="ScreenCaptureTool.Windows.RecordOverlayWindow"
+        Title="yuSnip 录屏覆盖层"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Microsoft YaHei UI">
+
+    <!-- Background=Transparent 只为让选区内的点击能被本窗收到（Avalonia 不命中无背景的控件）：
+         Win32 那层决定"哪里可能进得来"，这里决定"进来后有没有人接"。
+         WS_EX_TRANSPARENT 由代码按画板开合切换（ApplyBoardClickThrough）：未选工具＝整窗直接放行，
+         选中工具才摘掉它、交逐坐标命中判定。透明合成始终由下面这项负责。 -->
+    <Canvas x:Name="Root" ClipToBounds="False" Background="Transparent">
+        <!-- ⓪⁻ 卡外暗化层（<b>预览态专用</b>）：录完之后把画面卡<b>之外</b>像截图那样压暗，一眼看清"就这一块是成品"。
+             几何与浓度全复用截图那层的共享件（见 Services/SelectionVisuals.cs），本处只声明容器——
+             洞的矩形由 .cs 的 BuildPreviewMask 现算（对准预览卡那张画面，卡一挪/一变形就重算）。
+             声明在<b>所有</b>子元素之前＝压在 Canvas 最底：万一有 HUD 元素没收回（预览态本该全收），
+             它也只会盖在暗纱上而不会被暗纱糊掉。
+             ⚠ 2026-09-22 第三批：这一层原先做成了"<b>录制中</b>压暗选区外"，是对用户那句
+             「把关闭的遮罩打开」的误读（原话已指出：遮罩该出现在录制结束后的预览状态，不是录制中），
+             现在 Setup 里不再建它，入口换成 EnterPreviewMask。
+             🔴 只能暗卡外：卡是钉在选区原位的，暗色一旦落进卡里就是"给视频镶了一圈灰边"；
+             录制中那更不用提——抓屏抓的就是选区那块屏，暗纱会永久烙进整段成品。
+             IsHitTestVisible=False ＋ 整窗 WS_EX_TRANSPARENT（预览态恒全穿透）：这一层纯粹是视觉，一像素输入都不吃。 -->
+        <Path x:Name="SelectionMask" Stretch="None" IsHitTestVisible="False" IsVisible="False" />
+
+        <!-- ⓪ 标注层：铺满整窗，图元坐标一律屏幕物理像素（与截图遮罩同一口径，见 ScreenOrigin/ScreenToDipScale）。
+             可见区由代码裁到选区矩形（R4）——画到选区外的那部分落在抓帧 crop 之外，留着就是"看得见录不到"。
+             输入不吃在这里：手势统一由窗口根分派，否则选区外那片透明区会凭空吃掉本该放行给底下应用的点击。 -->
+        <controls:AnnotationLayer x:Name="AnnotationLayer" IsHitTestVisible="False" />
+
+        <!-- ⑥ 文本标注宿主层（与截图遮罩、贴图同一份共享实现）：活 TextBox 可视树长在这一层上，
+             坐标与图元同一口径（画布 DIP＝窗口 DIP，铺满虚拟屏），可见区同样裁到选区（见 .cs 的 LayoutAnnotationLayer）。
+             层本身不吃命中（无背景），子节点在文本档可点；未进文本档时整窗已被 WS_EX_TRANSPARENT 放行。 -->
+        <Canvas x:Name="TextHost" ClipToBounds="False">
+            <Canvas.Styles><StyleInclude Source="/Themes/WorkspaceMenus.axaml" /></Canvas.Styles>
+        </Canvas>
+
+        <!-- ① 选区边框：2px，整条描在选区<b>外</b>侧（摆位算式见 .cs 的 ApplySelectionBorderLayout）。
+             红=录制中 / 紫=倒计时 / 琥珀=暂停。
+             ⚠ 一像素都不许压进选区内：抓屏抓的就是选区那块屏，压进去的颜色会永久烙进母带四边。 -->
+        <Border x:Name="SelectionBorder" Background="Transparent" BorderThickness="2"
+                BorderBrush="{DynamicResource SctRecRedBrush}" IsHitTestVisible="False" />
+
+        <!-- ② 光标特效层（点击波纹 + 键帽），全穿透，不吃任何输入 -->
+        <Canvas x:Name="EffectsLayer" IsHitTestVisible="False" />
+
+        <!-- ③ 倒计时（2026-09-29 设计稿第 14 份 · S2 定案）：仍留在选区正中，但底由"随主题的双浮层浅面板"
+             换成**钉黑档**。为什么钉黑：这一枚永远压在**任意应用内容**上（本窗整层透明，底下可能是白文档
+             也可能是黑 IDE），与下面 REC 徽标同一条判据（徽标 2026-09-22 就是为这条换的档）。
+             结构＝一枚黑圆盘（120）＋盘内底环（4px 半透明白）＋进度弧（4px 品牌紫）＋盘中 40 号数字。
+             去掉了 §7.5 外衬与 §3.6 投影——钉黑不靠光晕分界，也就不再需要投影余量那一档。
+             ⚠ 原先挂在盘**上方**那枚副行（「即将开始 Esc 取消」，同一族 darkPill）已按 2026-09-29 用户要求
+                **不再显示**——Esc 取消照旧生效（判定在本窗 OnKeyDown 的 `CountdownPill.IsVisible && Key.Escape`
+                分支，与那枚胶囊无关），只是不在画面上摆一句提示。副行撤掉后圆盘就是倒计时的全部呈现，
+                原先为它写的"上缘放不下就翻到盘下方"摆位判定一并删除。
+             ⚠ 数字 40 号是 docs/设计规范.md §4.2 登记的受控例外，颜色自本档起**不随主题**（SctDarkPillFgBrush）。
+             ⚠ CountdownArc 的 Width/Height 必须钉死 120：Path 不写尺寸时元素大小＝Data 的包围盒，
+                弧随倒计时变短时包围盒跟着缩（120° 弧只有 104×78），Center 对齐下弧心不再落在 (60,60)——
+                弧整体偏出底环，正是用户实报「动画对不上圆形」。钉死 120×120 后 Data 坐标 1:1 映射元素本地坐标，
+                弧心恒等于元素中心，与 104×104 的底环（几何半径同为 52）严格同心。
+             🔴 数字的入场动效走 Transitions（DoubleTransition），**绝不能用 Animation.RunAsync 驱动 Transform**
+                （AGENTS.md §7：TransformAnimator 把 control 强转 Visual ⇒ 必抛 InvalidCastException 且被静默吞掉）。 -->
+        <Border x:Name="CountdownPill" IsVisible="False" IsHitTestVisible="False"
+                Width="120" Height="120" Background="Transparent">
+            <Grid Width="120" Height="120">
+                <Ellipse Width="120" Height="120" Fill="{DynamicResource SctDarkPillBgBrush}"
+                         Stroke="{DynamicResource SctDarkPillBorderBrush}" StrokeThickness="1" />
+                <Ellipse Width="104" Height="104" Stroke="{DynamicResource SctDarkPillBorderBrush}" StrokeThickness="4"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <!-- 进度弧：圆心 (60,60)、半径 52，起点固定在正上方（-90°），顺时针扫 sweep 度。
+                     几何由 code-behind 每拍重算（UpdateCountdownVisual），不在此写死 Data。 -->
+                <Path x:Name="CountdownArc" Width="120" Height="120" Stroke="{DynamicResource SctAccentBrush}" StrokeThickness="4"
+                      StrokeLineCap="Round" StrokeDashArray="{x:Null}"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock x:Name="TxtCountdown" Text="3" FontSize="40" Foreground="{DynamicResource SctDarkPillFgBrush}"
+                           RenderTransformOrigin="50%,50%"
+                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- 缩放变换在 code-behind 里挂（.cs 的 _numScale）：Avalonia 的 x:Name 只为控件生成字段，
+                         ScaleTransform 这种 Animatable 子类拿不到 ⇒ 写在 XAML 里代码引用不到，只能代码侧建。
+                         透明度这一档留在 XAML：它是控件自己的属性，挂 Transitions 合法。 -->
+                    <TextBlock.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                        </Transitions>
+                    </TextBlock.Transitions>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- ④ REC 徽标（右上外挂）：只读视觉 HUD。2026-09-22 换皮＝全局钉黑胶囊档 `Border.darkPill`，
+             沿用钉黑 HUD 的内距 8,3／高 30／1px 半透明白边／无投影；普通状态面改连续 R12，截图参数条仍保持原样。
+             为什么不再随主题：这一格永远压在**任意应用内容**上，浅色档下它会是块浅灰压在白文档上。
+             连带去掉原先那圈 §7.5 外衬（r12/P1 + BoxShadow）——浅紫双浮层配方是给"贴在界面里"的条用的，
+             与钉黑档不同族；§3.6 的光晕余量也就没必要了（承载体是铺满虚拟屏的 Canvas，摆位算式不受影响）。
+             去 Consolas（§4.1：等宽只留给键帽/日志/代码盒）。⚠ 不再给 MinWidth 手算值：读数防抖由
+             .cs 的现场量宽负责，手算 66 是"猜一个够宽的值"，字体一换即失效。
+             「暂停中」也住在这里（不在控制条上——状态文字一上条就改变条宽，点暂停整条闪一下）。 -->
+        <controls:ContinuousBorder x:Name="BadgePanel" Classes="darkPill" CornerRadius="{DynamicResource SctRadiusControl}" IsVisible="False" IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Ellipse x:Name="BadgeDot" Width="7" Height="7" Fill="{DynamicResource SctRecRedBrush}"
+                         VerticalAlignment="Center" />
+                <TextBlock x:Name="TxtBadgeTime" Text="REC 00:00" Classes="darkPillValue" />
+                <!-- 暂停态：只在暂停时出现，与读数之间由 StackPanel 的 6 DIP 间隙自然分开（不加间隔号） -->
+                <TextBlock x:Name="TxtBadgePaused" Text="暂停中" Classes="darkPillValue" IsVisible="False" />
+                <!-- 降级提醒：挂全局 Path.icon（线宽 1.8／圆头端帽由那一族给），本处只留两处真差异——
+                     尺寸随这一行收到 13、颜色用录制状态色琥珀（琥珀在钉黑上照常读得出，不跟着反白）。
+                     原先自己写 1.6 的线宽，与全软件那一档图标差 0.2，同条并排看就是"这根细一点" -->
+                <Path x:Name="BadgeWarn" Classes="icon" Width="13" Height="13" IsVisible="False"
+                      VerticalAlignment="Center" Stroke="{DynamicResource SctRecAmberBrush}"
+                      Data="{x:Static local:OcrIconGeometry.WarnTriangle}" />
+            </StackPanel>
+        </controls:ContinuousBorder>
+
+        <!-- ⑤ 降级提示 toast：挂全局提示胶囊（与 FFmpeg 引导提示同一份资产，位点 ④＋⑪ 收口），一次性 2.5s -->
+        <controls:ContinuousBorder x:Name="DegradeToast" Classes="notifyPill" CornerRadius="{DynamicResource SctRadiusControl}" Background="{DynamicResource SctBorderBrush}" IsVisible="False" IsHitTestVisible="False">
+            <controls:ContinuousBorder.Styles>
+                <StyleInclude Source="/Themes/Workspace.axaml" />
+            </controls:ContinuousBorder.Styles>
+            <controls:ContinuousBorder Classes="notifyPillPlate" CornerRadius="{DynamicResource SctRadiusSegmentInner}" Background="{DynamicResource SctMenuBackgroundBrush}">
+                <TextBlock x:Name="TxtDegradeToast" />
+            </controls:ContinuousBorder>
+        </controls:ContinuousBorder>
+
+        <!-- ⑥ 两枚元素级浮条：与截图遮罩、贴图<b>同一对控件</b>（Controls/SpotlightRadiusPill、Controls/CounterPill），
+             贴位算式与改值通路全在共享会话 AnnotationEditSession.Pills 那一份里，本窗只提供容器。
+             定位用 Margin（Canvas 内未设 Left/Top 时按 Margin 摆），声明在最后 ⇒ 压在徽标与 toast 之上，
+             与截图侧"必须声明在 InfoPill 之后"同一条规矩。 -->
+        <controls:SpotlightRadiusPill x:Name="SpotlightRadiusPillHost" IsVisible="False" />
+        <controls:CounterPill x:Name="CounterPillHost" IsVisible="False" />
+    </Canvas>
+</Window>

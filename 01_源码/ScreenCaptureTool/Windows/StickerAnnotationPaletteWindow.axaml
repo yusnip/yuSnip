@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+        x:Class="ScreenCaptureTool.Windows.StickerAnnotationPaletteWindow"
+        Title="StickerAnnotationPalette"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ShowActivated="False"
+        SizeToContent="WidthAndHeight"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+    <!-- 双层圆角容器（图标条 + 6 DIP + 箭头 + 参数条）由 AnnotationToolbar 自己按主工具栏配方画出，
+         本窗只负责透明承载，不再另套一层 Border。
+         阴影余量也在那个控件里（根 Grid 的 12/20/20/26 行列）：实测光晕只画到父级 Panel 自己的矩形为止，
+         宿主再往外补多少透明缓冲都救不回来（曾经套 40px 外层 Border，窗口边界仍是一条硬边）。
+         因此本窗必须严丝合缝地只包一个 AnnotationToolbar，多套一层等于把透明区从"可见栏"推开、
+         反过来吞掉贴底下沿的拖边热区。 -->
+    <controls:AnnotationToolbar x:Name="Toolbar" />
+</Window>

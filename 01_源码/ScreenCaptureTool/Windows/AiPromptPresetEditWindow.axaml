@@ -1,0 +1,84 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        x:Class="ScreenCaptureTool.Windows.AiPromptPresetEditWindow"
+        Icon="/Assets/Black.ico"
+        Title="编辑提示词 - yuSnip"
+        Width="520"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="{DynamicResource SctBackgroundBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14">
+
+    <Window.Styles>
+        <!-- 仅接入共享皮肤；保留原表单布局、字号与间距。 -->
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+    </Window.Styles>
+
+    <!-- 系统负责窗口曲率与阴影；保持原容器边距，不新增表单卡片。 -->
+    <Border x:Name="EditorSurface" Background="{DynamicResource SctBackgroundBrush}"
+            BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid RowDefinitions="48,Auto,Auto">
+
+            <!-- ════ 自绘标题栏 ════ -->
+            <Border Grid.Row="0" Background="Transparent" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="TxtWindowTitle" Grid.Column="0" Text="编辑提示词" VerticalAlignment="Center"
+                               FontSize="14.5" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SctTextPrimaryBrush}" Margin="20,0,0,0" />
+                    <Button Grid.Column="1" Classes="titleIcon closeBtn"
+                            CornerRadius="{DynamicResource SctRadiusControl}" AutomationProperties.Name="关闭"
+                            ToolTip.Tip="关闭" Click="OnCancelClick" Margin="0,0,6,0">
+                        <Path Classes="workspaceIcon" Width="12" Height="12" Data="{x:Static win:WorkspaceIconGeometry.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ════ 内容表单：纵向流式布局，标签在上输入在下 ════ -->
+            <StackPanel Grid.Row="1" Spacing="14" Margin="20,6,20,18">
+
+                <!-- 1. 技能命令名 -->
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="技能命令名" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                        <TextBlock Text="@ 唤起后填入该提示词" Classes="fieldHint" LineHeight="NaN" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBox x:Name="TxtName" AutomationProperties.Name="技能命令名" Watermark="例如：翻译 / 代码解读 / 表格提取" />
+                </StackPanel>
+
+                <!-- 2. 提示词内容 -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="提示词内容" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
+                    <TextBox x:Name="TxtContent" AutomationProperties.Name="提示词内容"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalContentAlignment="Top"
+                             VerticalAlignment="Top"
+                             MinHeight="150"
+                             MaxHeight="260"
+                             FontSize="13"
+                             Watermark="例如：请将图中文字翻译为中文，保留原文排版结构，使用 Markdown 输出。" />
+                </StackPanel>
+
+            </StackPanel>
+
+            <!-- ════ 底部操作栏 ════ -->
+            <Border Grid.Row="2" Background="{DynamicResource SctBackgroundBrush}"
+                    BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="0,1,0,0"
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                    <Button Classes="secondary" Content="取消" Click="OnCancelClick" />
+                    <Button Classes="primary" Content="保存" Click="OnSaveClick" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

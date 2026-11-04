@@ -1,0 +1,837 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:ScreenCaptureTool.Controls"
+        xmlns:core="using:ScreenCaptureTool.Core"
+        xmlns:win="using:ScreenCaptureTool.Windows"
+        mc:Ignorable="d" d:DesignWidth="1920" d:DesignHeight="1080"
+        x:Class="ScreenCaptureTool.Windows.CaptureWindow"
+        Title="yuSnip"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="12"
+        TransparencyLevelHint="Transparent">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <!-- 文本图层只使用自绘虚线选中框；隐藏 Avalonia TextBox 模板自带的实线/焦点边框。 -->
+        <Style Selector="TextBox.captureTextLayer">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer /template/ Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer:focus /template/ Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer:pointerover /template/ Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer /template/ Border#borderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="TextBox.captureTextLayer /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- 工具栏「组」＝两枚**独立**的圆角小按钮并排（2026-09-14 按用户口径拆开，不再拼成半圆角胶囊）：
+             左边一枚是组内第一位工具本体（点它就用这个工具），右边一枚只装得下三角的窄钮
+             （点它才展开/收起这一组，永不触发工具），中间留 2px 空隙；两枚按钮统一消费 ToolbarCorners 的连续曲率。
+             选择器一律带两个 class 才压得过全局 Button.toolIcon 的 28 宽与 4 边距。 -->
+        <!-- 分裂格几何与展开态已收进 ToolbarCorners，供设置中的真实尺寸预览同源消费。 -->
+
+        <!-- ===== 选区参数条：与模式栏共用深色半透明材质，原布局及微调交互保持。 ===== -->
+
+        <!-- 让位过渡：微调态下整条要暗下去，没有过渡会是一帧闪变。
+             ⚠ Avalonia 的选择器**不支持通配 `*`**（`> *` 会 AVLN2201「Expected an identifier, got '*'」直接构建失败），
+             故按直接子元素的类型逐条写（本条的直属子级只有 TextBlock / Border / CheckBox 三类）。
+             用直接子代 `>` 而不是后代空格，是为了不误伤 CheckBox 模板里的 TextBlock —— 后代选择器会连模板内层
+             一起匹配，那里再乘一次 0.25 会暗到几乎看不见。 -->
+        <Style Selector="StackPanel.pillContent > TextBlock">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="StackPanel.pillContent > Border">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="StackPanel.pillContent > CheckBox">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- 字体与定宽保持；颜色从参数条内部的深色 Toolbar 资源作用域解析。 -->
+        <Style Selector="TextBlock.pillLabel">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.pillValue">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <!-- 定宽 + 右对齐：8 → 10 那一档条宽会变，不定宽左缘会跟着抖 -->
+            <Setter Property="MinWidth" Value="16" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.pillDot">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctSeparatorBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- 参数组：整组（标签＋数值）都是按住拖动区与滚轮区，故给横向调整光标。
+             `Background` 必须是 `Transparent` 而**不能省**：`Background` 为 `null` 的 `Border`
+             不参与命中测试，整组的按住/滚轮热区会全部失效。放在样式里而不是内联，是为了让这一族的
+             基础属性只有一处（内联属 `LocalValue` 优先级，日后想按状态改底色就再也改不动）。 -->
+        <Style Selector="Border.pillGroup">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="SizeWestEast" />
+        </Style>
+        <!-- 组内的取色块压成正方形并去掉全局那 1px 横向外边距：全局 Button.swatch 是 20×24
+             （给工具面板用的），24 会把条高顶到 32；Margin 归零才能让组内三段的间距统一为 4 -->
+        <Style Selector="Border.pillGroup Button.swatch">
+            <Setter Property="Height" Value="20" />
+            <Setter Property="MinHeight" Value="20" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
+        <!-- 可发现性：悬浮时整组浮出一层半透明底片。选它而不是数值下划线，是因为它零几何代价
+             （不用为短横多开一行，也不会因两组行高不同而错位），而且把"可按住的命中区域"直接画了出来。
+             ⚠ 底片必须是**独立一层 Border**、只过渡它的 `Opacity`——§9 陷阱 9 明令禁止对 `Background`
+             做 `BrushTransition`（SolidColorBrush 的 ARGB 插值会滑出中段脏色）。 -->
+        <Style Selector="Border.pillChip">
+            <Setter Property="Background" Value="{DynamicResource SctSelectionToolbarHoverBrush}" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.pillGroup:pointerover Border.pillChip">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- 微调态让位：其余全部压到 0.12；活动组豁免（选择器更具体 ⇒ 压得过上面三条）。
+             0.12 而不是 0：白字 × 0.12 叠在纯黑条底上 ≈ RGB(31,31,31)，已基本融进背景、
+             不再跟浮起数字抢眼，但仍留得住参数条的轮廓——压到 0 会让整条"空掉"、像控件坏了。
+             同样按类型逐条写（Avalonia 没有通配 `*`，见上）。
+             ⚠ 描边微调时 +1/+2 档数字会向右排到「阴影 开/关」勾选框的位置上，重叠是几何必然，
+             只能靠把让位元素压得足够暗来消解——这也是选 0.12 而不是 0.25 的直接原因。 -->
+        <Style Selector="StackPanel.pillContent.fineDim > TextBlock">
+            <Setter Property="Opacity" Value="0.12" />
+        </Style>
+        <Style Selector="StackPanel.pillContent.fineDim > Border">
+            <Setter Property="Opacity" Value="0.12" />
+        </Style>
+        <Style Selector="StackPanel.pillContent.fineDim > CheckBox">
+            <Setter Property="Opacity" Value="0.12" />
+        </Style>
+        <Style Selector="StackPanel.pillContent.fineDim > Border.pillGroup.active">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <!-- ⚠ 声明顺序红线：这条与上面 :pointerover 那条特异性相同（都是 5 段），同优先级下后声明者胜出。
+             它必须排在 :pointerover 之后——微调态下指针就压在活动组上，不压掉底片会剩一个空壳。
+             活动组自己的标签与数值也一并让位给浮起数字：−1/−2 档是从被按数值向左排开的，
+             正好压在「圆角」两个字的位置上，不隐掉会重叠。 -->
+        <Style Selector="Border.pillGroup.active Border.pillChip">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="Border.pillGroup.active TextBlock.pillLabel">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="Border.pillGroup.active TextBlock.pillValue">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <!-- 活动组里的取色块（描边组左端那枚）也要一并让位：它是 16×16 的品牌紫实底，
+             而浮起数字用的正是 SctAccentBrush 紫——同色系留着会跟数字抢焦点，
+             且描边微调时 +1/+2 档数字正好排过来，直接叠在一起。
+             同组内的标签与数值都已隐掉，单独留一枚紫色方块反而更像渲染错误。 -->
+        <Style Selector="Border.pillGroup.active Button.swatch">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+
+        <!-- 浮起层五档刻度。缩放与定位由 PillValueFineController 驱动：
+             缩放 = ScaleTransform + DoubleTransition（过渡与初始缩放都挂在控制器里，
+             这里**不能**写 RenderTransform，内联值会盖掉过渡的目标值）；
+             定位 = Canvas.SetLeft/Top。
+             ⚠ 不要改成 Animation.RunAsync 驱动：Animation 会按属性挑 animator，
+             ScaleTransform.ScaleXProperty 挑中的 TransformAnimator 只接受 Visual，
+             对 ScaleTransform 实例必抛 InvalidCastException（2026-09-17 实机踩过，
+             表现是缩放动画从未生效、24px 当前值被起始缩放压到 14.4px，比 ±1 档数字还小）。
+             故这里只定字号/字重/颜色。 -->
+        <Style Selector="TextBlock.fineStep2">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#5CFFFFFF" />
+        </Style>
+        <Style Selector="TextBlock.fineStep1">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#99FFFFFF" />
+        </Style>
+        <Style Selector="TextBlock.fineCurrent">
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+
+        <!-- 录屏格的激活灯（稿 1 D01：hover 与激活**同为**按下底、无紫环——刻意不复用 .active，
+             那圈 2px 品牌紫描边是"当前落笔工具"的语义，录屏不落笔）。
+             悬浮/按下两条必须挂 /template/ 才压得住全局 Button:pointerover（同 toolIcon.active 那族的坑） -->
+        <Style Selector="Button.toolIcon.recOn">
+            <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        </Style>
+        <Style Selector="Button.toolIcon.recOn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        </Style>
+        <Style Selector="Button.toolIcon.recOn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        </Style>
+        <Style Selector="Button.toolIcon.recOn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctButtonPressedBrush}" />
+        </Style>
+    </Window.Styles>
+    <Grid>
+        <Image x:Name="FrozenScreenImage"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch"
+               Stretch="Fill"
+               IsHitTestVisible="False" />
+
+        <controls:SelectionLayer x:Name="SelectionLayer"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Stretch"
+                                 IsHitTestVisible="False" />
+
+        <controls:AnnotationLayer x:Name="AnnotationLayer"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  IsHitTestVisible="False" />
+
+        <Canvas x:Name="OverlayCanvas"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+            <controls:CaptureSelectionToolbar x:Name="SelectionModeBar" IsVisible="False" />
+            <Border x:Name="AutoMosaicScanOverlay"
+                    IsVisible="False"
+                    IsHitTestVisible="False"
+                    ClipToBounds="True"
+                    Opacity="1">
+                <Border x:Name="AutoMosaicScanFill"
+                        Background="#321E90FF" />
+            </Border>
+
+            <!-- 选区参数条：尺寸读数 + 圆角/描边/阴影三项参数。可交互（不再 IsHitTestVisible=False），
+                 遮罩的命中白名单已包含本控件，落在这里的按下不会误起新框。
+                 结构（2026-09-17 改）：三项参数**都没有滑杆**，参数值本身就是控件——按住数值 120ms 就地
+                 浮起成 5 档刻度，左右拖动微调（40px/档，拖满 700ms 转 15px/档），松手 450ms 后收回；
+                 滚轮仍是 ±1 档。状态机与浮起层定位见 Services/PillValueFineController.cs。
+                 滑杆退役后本条从 485×36 收到约 320×30（高度 = 4 内边距 ×2 + 22 内容，
+                 内容里最高的是 20 的阴影勾选框），也因此与拖动期间的形态完全重合——
+                 DragInfoPill 已合并进本条（见 ShowDragInfoPill）。
+                 信息分级：尺寸是**读数**（白 12px SemiBold，只读），圆角/描边/阴影是**设置**（走 pillGroup）。
+                 分隔只在读数与设置之间留一条竖线，组间用点。
+                 描边与阴影不在选区上常驻：鼠标悬浮到这两组控件上才预览、移开即收（成图时才按记忆值画），
+                 一是省下移动选区时的重几何渲染，二是让"色带压在内容上"这件事只在调整时才打扰眼睛。
+                 底板复用顶部模式栏的深灰半透明材质，文字位于独立深色主题作用域。
+                 圆角与描边两组各自包一层 pillGroup 宿主 Border：按住拖动与滚轮都要能在整组
+                 （标签＋数值）范围内生效，而不只是压在两位数字上；它同时是悬浮底片的载体。 -->
+            <!-- 保留 30 DIP 高度与内距；底板、曲率、边线及投影与顶部模式栏同源。 -->
+            <controls:ContinuousBorder x:Name="InfoPill" CornerRadius="{DynamicResource SctRadiusToolbar}"
+                    Background="{DynamicResource SctSelectionToolbarGlassBrush}"
+                    BorderBrush="{DynamicResource SctSelectionToolbarGlassBorderBrush}" BorderThickness="1"
+                    BoxShadow="{DynamicResource SctShadowOverlay}"
+                    IsVisible="False"
+                    Height="30"
+                    Padding="8,3"
+                    PointerCaptureLost="OnInfoPillCaptureLost">
+                <ThemeVariantScope RequestedThemeVariant="Dark">
+                    <ThemeVariantScope.Styles>
+                        <StyleInclude Source="/Themes/Toolbar.axaml" />
+                    </ThemeVariantScope.Styles>
+                    <StackPanel x:Name="PillContent" Classes="pillContent"
+                                Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <!-- ⚠ 这枚只读读数必须显式 `Background="Transparent"`：命中测试需要非 null 的背景，
+                             否则滚轮事件根本落不到它身上、也就无从放行给窗口级的「滚轮缩放选区」。
+                             只加背景、**不放行点击**——点击仍按 `InfoPill` 整块算覆盖层（`IsOverlayVisual`），
+                             落在尺寸上不会误起新框（滚轮那条走的是独立的 `IsOverlayHitForWheel`）。 -->
+                        <TextBlock x:Name="TxtSelectionSize" Classes="pillValue" Text=""
+                                   Background="Transparent" />
+                        <Border Width="1" Height="14" Background="{DynamicResource SctSeparatorBrush}" VerticalAlignment="Center" />
+
+                        <Border x:Name="GroupRadius" Classes="pillGroup"
+                                PointerWheelChanged="OnCaptureRadiusWheel"
+                                ToolTip.Tip="按住数值左右拖动微调（滚轮 ±1）">
+                            <Grid>
+                                <!-- 悬浮底片是**独立一层**（与文字平级、先声明 ⇒ 在文字之下），
+                                     淡入淡出只染它自己：既不违反"禁止对 Background 做 BrushTransition"，
+                                     也不会带着文字一起半透明。内边距做在文字层上，底片才能铺满整组的命中区。 -->
+                                <controls:ContinuousBorder Classes="pillChip" CornerRadius="{DynamicResource SctRadiusSmall}" IsHitTestVisible="False" />
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="pillLabel" Text="圆角" />
+                                    <TextBlock x:Name="TxtCaptureRadius" Classes="pillValue" Text="0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Classes="pillDot" Text="·" />
+
+                        <Border x:Name="GroupStroke" Classes="pillGroup"
+                                PointerWheelChanged="OnCaptureStrokeWheel"
+                                PointerEntered="OnEffectGroupEntered" PointerExited="OnEffectGroupExited"
+                                ToolTip.Tip="按住数值左右拖动微调（滚轮 ±1）">
+                            <Grid>
+                                <controls:ContinuousBorder Classes="pillChip" CornerRadius="{DynamicResource SctRadiusSmall}" IsHitTestVisible="False" />
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,0" VerticalAlignment="Center">
+                                    <!-- 取色入口：底色只是占位，打开参数条时由 SyncCaptureEffectState 按记忆值覆盖 -->
+                                    <Button x:Name="BtnStrokeColor" Classes="swatch" ToolTip.Tip="描边颜色（点击取色）"
+                                            Click="OnStrokeColorClick">
+                                        <Border x:Name="StrokeColorSwatch" Width="16" Height="16" CornerRadius="4"
+                                                Background="#FF4219F2" BorderBrush="#73FFFFFF" BorderThickness="1" />
+                                    </Button>
+                                    <TextBlock Classes="pillLabel" Text="描边" />
+                                    <TextBlock x:Name="TxtCaptureStroke" Classes="pillValue" Text="0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Classes="pillDot" Text="·" />
+
+                        <CheckBox x:Name="ChkCaptureShadow" Content="阴影 关"
+                                  Classes="toolCheck overlayPill" Focusable="False"
+                                  PointerEntered="OnEffectGroupEntered" PointerExited="OnEffectGroupExited" />
+                    </StackPanel>
+                </ThemeVariantScope>
+            </controls:ContinuousBorder>
+
+            <!-- 数值微调浮起层：必须声明在 InfoPill **之后**（同一 Canvas 内后声明者压前者）。
+                 独立成兄弟节点而不是塞进 InfoPill：24px 的当前值会溢出 30 高的条，且它只跟随被按的
+                 那一个数值、不参与 InfoPill 的量宽 ⇒ UpdateOverlay 的右缘平齐不受任何影响。
+                 五个刻度按 −2 / −1 / 当前 / +1 / +2 排开，整层以被按数值的中心对齐；越界档位直接不显示。
+                 位置与动画全部由 PillValueFineController 驱动，这里只摆结构。 -->
+            <Canvas x:Name="ValueFineLayer" IsVisible="False" IsHitTestVisible="False">
+                <TextBlock x:Name="FineM2" Classes="fineStep2" Text="" />
+                <TextBlock x:Name="FineM1" Classes="fineStep1" Text="" />
+                <TextBlock x:Name="FineCur" Classes="fineCurrent" Text="0" />
+                <TextBlock x:Name="FineP1" Classes="fineStep1" Text="" />
+                <TextBlock x:Name="FineP2" Classes="fineStep2" Text="" />
+            </Canvas>
+
+            <!-- 聚光灯圆角浮条（2026-09-18）：选中**矩形档**聚光灯后浮到元素上方，按住数值左右拖动调圆角；
+                 圆角在画布上的四角手柄已同批摘除，这里是它的唯一入口。
+                 位置与显隐由 RefreshSpotlightRadiusPill 驱动（读的是图层里"预览优先"的那一个图元）。
+                 ⚠ 图层预览换帧**不发**那个通知，故浮条不跟手：2026-09-18 起改为拖动手势期间主动收起、
+                 松手提交后按新位置贴回（起手在 CaptureSession.BeginShapeEdit / BeginSelectionTransform，
+                 贴回在松手提交处与 UpdateOverlay）。交互与样式全在控件内部，两侧窗口共用一份。
+                 ⚠ 必须声明在 InfoPill 与 ValueFineLayer **之后**：同一 Canvas 内后声明者压前者，
+                 而聚光灯贴着选区上缘时浮条会与参数条落在同一片区域上。 -->
+            <controls:SpotlightRadiusPill x:Name="SpotlightRadiusPillHost" IsVisible="False" />
+
+            <!-- 序号浮条（2026-09-18）：选中序号后浮在它上方，管**这一个**的编号（− / +）、
+                 说明文字（那一格点着直接输）与删除（× ＝只删这一个，区别于工具栏的清空）。
+                 位置与显隐由 RefreshCounterPill 驱动；与圆角浮条同一口径——拖动手势期间收起、提交后贴回。
+                 ⚠ 同样必须声明在 InfoPill 之后：后声明者压前者，序号贴着选区上缘时不该被参数条盖住。 -->
+            <controls:CounterPill x:Name="CounterPillHost" IsVisible="False" />
+
+            <controls:ContinuousBorder x:Name="ActionBar"
+                    IsVisible="False"
+                    Background="{DynamicResource SctControlBarOuterBrush}"
+                    CornerRadius="{DynamicResource SctRadiusToolbar}"
+                    Padding="1"
+                    BoxShadow="0 5 20 0 #33000000">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/Toolbar.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                        CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                        Padding="8,4"
+                        MinHeight="42">
+                    <StackPanel x:Name="ToolbarItemsPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 🔴 本排所有 ToolTip.Tip **一律不写快捷键**（2026-09-29 收口）：键名只能由
+                             CaptureWindow.axaml.cs 的 ApplyShortcutHints() 从 BuiltinShortcutsStore 现生成。
+                             此前 XAML 里写死一份（"录屏 (F9)"、"另存为 (Ctrl+S)"…），而该函数只回写 12 枚，
+                             剩下 8 枚永远是原文 ⇒ 用户在设置页改了键，工具栏还显示旧键；
+                             而 F9 那类是**全局动作键**，与同排"窗口内标注键"根本不是一层，混写就是违和感的来源。
+                             括号要留说明文字时用全角（"文字识别（OCR）"），半角 "(...)" 只留给键名。 -->
+                        <!-- AI 识图入口：yusnip 品牌矢量 Logo，普通 toolIcon 按钮，与其他工具图标渲染方式一致 -->
+                        <Button x:Name="BtnAiVision" Classes="toolIcon" ToolTip.Tip="AI 识图（智能视觉分析）" Click="OnAiVisionClick">
+                            <!-- RenderTransform：logo 边界框约 365×284（宽扁），Uniform 拉伸后高仅 12.4px 且锚定顶部，整体下移 1.8px 使几何居中 -->
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" RenderTransform="translate(0px, 1.8px)" Data="m93.65,77.36c.54-1.12.95-1.95,1.33-2.79,5.63-12.67,12.36-24.72,20.74-35.79,8.43-11.12,18.38-20.63,30.25-28.03,7.93-4.95,16.4-8.59,25.71-10,13.59-2.07,26.27.01,37.48,8.47,9.22,6.96,14.23,16.22,14.89,27.76.62,10.83-1.66,21.15-6.04,30.98-2.63,5.9-5.68,11.62-8.61,17.38-4.45,8.75-9.13,17.4-13.42,26.23-6.73,13.88-10.49,28.61-11.63,43.97-.55,7.44-.3,14.87,1.75,22.11,3.34,11.82,11.47,18.27,23.3,20.27,4.8.81,9.37-.42,13.65-2.64,8.23-4.25,14.62-10.55,19.64-18.22,5.35-8.18,9.57-16.96,13.04-26.1,6.3-16.59,11.48-33.53,15.46-50.82,1.34-5.83,2.26-11.76,3.65-17.58,2.01-8.4,6.38-15.38,12.96-21.07,11.06-9.56,29.61-9.35,40.31,3.06,5.13,5.95,7.99,12.73,8.72,20.58.93,10.1-.69,19.9-2.75,29.7-1.37,6.48-2.83,12.96-3.8,19.5-1.77,11.97-1.67,23.89,2.08,35.56,2.18,6.78,5.47,12.92,10.36,18.16,3.49,3.74,6.99,7.47,10.34,11.33,8.44,9.72,11.02,21.17,9.7,33.73-.77,7.36-3.34,13.95-8.3,19.51-8.78,9.84-21.95,12.96-33.79,7.89-4.73-2.02-9.06-4.72-12.94-8.11-7.36-6.43-10.13-9.63-18.5-21.37-.6.64-1.19,1.23-1.74,1.85-8.29,9.35-17.09,18.16-27.22,25.54-8.84,6.44-18.27,11.84-28.99,14.41-21.92,5.27-42.53,1.96-61.49-10.37-18.91-12.3-31.93-29.4-40.26-50.23-4.51-11.29-7.03-23.03-8.24-35.09-.66-6.53-1.03-13.06-.79-19.62.14-3.89.45-7.78.7-12.05-.52.79-.89,1.27-1.18,1.81-14.36,26.94-30.19,53.03-46.09,79.07-4.16,6.82-8.3,13.65-12.5,20.44-3.34,5.4-7.75,9.73-13.3,12.85-17.85,10.04-41.17.76-46.83-18.67-2.66-9.13-1.05-17.74,3.61-25.82,2.75-4.77,5.8-9.37,8.76-14.02,7.6-11.93,14.94-24.01,21.49-36.55,1.48-2.83,2.85-5.72,4.11-8.65,3.86-8.98,4.49-18.17,1.93-27.64-2.17-8.04-4.8-15.87-8.71-23.27-9.14-17.3-18.17-34.66-27.27-51.98-2.13-4.05-4.08-8.15-4.73-12.73C-1.48,26.41,3.15,15.08,14.42,6.79,31.4-5.71,54.68-.12,64.29,18.67c5.13,10.02,9.84,20.26,14.84,30.34,4.44,8.94,9.02,17.81,13.54,26.71.24.47.54.91.97,1.63Z" />
+                        </Button>
+
+                        <Border x:Name="ToolbarSep1" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                        <controls:AnnotationToolButton x:Name="BtnMosaic" ToolKey="mosaic" ToolTip.Tip="马赛克" Click="OnMosaicClick" />
+                        <controls:AnnotationToolButton x:Name="BtnSpotlight" ToolKey="spotlight" ToolTip.Tip="聚光灯" Click="OnSpotlightClick" />
+                        <Button x:Name="BtnLongScroll" Classes="toolIcon" ToolTip.Tip="长截图" Click="OnLongScrollClick">
+                            <Path Classes="icon" Data="M 4 10 V 7 A 3 3 0 0 1 7 4 H 17 A 3 3 0 0 1 20 7 V 10 M 10 18 A 2 2 0 1 1 6 18 A 2 2 0 1 1 10 18 M 18 18 A 2 2 0 1 1 14 18 A 2 2 0 1 1 18 18 M 9.3 16.4 L 16.5 7.5 M 14.7 16.4 L 7.5 7.5" />
+                        </Button>
+                        <!-- 录屏（2026-09-29 按用户要求由"摄像机"改成**录制符号**＝大圆环套一枚实心圆点）：
+                             几何引 Core 的 ToolbarRegistry.RecordIconPath，单一来源（设置页工具栏编辑器引同一份）。
+                             ⚠ 它现在是**填充族**，所以类要从 Path.icon 换成 icon＋iconFill 两条（后者把
+                                StrokeThickness 归 0、补 SctIconBrush 的填充），元素盒钉 17.8：同排描边件是
+                                "16 骨架 ＋ 1.8 笔"＝实墨 17.8，而填充件的墨就是包围盒本身，不放大一圈会比邻居小 10%
+                                （与智能抠图同一处理，见该枚的注释）。
+                                环与点的掏空靠"三枚圆方向交替"完成，不依赖 FillRule——两侧消费方都没设过它。
+                             激活态=按下底（无紫环，稿 1 明示 hover 与激活同色） -->
+                        <Button x:Name="BtnRecord" Classes="toolIcon" ToolTip.Tip="录屏" Click="OnRecordClick">
+                            <Path Classes="icon iconFill" Width="17.8" Height="17.8"
+                                  Data="{x:Static core:ToolbarRegistry.RecordIconPath}" />
+                        </Button>
+                        <Button x:Name="BtnOcr" Classes="toolIcon" ToolTip.Tip="文字识别（OCR）" Click="OnOcrClick">
+                            <Path x:Name="IconOcr" Classes="icon" Data="M 8 4 H 7 A 3 3 0 0 0 4 7 V 8 M 16 4 H 17 A 3 3 0 0 1 20 7 V 8 M 20 16 V 17 A 3 3 0 0 1 17 20 H 16 M 8 20 H 7 A 3 3 0 0 1 4 17 V 16 M 12 7 L 8.5 17 M 12 7 L 15.5 17 M 10 13 H 14" />
+                        </Button>
+                        <Button x:Name="BtnTranslate" Classes="toolIcon" ToolTip.Tip="翻译" Click="OnTranslateClick">
+                            <Path Classes="icon" Data="M 16 4 H 17 A 3 3 0 0 1 20 7 V 8 M 8 20 H 7 A 3 3 0 0 1 4 17 V 16 M 4 7 H 12 V 11 H 4 Z M 8 4 V 15 M 16 10 L 12 20 M 16 10 L 20 20 M 14 15 H 18" />
+                        </Button>
+                        <Button x:Name="BtnMatting" Classes="toolIcon" ToolTip.Tip="智能抠图" Click="OnMattingClick">
+                            <!-- 17.8 而非 16：Uniform 把填充几何的包围盒撑满控件盒子，而描边粗细不随拉伸缩放；
+                                 邻居描边图标是 16 盒子 + 1.8 描边 = 17.8px 实墨，取 17.8 才能让外框位置与线宽同时对齐。 -->
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="17.8" Height="17.8" Data="M 8 3.1 H 7 A 3.9 3.9 0 0 0 3.1 7 V 8 A 0.9 0.9 0 0 0 4.9 8 V 7 A 2.1 2.1 0 0 1 7 4.9 H 8 A 0.9 0.9 0 0 0 8 3.1 Z M 16 3.1 H 17 A 3.9 3.9 0 0 1 20.9 7 V 8 A 0.9 0.9 0 0 1 19.1 8 V 7 A 2.1 2.1 0 0 0 17 4.9 H 16 A 0.9 0.9 0 0 1 16 3.1 Z M 20.9 16 V 17 A 3.9 3.9 0 0 1 17 20.9 H 16 A 0.9 0.9 0 0 1 16 19.1 H 17 A 2.1 2.1 0 0 0 19.1 17 V 16 A 0.9 0.9 0 0 1 20.9 16 Z M 8 20.9 H 7 A 3.9 3.9 0 0 1 3.1 17 V 16 A 0.9 0.9 0 0 1 4.9 16 V 17 A 2.1 2.1 0 0 0 7 19.1 H 8 A 0.9 0.9 0 0 1 8 20.9 Z M 12 5.9 A 2.3 2.3 0 1 0 12 10.5 A 2.3 2.3 0 1 0 12 5.9 Z M 12 12 C 9.6 12 7.6 13.4 7.2 15.8 C 7 16.6 7.6 17.2 8.4 17.2 H 15.6 C 16.4 17.2 17 16.6 16.8 15.8 C 16.4 13.4 14.4 12 12 12 Z" />
+                        </Button>
+                        <Border x:Name="ToolbarSep2" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                        <controls:AnnotationToolButton x:Name="BtnBrush" ToolKey="brush" ToolTip.Tip="画笔" Click="OnBrushClick" />
+                        <controls:AnnotationToolButton x:Name="BtnArrow" ToolKey="arrow" ToolTip.Tip="箭头" Click="OnArrowClick" />
+                        <controls:AnnotationToolButton x:Name="BtnText" ToolKey="text" ToolTip.Tip="文本" Click="OnTextClick" />
+                        <controls:AnnotationToolButton x:Name="BtnRectangle" ToolKey="rectangle" ToolTip.Tip="形状" Click="OnRectangleClick" />
+                        <controls:AnnotationToolButton x:Name="BtnCounter" ToolKey="counter" ToolTip.Tip="序号" Click="OnCounterClick" />
+                        <controls:AnnotationToolButton x:Name="BtnWatermark" ToolKey="watermark" ToolTip.Tip="水印（再点一次关闭）" Click="OnWatermarkClick" />
+                        <controls:AnnotationToolButton x:Name="BtnEraser" ToolKey="eraser" ToolTip.Tip="橡皮擦：局部擦除标注" Click="OnEraserClick" />
+                        <controls:AnnotationToolButton x:Name="BtnUndo" ToolKey="undo" IsEnabled="False" ToolTip.Tip="撤销" Click="OnUndoClick" />
+
+                        <Border x:Name="ToolbarSep3" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                        <Button x:Name="BtnSticker" Classes="toolIcon" ToolTip.Tip="贴图" Click="OnStickerClick">
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="M686.08 133.12c-20.48-20.48-56.32-20.48-76.8 0l-76.8 76.8 35.84 35.84L404.48 409.6l-30.72-35.84c-20.48-20.48-56.32-20.48-76.8 0l-35.84 35.84c-20.48 20.48-20.48 56.32 0 76.8l327.68 322.56c20.48 20.48 56.32 20.48 76.8 0l30.72-30.72c20.48-20.48 20.48-56.32 0-76.8L665.6 665.6l168.96-163.84 35.84 35.84 71.68-71.68c20.48-20.48 20.48-56.32 0-76.8l-256-256zM563.2 588.8L481.28 506.88 680.96 307.2l76.8 76.8-194.56 204.8zM399.36 675.84c20.48 20.48 20.48 51.2 0 71.68L230.4 921.6c-20.48 20.48-56.32 20.48-76.8 0-20.48-20.48-20.48-51.2 0-71.68l168.96-168.96c25.6-25.6 56.32-25.6 76.8-5.12z" />
+                        </Button>
+                        <Button x:Name="BtnQuickSave" Classes="toolIcon" ToolTip.Tip="快速保存" Click="OnQuickSaveClick">
+                            <!-- 几何 2026-09-22 收编进 OcrIconGeometry.QuickSaveIcon：录屏预览窗同一枚
+                                 图标此前是一份"微调版"内联，两窗各写一份必然漂移（用户实报要求直接复用） -->
+                            <Path Classes="icon" Data="{x:Static win:OcrIconGeometry.QuickSaveIcon}" />
+                        </Button>
+                        <Button x:Name="BtnSaveAs" Classes="toolIcon" ToolTip.Tip="另存为" Click="OnSaveAsClick">
+                            <!-- 几何 2026-09-22 收编进 OcrIconGeometry.SaveAsIcon，理由同上 -->
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="{x:Static win:OcrIconGeometry.SaveAsIcon}" />
+                        </Button>
+                        <Button x:Name="BtnCancel" Classes="toolIcon" ToolTip.Tip="取消" Click="OnCancelClick">
+                            <Path Classes="icon" Stroke="#FF5555" Data="M 5 5 L 19 19 M 19 5 L 5 19" />
+                        </Button>
+                        <Button x:Name="BtnConfirm" Classes="toolIcon" ToolTip.Tip="完成/保存" Click="OnConfirmClick">
+                            <Path Classes="icon" Stroke="#07C160" Data="M 4 13 L 10 19 L 20 4" />
+                        </Button>
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </controls:ContinuousBorder>
+
+            <!-- 二级·组成员栏：与主栏同配方的独立浮层，成员由 ApplyToolbarLayout / ExpandToolbarGroup 现填现撤 -->
+            <controls:ContinuousBorder x:Name="GroupBar"
+                    IsVisible="False"
+                    Background="{DynamicResource SctControlBarOuterBrush}"
+                    CornerRadius="{DynamicResource SctRadiusToolbar}"
+                    Padding="1"
+                    BoxShadow="0 5 20 0 #33000000">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/Toolbar.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                        CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                        Padding="8,4"
+                        MinHeight="42">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 成员枚数不限（2026-09-20），行宽由 LayoutOverlayStack 现算的 MaxWidth 约束后自动换行 -->
+                        <WrapPanel x:Name="GroupItemsPanel" Orientation="Horizontal" VerticalAlignment="Center" />
+                        <Border x:Name="GroupBarSep" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                        <Button x:Name="BtnGroupSettings" Classes="toolIcon" ToolTip.Tip="工具栏与样式 (设置)" Click="OnGroupSettingsClick">
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                        </Button>
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </controls:ContinuousBorder>
+
+            <controls:ContinuousBorder x:Name="ToolOptionsBar"
+                    IsVisible="False"
+                    Background="{DynamicResource SctControlBarOuterBrush}"
+                    CornerRadius="{DynamicResource SctRadiusToolbar}"
+                    Padding="1"
+                    BoxShadow="0 5 20 0 #26000000">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/Toolbar.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <controls:ContinuousBorder Background="{DynamicResource SctPanelBrush}"
+                        CornerRadius="{DynamicResource SctRadiusToolbarInner}"
+                        Padding="8,4"
+                        MinHeight="42">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="0">
+                        <StackPanel x:Name="BrushOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                            <Button x:Name="BtnBrushLineStyle" Classes="tool" Width="62" ToolTip.Tip="画笔线型" Click="OnBrushLineStyleClick">
+                                <Grid Width="46" Height="20" VerticalAlignment="Center">
+                                    <Line x:Name="BrushLineStylePreview" StartPoint="2,10" EndPoint="32,10" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" />
+                                    <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" HorizontalAlignment="Right" />
+                                </Grid>
+                            </Button>
+                            <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                            <controls:BrushOpacityControl x:Name="BrushOpacityOptions" />
+                            <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                            <Button x:Name="BtnBrushAdvanced" Classes="toolIcon" ToolTip.Tip="笔迹（笔锋与平滑）" Click="OnBrushAdvancedClick">
+                                <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="16" Height="16" Data="M20.5,3.5a2.1,2.1 0 0,0 -3,0l-3.2,3.2 4.5,4.5 3.2,-3.2a2.1,2.1 0 0,0 0,-3l-1.5,-1.5z M13.2,7.8L9.5,11.5l4.5,4.5 3.7,-3.7 -4.5,-4.5z M8.2,12.8l-1.8,5a0.8,0.8 0 0,0 1,1l5,-1.8 -4.2,-4.2z M4,19c2.5,-1.5 5,-1.2 7,-0.2l0.8,-1.8C9.3,15.8 6,15.5 3,17.5a1,1 0 0,0 1,1.5z" />
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel x:Name="ArrowOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                            <Button x:Name="BtnArrowStyle" Classes="tool" MinWidth="62" ToolTip.Tip="箭头样式">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <controls:ArrowHeadSwatch x:Name="ArrowStyleSwatch" Width="40" Height="16" DoubleHead="True" />
+                                    <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel x:Name="RectangleOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                            <Button x:Name="BtnShapeKind" Classes="toolIcon" ToolTip.Tip="切换形状：矩形/圆形" Click="OnShapeKindClick">
+                                <Path x:Name="ShapeKindPreview" Classes="icon" Data="M7,4 H17 A3,3 0 0 1 20,7 V17 A3,3 0 0 1 17,20 H7 A3,3 0 0 1 4,17 V7 A3,3 0 0 1 7,4 Z" Width="14" Height="14" />
+                            </Button>
+                            <Button x:Name="BtnShapeLineStyle" Classes="tool" Width="62" ToolTip.Tip="切换形状线型" Click="OnShapeLineStyleClick">
+                                <Grid Width="46" Height="20" VerticalAlignment="Center">
+                                    <Line x:Name="ShapeLineStylePreview" StartPoint="2,10" EndPoint="32,10" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" />
+                                    <Path Classes="icon" Data="M0,2 L4,6 L8,2" Width="8" Height="8" Stretch="None" HorizontalAlignment="Right" />
+                                </Grid>
+                            </Button>
+                            <!-- 圆角滑块已拆除（2026-09-12「圆角滑块退役」），画布四角手柄亦于 2026-09-18 退役：
+                                 圆角一律在「选中后元素上方浮出的圆角浮条」上调。下面这组是形状填充档（2026-09-18）。 -->
+                            <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                            <controls:ShapeFillControl x:Name="ShapeFillOptions" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="MosaicOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                            <Button x:Name="BtnMosaicManual" Classes="tool" MinWidth="46" ToolTip.Tip="手动框选马赛克/模糊" Click="OnMosaicManualClick">
+                                <TextBlock Text="手动" FontSize="13" />
+                            </Button>
+                            <Button x:Name="BtnMosaicAuto" Classes="tool" MinWidth="46" ToolTip.Tip="自动识别文字区域" Click="OnMosaicAutoClick">
+                                <TextBlock x:Name="TxtMosaicAuto" Text="自动" FontSize="13" />
+                            </Button>
+                            <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+                            <controls:BlurIntensityControl x:Name="BlurIntensityOptions" ModeChanged="OnSharedBlurModeChanged" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="SpotlightOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                            <controls:SpotlightOptionsControl x:Name="SharedSpotlightOptions" KindChanged="OnSharedSpotlightKindChanged" StrokeAdjusted="OnSharedSpotlightStrokeAdjusted" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="CounterOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center" Height="28">
+                            <ContentControl x:Name="CounterOptionsHost" />
+                        </StackPanel>
+
+                        <!-- 水印：这一档不落笔、不进撤销栈，走的是"圆角/描边/阴影"那条效果式通路，
+                             故参数条只在开启期间常驻，那圈紫环是**开关状态灯**而不是"当前工具"标记（SetActiveTool 不清它）。 -->
+                        <StackPanel x:Name="WatermarkOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center" Height="28">
+                            <ContentControl x:Name="WatermarkOptionsHost" />
+                        </StackPanel>
+
+                        <!-- 录屏参数条（稿 1 D02：挂三级参数条槽位的两行版式，容器皮/小三角/摆位全走宿主现成机制）。
+                             宿主不钉 Height=28——两行高度自由，由 LayoutOverlayStack 量高（§3.9） -->
+                        <StackPanel x:Name="RecordOptionsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center">
+                            <ContentControl x:Name="RecordOptionsHost" />
+                        </StackPanel>
+
+                        <!-- Text Tools Container — 完全对齐旧版 TextToolsPanel -->
+                        <StackPanel x:Name="TextToolsPanel" Orientation="Horizontal" IsVisible="False" VerticalAlignment="Center" Spacing="3">
+                            <!-- 字号（滚轮调整）。格距一律由容器 Spacing 给，子项自身不再带 Margin：
+                                 原先 4,0 与样式默认的 4,0 叠出 8/9/12 三种间距混在一起，看着就是"不对等"。 -->
+                            <Grid x:Name="TextSizeHost" Margin="0" Background="Transparent">
+                                <controls:ContinuousBorder BorderBrush="{DynamicResource SctBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource SctRadiusToolButton}" Height="28" Width="72" Padding="0" Background="Transparent" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="字号" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                        <TextBlock x:Name="TextSizeValueText" Text="24" MinWidth="32" TextAlignment="Center" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </controls:ContinuousBorder>
+                            </Grid>
+
+                            <Rectangle Width="1" Height="20" Fill="{DynamicResource SctSeparatorBrush}" Margin="0" />
+
+                            <!-- 粗体 -->
+                            <Button x:Name="BtnTextBold" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="粗体" Click="OnTextBoldClick">
+                                <Path Classes="icon" Data="M7,4 H13 A4,4 0 0 1 17,8 A4,4 0 0 1 13,12 A4,4 0 0 1 17,16 A4,4 0 0 1 13,20 H7 Z M7,12 H13 M10,12 V20 M10,4 V12" Width="14" Height="14" />
+                            </Button>
+                            <!-- 斜体 -->
+                            <Button x:Name="BtnTextItalic" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="斜体" Click="OnTextItalicClick">
+                                <Path Classes="icon" Data="M10,4 H16 M8,20 H14 M13,4 L11,20" Width="14" Height="14" />
+                            </Button>
+
+                            <!-- 描边 + Popup -->
+                            <Grid Margin="0">
+                                <Button x:Name="BtnTextStroke" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="描边" Click="OnTextStrokeClick">
+                                    <Path Classes="icon" Data="M5,20 L9,6 A3,3 0 0 1 15,6 L19,20 H16 L15,17 H9 L8,20 H5 Z M12,9 L10.5,14 H13.5 Z" Width="14" Height="14" />
+                                </Button>
+                                <Popup x:Name="TextStrokePopup" PlacementTarget="{Binding #BtnTextStroke}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="4">
+                                    <controls:ContinuousBorder Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                                        <StackPanel Width="198" Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                <CheckBox x:Name="ChkStrokeEnable" Content="描边" IsChecked="False" VerticalAlignment="Center" Focusable="False" />
+                                                <Border Grid.Column="1" Classes="segmentedHost">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button x:Name="BtnTargetStrokeColor" Classes="textSegment" Content="描边" Tag="2" Click="OnColorTargetButtonClick" />
+                                                        <Button x:Name="BtnTargetStrokeText" Classes="textSegment" Content="文字" Tag="0" Click="OnColorTargetButtonClick" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="44,*,28" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="大小" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderStrokeSize" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="30" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextStrokeSizeValue" Grid.Column="2" Text="4" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+                                </Popup>
+                            </Grid>
+
+                            <!-- 填充背景 ToggleButton + Popup -->
+                            <Grid Margin="0">
+                                <Button x:Name="BtnTextBackground" Classes="toolIcon outlined" Margin="0" ToolTip.Tip="填充背景" Click="OnTextBackgroundClick">
+                                    <!-- 外框 14＝与左邻三枚字形同一条墨迹带（那三枚实测墨迹高都是 14）；内字 11 是在框内留呼吸 -->
+                                    <Grid Width="14" Height="14">
+                                        <Border BorderBrush="{DynamicResource SctIconBrush}" BorderThickness="1" CornerRadius="4" />
+                                        <Path Classes="icon" Data="M5,20 L10,6 A2,2 0 0 1 14,6 L19,20 M7.5,14 H16.5" Width="11" Height="11" />
+                                    </Grid>
+                                </Button>
+                                <Popup x:Name="TextBackgroundPopup" PlacementTarget="{Binding #BtnTextBackground}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" VerticalOffset="4">
+                                    <controls:ContinuousBorder Classes="textPopupPanel" CornerRadius="{DynamicResource SctRadiusToolPanel}" BoxShadow="0 4 10 0 #33000000">
+                                        <StackPanel Width="210" Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                <CheckBox x:Name="ChkBackgroundEnable" Content="填充" IsChecked="False" VerticalAlignment="Center" Foreground="{DynamicResource SctTextPrimaryBrush}" Focusable="False" />
+                                                <Border Grid.Column="1" Classes="segmentedHost">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button x:Name="BtnTargetBackgroundColor" Classes="textSegment" Content="填充" Tag="1" Click="OnColorTargetButtonClick" />
+                                                        <Button x:Name="BtnTargetBackgroundText" Classes="textSegment" Content="文字" Tag="0" Click="OnColorTargetButtonClick" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="透明" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderFillOpacity" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="100" Value="100" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextFillOpacityValue" Grid.Column="2" Text="100" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="圆角" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderFillCorner" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="50" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextFillCornerValue" Grid.Column="2" Text="4" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                                                <TextBlock Text="边距" Classes="secondary" VerticalAlignment="Center" />
+                                                <Slider x:Name="SliderFillPadding" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="30" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                                <TextBlock x:Name="TextFillPaddingValue" Grid.Column="2" Text="4" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+                                </Popup>
+                            </Grid>
+                        </StackPanel>
+
+                        <Border x:Name="SepAfterStyle" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                    <StackPanel x:Name="CommonThicknessPanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False">
+                        <controls:StrokeThicknessControl x:Name="StrokeThicknessOptions" WheelAdjusted="OnStrokeThicknessAdjusted" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="EraserOptionsPanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False" Spacing="8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <controls:AnnotationToolButton x:Name="BtnEraserRectangle" ToolKey="eraserRectangle" Classes="active" ToolTip.Tip="矩形擦除" Click="OnEraserRectangleClick" />
+                            <controls:AnnotationToolButton x:Name="BtnEraserBrush" ToolKey="brush" ToolTip.Tip="画笔擦除" Click="OnEraserBrushClick" />
+                        </StackPanel>
+                        <StackPanel x:Name="EraserBrushSizePanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False" Spacing="8">
+                            <TextBlock Text="大小" Classes="secondary" VerticalAlignment="Center" />
+                            <Slider x:Name="SliderEraserSize" Classes="compactSlider" Width="112" Minimum="8" Maximum="96" Value="28" IsSnapToTickEnabled="True" TickFrequency="2" ValueChanged="OnEraserSizeChanged" />
+                            <TextBlock x:Name="EraserSizeValue" Text="28" MinWidth="24" TextAlignment="Right" Classes="secondary" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border Width="1" Height="16" Background="{DynamicResource SctSeparatorBrush}" VerticalAlignment="Center" />
+                        <controls:AnnotationToolButton ToolKey="clearall" ToolTip.Tip="清除全部标注，可撤销" Click="OnClearAllAnnotationsClick" />
+                    </StackPanel>
+
+                        <Border x:Name="SepAfterSize" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                        <StackPanel x:Name="CommonColorPanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False">
+                            <controls:AnnotationColorControl x:Name="SharedColorOptions" />
+                        </StackPanel>
+
+                        <Border x:Name="SepBeforeClear" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
+
+                        <Button x:Name="BtnClearCurrentTool" Classes="toolIcon" ToolTip.Tip="清除当前工具标注" Click="OnClearCurrentToolClick">
+                            <Path Fill="{DynamicResource SctIconBrush}" Stretch="Uniform" Width="17" Height="17" Data="M6,19c0,1.1,0.9,2,2,2h8c1.1,0,2-0.9,2-2V7H6V19z M19,4h-3.5l-1-1h-5l-1,1H5v2h14V4z" />
+                        </Button>
+                    </StackPanel>
+                </controls:ContinuousBorder>
+            </controls:ContinuousBorder>
+
+            <Path x:Name="ToolOptionsArrow"
+                  IsVisible="False"
+                  Width="14"
+                  Height="7"
+                  Data="M0,7 L7,0 L14,7 Z"
+                  Fill="{DynamicResource SctPanelBrush}"
+                  IsHitTestVisible="False" >
+                <Path.Styles><StyleInclude Source="/Themes/Toolbar.axaml" /></Path.Styles>
+            </Path>
+
+            <Path x:Name="GroupBarArrow"
+                  IsVisible="False"
+                  Width="14"
+                  Height="7"
+                  Data="M0,7 L7,0 L14,7 Z"
+                  Fill="{DynamicResource SctPanelBrush}"
+                  IsHitTestVisible="False" >
+                <Path.Styles><StyleInclude Source="/Themes/Toolbar.axaml" /></Path.Styles>
+            </Path>
+
+            <controls:ContinuousBorder x:Name="BrushLineStyleMenu"
+                    IsVisible="False"
+                    Background="{DynamicResource SctPanelBrush}"
+                    BorderBrush="{DynamicResource SctBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource SctRadiusToolPanel}"
+                    Padding="4"
+                    BoxShadow="0 4 14 0 #22000000">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/Toolbar.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <StackPanel MinWidth="72">
+                    <Button x:Name="BtnBrushSolidItem" Classes="tool" Height="30" HorizontalContentAlignment="Center" Click="OnBrushSolidItemClick">
+                        <Grid Height="22">
+                            <Line StartPoint="4,11" EndPoint="62,11" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" />
+                        </Grid>
+                    </Button>
+                    <Button x:Name="BtnBrushDashItem" Classes="tool" Height="30" HorizontalContentAlignment="Center" Click="OnBrushDashItemClick">
+                        <Grid Height="22">
+                            <Line StartPoint="4,11" EndPoint="62,11" Stroke="{DynamicResource SctIconBrush}" StrokeThickness="2.5" StrokeLineCap="Round" StrokeDashArray="3,2" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </controls:ContinuousBorder>
+
+            <controls:ContinuousBorder x:Name="BrushAdvancedMenu"
+                    IsVisible="False"
+                    Background="{DynamicResource SctPanelBrush}"
+                    BorderBrush="{DynamicResource SctBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource SctRadiusToolPanel}"
+                    Padding="8,7"
+                    BoxShadow="0 4 14 0 #22000000">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/Toolbar.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <StackPanel Width="232" Spacing="6">
+                    <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                        <TextBlock Text="强度" Classes="secondary" VerticalAlignment="Center" />
+                        <Slider x:Name="SliderBrushTaper" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="100" Value="35" TickFrequency="1" IsSnapToTickEnabled="True" ToolTip.Tip="笔锋强度：0 为等宽，越大则快慢带来的粗细差别越明显" />
+                        <TextBlock x:Name="TxtBrushTaper" Grid.Column="2" Text="35" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </Grid>
+                    <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                        <TextBlock Text="平滑" Classes="secondary" VerticalAlignment="Center" />
+                        <Slider x:Name="SliderBrushSmoothing" Grid.Column="1" Classes="compactSlider" Minimum="0" Maximum="100" Value="40" TickFrequency="1" IsSnapToTickEnabled="True" ToolTip.Tip="输入平滑：越大转折越圆滑，代价是笔迹跟手略迟" />
+                        <TextBlock x:Name="TxtBrushSmoothing" Grid.Column="2" Text="40" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </Grid>
+                    <Grid ColumnDefinitions="48,*,30" Height="28" VerticalAlignment="Center">
+                        <TextBlock Text="最细" Classes="secondary" VerticalAlignment="Center" />
+                        <Slider x:Name="SliderBrushMinWidth" Grid.Column="1" Classes="compactSlider" Minimum="5" Maximum="100" Value="25" TickFrequency="1" IsSnapToTickEnabled="True" ToolTip.Tip="笔锋最细处相对当前粗细的比例下限" />
+                        <TextBlock x:Name="TxtBrushMinWidth" Grid.Column="2" Text="25" Height="28" LineHeight="28" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </Grid>
+                    <TextBlock Text="速度笔锋：移动越快越细，强度滑至 0 即可等宽。"
+                               Classes="secondary"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </controls:ContinuousBorder>
+
+            <!-- 放大镜 -->
+            <controls:ContinuousBorder x:Name="MagnifierHost"
+                    Width="152"
+                    CornerRadius="{DynamicResource SctRadiusControl}"
+                    BorderThickness="0"
+                    Background="{DynamicResource SctCardBorderBrush}"
+                    Padding="1"
+                    IsVisible="False"
+                    IsHitTestVisible="False"
+                    ZIndex="400"
+                    UseLayoutRounding="True">
+                <controls:ContinuousBorder.Styles>
+                    <StyleInclude Source="/Themes/Workspace.axaml" />
+                </controls:ContinuousBorder.Styles>
+                <controls:ContinuousBorder CornerRadius="{DynamicResource SctRadiusSegmentInner}"
+                        BorderThickness="0"
+                        Background="{DynamicResource SctCardFillBrush}"
+                        UseLayoutRounding="True">
+                    <Grid Margin="6">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <controls:ContinuousBorder Grid.Row="0" Width="140" Height="140" BorderThickness="1" BorderBrush="{DynamicResource SctSeparatorBrush}" CornerRadius="{DynamicResource SctRadiusControl}" ClipToBounds="True" HorizontalAlignment="Center">
+                            <Grid>
+                                <Image x:Name="MagnifierImage" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" />
+                                <Line x:Name="MagnifierCrossLineH" StartPoint="0,70" EndPoint="140,70" Stroke="{DynamicResource SctMagnifierCrossLightBrush}" StrokeThickness="1" StrokeDashArray="4,2" Opacity="0.9"/>
+                                <Line x:Name="MagnifierCrossLineV" StartPoint="70,0" EndPoint="70,140" Stroke="{DynamicResource SctMagnifierCrossLightBrush}" StrokeThickness="1" StrokeDashArray="4,2" Opacity="0.9"/>
+                            </Grid>
+                        </controls:ContinuousBorder>
+
+                        <controls:ContinuousBorder Grid.Row="1" Background="{DynamicResource SctInputBgBrush}" CornerRadius="{DynamicResource SctRadiusControl}" Margin="0,6,0,0" Padding="6,3">
+                            <StackPanel>
+                                <TextBlock x:Name="MagnifierCoordText" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="10"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                    <controls:ContinuousBorder Width="12" Height="12" CornerRadius="{DynamicResource SctRadiusSmall}" BorderThickness="1" BorderBrush="{DynamicResource SctBorderBrush}" Margin="0,1,6,0">
+                                        <Rectangle x:Name="MagnifierColorSwatch" Fill="#FFFFFFFF"/>
+                                    </controls:ContinuousBorder>
+                                    <TextBlock x:Name="MagnifierColorText" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="10"/>
+                                </StackPanel>
+                                <TextBlock x:Name="MagnifierHintText" Foreground="{DynamicResource SctTextPrimaryBrush}" FontSize="10" Opacity="0.7" Margin="0,1,0,0" Text="C复制。Shift切换格式。"/>
+                            </StackPanel>
+                        </controls:ContinuousBorder>
+                    </Grid>
+                </controls:ContinuousBorder>
+            </controls:ContinuousBorder>
+
+        </Canvas>
+
+        <!-- 左下角多状态快捷键提示条：直接通过 Grid 底左对齐，从首帧即钉在左下角，消除从左上跳跃到左下角的闪烁 -->
+        <controls:ContinuousBorder x:Name="ShortcutHintPill"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Margin="16,0,0,16"
+                IsVisible="False"
+                IsHitTestVisible="False"
+                Background="{DynamicResource SctDarkPillBgBrush}"
+                CornerRadius="{DynamicResource SctRadiusControl}"
+                Padding="14,11">
+            <Grid x:Name="ShortcutHintGrid" ColumnDefinitions="Auto,Auto" />
+        </controls:ContinuousBorder>
+    </Grid>
+</Window>

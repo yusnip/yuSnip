@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ScreenCaptureTool.Controls.StrokeThicknessControl">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Classes="toolOptionHost" Width="78" PointerWheelChanged="OnWheel">
+            <Grid Width="62" Height="24" ColumnDefinitions="22,6,24" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Grid Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Ellipse x:Name="SizePreview" Width="8" Height="8" Fill="{DynamicResource SctIconBrush}"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock x:Name="SizeText" Grid.Column="2" Text="15" Width="24" Height="24" LineHeight="24"
+                           TextAlignment="Center" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+        <Slider x:Name="SizeSlider" Width="0" Height="0" Opacity="0" Minimum="1" Maximum="45" Value="15"
+                TickFrequency="1" IsSnapToTickEnabled="True" />
+    </StackPanel>
+</UserControl>

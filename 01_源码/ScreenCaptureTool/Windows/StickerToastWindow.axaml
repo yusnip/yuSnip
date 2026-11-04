@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        x:Class="ScreenCaptureTool.Windows.StickerToastWindow"
+        Title="StickerToast"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        IsHitTestVisible="False">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+    </Window.Styles>
+    <!-- 1 DIP 描边由原内距补偿，文字落点与外尺寸保持；无交互、不增加图标或内容层。 -->
+    <round:ContinuousBorder CornerRadius="{DynamicResource SctRadiusControl}"
+            Padding="19,9" BorderThickness="1"
+            BorderBrush="{DynamicResource SctMenuBorderBrush}"
+            Background="{DynamicResource SctMenuBackgroundBrush}">
+        <TextBlock x:Name="TxtMessage"
+                   Foreground="{DynamicResource SctTextPrimaryBrush}"
+                   FontSize="14"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center" />
+    </round:ContinuousBorder>
+</Window>

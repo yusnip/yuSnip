@@ -1,0 +1,195 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:round="using:ScreenCaptureTool.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="444" d:DesignHeight="150"
+        x:Class="ScreenCaptureTool.Windows.TranslateMiniWindow"
+        Title="翻译"
+        Width="444"
+        SizeToContent="Height"
+        MaxHeight="340"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="14"
+        SizeChanged="OnRootSizeChanged">
+
+    <!-- 出现 160ms / 淡出 220ms -->
+    <Window.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.16" Easing="CubicEaseOut" />
+        </Transitions>
+    </Window.Transitions>
+
+    <!-- ══════ 窗口专属样式：只写便签自身的排印，字号全部落在设计规范 §4.2 白名单内，
+         层级只靠字号与字色（meta 行 / 页脚属"界面说明文字"，用三级灰 SctTextTertiary，
+         浅色下 Primary/Muted 同为 #222222，不新建 Token 就没法真的做淡，禁止再用 Opacity 造假层级）；
+         图标按钮 / 文本链接 / 骨架条一律复用 Controls.axaml 全局样式 ══════ -->
+    <Window.Styles>
+        <StyleInclude Source="/Themes/Workspace.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceToolTips.axaml" />
+        <StyleInclude Source="/Themes/WorkspaceMenus.axaml" />
+        <!-- 选区高亮：用半透明品牌紫底，与全局徽标底色同源 -->
+        <Style Selector="SelectableTextBlock">
+            <Setter Property="SelectionBrush" Value="{DynamicResource SctBadgeBgBrush}" />
+        </Style>
+
+        <!-- meta 行：语言对 + 引擎，12px 三级灰 -->
+        <Style Selector="TextBlock.miniMeta">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- 引擎名：品牌紫 Medium，不加底不打牌，只是一行小字 -->
+        <Style Selector="TextBlock.miniEng">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{DynamicResource SctBadgeTextBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- 译文：主角，14px Medium，最多4行，超出省略号截断 -->
+        <Style Selector="SelectableTextBlock.miniTarget">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="LineHeight" Value="24" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="MaxLines" Value="4" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        </Style>
+
+        <!-- 原文：次要信息，12px 灰字，最多2行，超出省略号截断 -->
+        <Style Selector="SelectableTextBlock.miniSource">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="19" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="MaxLines" Value="2" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="SelectableTextBlock.miniStreamSource">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="19" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+        <Style Selector="SelectableTextBlock.miniStreamTarget">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="LineHeight" Value="24" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        </Style>
+
+        <!-- 底部提示行：界面说明文字，与 meta 行同档三级灰 -->
+        <Style Selector="TextBlock.miniFoot">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextTertiaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 四周留 26px 透明缓冲：缓冲必须 ≥ 阴影的下移 + 模糊（6 + 20 = 26），
+         否则阴影画到窗口表面之外就被裁光，便签看着像死贴在屏幕上 -->
+    <Border Padding="26" Background="Transparent"
+            PointerEntered="OnRootPointerEntered" PointerExited="OnRootPointerExited">
+        <!-- 不得设 ClipToBounds：裁剪在控件自身 Render 之前入栈，会把这层 Border 自己的外阴影一起剪掉 -->
+        <round:ContinuousBorder x:Name="RootBorder"
+                CornerRadius="{DynamicResource SctRadiusControl}"
+                Background="{DynamicResource SctMenuBackgroundBrush}"
+                BorderBrush="{DynamicResource SctMenuBorderBrush}"
+                BorderThickness="1"
+                BoxShadow="{DynamicResource SctShadowOverlay}"
+                PointerPressed="OnRootPointerPressed">
+
+            <!-- 单层容器、一条发丝线：meta / 译文 / 分隔 / 原文 / 提示行 -->
+            <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Margin="16,12,16,12">
+
+                <!-- ══════ meta 行：原文语言 → 译文语言 · 引擎 + 右侧唯一出口（去编辑窗口） ══════ -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <TextBlock x:Name="TxtSourceLang" Classes="miniMeta" Text="自动检测" />
+                        <TextBlock Classes="miniMeta" Text="→" />
+                        <TextBlock x:Name="TxtTargetLang" Classes="miniMeta" Text="简体中文" />
+                        <TextBlock x:Name="EngineSep" Classes="miniMeta" Text="·" />
+                        <TextBlock x:Name="TxtEngine" Classes="miniEng" Text="百度翻译" />
+                    </StackPanel>
+
+                    <Button Grid.Column="1" x:Name="BtnOpenEditor" Classes="sctIconBtn"
+                            ToolTip.Tip="在编辑窗口中打开（也可双击便签空白处）" Click="OnOpenEditorClick">
+                        <Path x:Name="IconOpenEditor" Classes="sctIcon" />
+                    </Button>
+                </Grid>
+
+                <!-- ══════ 译文区：结果 / 骨架 / 错误 三态同位，最多4行展示，超出省略号截断 ══════ -->
+                <Grid Grid.Row="1" MinHeight="24" RowDefinitions="Auto,Auto">
+                    <ScrollViewer x:Name="StreamScroll" IsVisible="False" MaxHeight="190"
+                                  HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="StreamPairs" Spacing="10" />
+                    </ScrollViewer>
+                    <SelectableTextBlock x:Name="TxtTarget" Classes="miniTarget" IsVisible="False"
+                                         ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}">
+                        <SelectableTextBlock.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="复制选中内容" Click="OnCopySelectedTargetClick" />
+                                <MenuItem Header="复制完整译文" Click="OnCopyFullTargetClick" />
+                            </ContextMenu>
+                        </SelectableTextBlock.ContextMenu>
+                    </SelectableTextBlock>
+
+                    <StackPanel x:Name="SkeletonPanel" Spacing="9" Margin="0,3,0,0"
+                                VerticalAlignment="Top">
+                        <Border Classes="skeleton" Width="260" HorizontalAlignment="Left" />
+                        <Border Classes="skeleton" Width="310" HorizontalAlignment="Left" />
+                        <Border Classes="skeleton" Width="170" HorizontalAlignment="Left" />
+                    </StackPanel>
+
+                    <round:ContinuousBorder x:Name="ErrorPanel" Grid.Row="1" IsVisible="False"
+                            Background="{DynamicResource SctWarnBgBrush}"
+                            CornerRadius="{DynamicResource SctRadiusControl}" Padding="10,7"
+                            VerticalAlignment="Center">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Path x:Name="IconWarn" Classes="sctIcon warn" Width="13" Height="13"
+                                  VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtError" Grid.Column="1" TextWrapping="Wrap" FontSize="12"
+                                       Foreground="{DynamicResource SctWarnBrush}" Margin="7,0,7,0"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="BtnRetry" Grid.Column="2" Classes="link" Content="重试"
+                                    VerticalAlignment="Center" Click="OnRetryClick" />
+                        </Grid>
+                    </round:ContinuousBorder>
+                </Grid>
+
+                <!-- ══════ 发丝线：原文与译文之间唯一的分隔 ══════ -->
+                <Rectangle x:Name="SourceDivider" Grid.Row="2" Height="1" Fill="{DynamicResource SctSeparatorBrush}" Margin="0,10,0,8" />
+
+                <!-- ══════ 原文行：最多2行，超出省略号截断，全文靠右键复制、悬浮提示或双击进编辑窗看 ══════ -->
+                <SelectableTextBlock Grid.Row="3" x:Name="TxtSource" Classes="miniSource"
+                                     ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}">
+                    <SelectableTextBlock.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="复制选中内容" Click="OnCopySelectedSourceClick" />
+                            <MenuItem Header="复制完整原文" Click="OnCopySourceClick" />
+                        </ContextMenu>
+                    </SelectableTextBlock.ContextMenu>
+                </SelectableTextBlock>
+
+                <!-- ══════ 提示行：译文是否已复制 + 会不会失焦关闭 + 怎么升级到编辑窗 ══════ -->
+                <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="6" Margin="0,9,0,0">
+                    <Path x:Name="IconFooter" Classes="sctIcon" Width="12" Height="12" />
+                    <TextBlock x:Name="TxtFooter" Classes="miniFoot"
+                               Text="双击空白处打开编辑窗" />
+                </StackPanel>
+
+            </Grid>
+        </round:ContinuousBorder>
+    </Border>
+</Window>

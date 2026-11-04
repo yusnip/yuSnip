@@ -1,0 +1,851 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- ============ 浅色（品牌调色板：温润多级灰阶，无纯白） ============ -->
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="SctSkyDayStartColor">#EDF0FF</Color>
+                    <Color x:Key="SctSkyDayEndColor">#B5D8F5</Color>
+                    <Color x:Key="SctSkyDayTextColor">#303653</Color>
+                    <Color x:Key="SctSkyDuskStartColor">#EEE5FA</Color>
+                    <Color x:Key="SctSkyDuskEndColor">#F4C2AD</Color>
+                    <Color x:Key="SctSkyDuskTextColor">#453653</Color>
+                    <Color x:Key="SctSkyNightStartColor">#292B50</Color>
+                    <Color x:Key="SctSkyNightEndColor">#45457C</Color>
+                    <Color x:Key="SctSkyNightTextColor">#F4F1FF</Color>
+                    <Color x:Key="SctSkyCloudColor">#DEFFFFFF</Color>
+                    <Color x:Key="SctSkyStarColor">#DBE2FF</Color>
+                    <Color x:Key="SctSkyActionFillColor">#28FFFFFF</Color>
+                    <Color x:Key="SctSkyActionHoverColor">#48FFFFFF</Color>
+                    <Color x:Key="SctSkySunColor">#F6BD4F</Color>
+                    <Color x:Key="SctSkyDayStormColor">#A6BECF</Color>
+                    <Color x:Key="SctSkyNightStormColor">#30364E</Color>
+                    <Color x:Key="SctSkyDayCloudColor">#A4B7C8</Color>
+                    <Color x:Key="SctSkyNightCloudColor">#6C7595</Color>
+                    <Color x:Key="SctSkySnowColor">#FFFFFF</Color>
+                    <Color x:Key="SctSkyDayRainColor">#60788F</Color>
+                    <Color x:Key="SctSkyNightRainColor">#A5B5D8</Color>
+
+                    <Color x:Key="SctWorkspaceSampleLightCanvasColor">#F8F7FB</Color>
+                    <Color x:Key="SctWorkspaceSampleLightSidebarColor">#E9E5F3</Color>
+                    <Color x:Key="SctWorkspaceSampleLightCardColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceSampleLightLineColor">#DDD8E9</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkCanvasColor">#1C1A23</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkSidebarColor">#373143</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkCardColor">#292632</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkLineColor">#494152</Color>
+                    <!-- Workspace 新主题：设置窗口先迁移，其他窗口按需引入 Workspace.axaml。 -->
+                    <Color x:Key="SctWorkspaceCanvasColor">#F8F7FB</Color>
+                    <Color x:Key="SctWorkspaceSidebarColor">#F3F1F9</Color>
+                    <Color x:Key="SctWorkspaceCardColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceElevatedColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceFieldColor">#F9F8FC</Color>
+                    <Color x:Key="SctWorkspaceHoverColor">#F0EEF6</Color>
+                    <Color x:Key="SctWorkspaceBorderColor">#E3DFED</Color>
+                    <Color x:Key="SctWorkspaceDividerColor">#EDEAF3</Color>
+                    <Color x:Key="SctWorkspaceTextColor">#282533</Color>
+                    <Color x:Key="SctWorkspaceSecondaryColor">#595364</Color>
+                    <Color x:Key="SctWorkspaceMutedColor">#716A7D</Color>
+                    <Color x:Key="SctWorkspaceSelectedColor">#E9E7FF</Color>
+                    <Color x:Key="SctWorkspaceBrandTextColor">#5357C7</Color>
+                    <Color x:Key="SctWorkspaceGlowColor">#24797EFE</Color>
+                    <Color x:Key="SctWorkspaceGlowClearColor">#00797EFE</Color>
+                    <Color x:Key="SctWorkspaceScrimColor">#470D0A1A</Color>
+
+                    <Color x:Key="SystemAccentColor">#797EFE</Color>
+                    <Color x:Key="SctAccentColor">#797EFE</Color>
+                    <!-- 品牌紫悬浮/按压档（2026-09-30 收编为全局 Token：此前散在各窗口私有字典与
+                         Controls.axaml 的字面值 #8E93FF/#6267E6，取值不变）。 -->
+                    <Color x:Key="SctAccentHoverColor">#8E93FF</Color>
+                    <Color x:Key="SctAccentPressedColor">#6267E6</Color>
+                    <Color x:Key="SctBackgroundColor">#F2F2F2</Color>
+                    <Color x:Key="SctCardColor">#EAEAEA</Color>
+                    <Color x:Key="SctPanelColor">#F2F2F2</Color>
+                    <Color x:Key="SctCardFillColor">#EAEAEA</Color>
+                    <Color x:Key="SctSubtleColor">#EFEFEF</Color>
+                    <!-- 译文进行态徽标底：贴图上的进度胶囊底色（不透明，保证文字对比度） -->
+                    <Color x:Key="SctTranslatingBadgeColor">#F2FFFFFF</Color>
+                    <Color x:Key="SctNavBackgroundColor">#F2F2F2</Color>
+                    <Color x:Key="SctNavActiveColor">#797EFE</Color>
+                    <Color x:Key="SctNavActiveTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctNavActiveHintColor">#FFFFFF</Color>
+                    <Color x:Key="SctBorderColor">#DCDCDC</Color>
+                    <Color x:Key="SctSoftBorderColor">#DCDCDC</Color>
+                    <Color x:Key="SctTextPrimaryColor">#222222</Color>
+                    <Color x:Key="SctTextSecondaryColor">#222222</Color>
+                    <Color x:Key="SctTextMutedColor">#222222</Color>
+                    <!-- 三级灰：浮层窗口的 meta 行 / 页脚提示这类"界面说明文字"专用；上面四档在浅色下全是 #222222，
+                         再要淡一档只能新建 Token，禁止用 Opacity 造假层级（设计规范 §4.3） -->
+                    <Color x:Key="SctTextTertiaryColor">#6E6E73</Color>
+                    <Color x:Key="SctSubTitleColor">#222222</Color>
+                    <Color x:Key="SctCardTitleColor">#222222</Color>
+                    <Color x:Key="SctDangerColor">#DC2626</Color>
+                    <Color x:Key="SctDangerBgColor">#FEF2F2</Color>
+                    <!-- 成功态胶囊（录屏设置 FFmpeg「已就绪」等；稿 4 02 卡 statuspill.ok） -->
+                    <Color x:Key="SctOkColor">#1F7A38</Color>
+                    <Color x:Key="SctOkBgColor">#E3F5E8</Color>
+                    <Color x:Key="SctOkBorderColor">#B5DFC0</Color>
+                    <Color x:Key="SctButtonHoverColor">#0A000000</Color>
+                    <Color x:Key="SctButtonPressedColor">#14000000</Color>
+                    <Color x:Key="SctControlBarOuterColor">#30000000</Color>
+                    <Color x:Key="SctSeparatorColor">#20000000</Color>
+                    <!-- ToolTip 三件套（2026-09-22 收口）：Fluent 自带 ToolTip 是钉死的深灰底白字
+                         （#2B2B2B ＋ 白字，既不看主题也不看按钮挂哪一族皮），浅色主题下鼠标划过录屏预览条
+                         那几枚按钮就弹出"灰底白字"——用户实报的正是这一条。本族按主题给一档皮，
+                         与按钮自己的皮解耦：提示跟随明暗主题，两者互不牵连。
+                         数值参照 SctCardFillBrush 一档：浮在桌面上的小提示，底比正文背景略亮一点才浮得起来。 -->
+                    <Color x:Key="SctTooltipBgColor">#FAFAFA</Color>
+                    <Color x:Key="SctTooltipBorderColor">#DCDCDC</Color>
+                    <Color x:Key="SctTooltipFgColor">#222222</Color>
+                    <!-- 视频预览窗专用键（2026-09-22 预览窗改随主题后仅剩的一枚）：letterbox 画面底。
+                         浅色档给近白底（图片查看器惯例），深色档保持原先钉黑值（纯黑 letterbox，视频播放器惯例）。
+                         工具条面板本身已回归主题 Token，不再走这一族；画面卡外框原先那枚
+                         SctPlayerOutlineColor 已删——外框改跟「截图选框样式」设置，色值不再出自主题。 -->
+                    <Color x:Key="SctPlayerBgColor">#FAFAFA</Color>
+                    <!-- Fluent ToolTip 取值键（2026-09-22）：FluentTheme 内部 ToolTip 样式以 DynamicResource
+                         消费 ToolTipBackground / ToolTipForeground / ToolTipBorderBrush。此前只在 ToolTip
+                         控件上挂属性样式，但 Fluent 的取值链不完全经 TemplateBinding，属性压不进默认样式
+                         ——悬浮提示仍是 Fluent 默认深灰底白字（用户两轮实报）。在主题字典里直接供值
+                         这三枚（浅深两态各一档，走同字典的 SctTooltip*Color），才能稳定盖过 Fluent palette。 -->
+                    <SolidColorBrush x:Key="ToolTipBackground" Color="{DynamicResource SctTooltipBgColor}" />
+                    <SolidColorBrush x:Key="ToolTipForeground" Color="{DynamicResource SctTooltipFgColor}" />
+                    <SolidColorBrush x:Key="ToolTipBorderBrush" Color="{DynamicResource SctTooltipBorderColor}" />
+                    <Color x:Key="SctSizeLabelBackgroundColor">#1C1C1C</Color>
+                    <Color x:Key="SctComboBoxBgColor">#F5F5F5</Color>
+                    <Color x:Key="SctComboBoxHoverColor">#E6E6E6</Color>
+                    <!-- 输入框 / 列表行 -->
+                    <Color x:Key="SctInputBgColor">#F5F5F5</Color>
+                    <Color x:Key="SctRowBgColor">#F2F2F2</Color>
+                    <Color x:Key="SctRowHoverBgColor">#E6E6E6</Color>
+                    <!-- 卡片描边（浅色带发丝描边） -->
+                    <Color x:Key="SctCardBorderColor">#E0E0E0</Color>
+                    <Thickness x:Key="SctCardBorderThickness">1</Thickness>
+                    <!-- 放大镜 -->
+                    <Color x:Key="SctMagnifierBgColor">#F3F5F7</Color>
+                    <Color x:Key="SctMagnifierInnerColor">#FFFFFF</Color>
+                    <Color x:Key="SctMagnifierTextColor">#1E1E1E</Color>
+                    <Color x:Key="SctMagnifierSwatchBorderColor">#D1D1D1</Color>
+                    <Color x:Key="SctMagnifierCrossDarkColor">#3A3A3A</Color>
+                    <Color x:Key="SctMagnifierCrossLightColor">#FFFFFF</Color>
+                    <Color x:Key="SctEyeIconColor">#8A8A8A</Color>
+                    <Color x:Key="SctEyeOffColor">#797EFE</Color>
+                    <!-- 右键菜单与菜单浮层（浅色纯白 #FFFFFF） -->
+                    <Color x:Key="SctMenuBgColor">#FFFFFF</Color>
+                    <Color x:Key="SctMenuBorderColor">#E5E7EB</Color>
+                    <!-- 菜单项单色图标 / 菜单内发丝分割线（比通用 Border 更淡，只在浮层内出现） -->
+                    <Color x:Key="SctMenuIconColor">#555555</Color>
+                    <Color x:Key="SctMenuSeparatorColor">#EBEBEF</Color>
+                    <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="#E5E7EB" />
+                    <!-- 分段控件宿主 / 选中态 / 徽标（全局共享，设置页与各弹窗统一复用） -->
+                    <Color x:Key="SctTitleBarColor">#F2F2F2</Color>
+                    <Color x:Key="SctControlOuterColor">#E5E7EB</Color>
+                    <!-- 分段专用表面；旧 SegmentedChecked Token 仍供主操作、复选框与滑块使用。 -->
+                    <Color x:Key="SctChoiceTrackColor">#EEECF3</Color>
+                    <Color x:Key="SctChoiceTrackBorderColor">#E7E3EF</Color>
+                    <Color x:Key="SctChoiceSelectedColor">#FFFFFF</Color>
+                    <Color x:Key="SctChoiceSelectedBorderColor">#DAD5E5</Color>
+                    <Color x:Key="SctChoiceSelectedHoverColor">#FAF9FD</Color>
+                    <Color x:Key="SctChoiceSelectedPressedColor">#F2EFF8</Color>
+                    <Color x:Key="SctChoiceTextColor">#302C3B</Color>
+                    <Color x:Key="SctChoiceMutedColor">#625A6E</Color>
+                    <Color x:Key="SctChoiceHoverColor">#E5E1ED</Color>
+                    <Color x:Key="SctChoicePressedColor">#DCD7E6</Color>
+                    <Color x:Key="SctChoiceAccentColor">#797EFE</Color>
+                    <Color x:Key="SctSegmentedCheckedBgColor">#797EFE</Color>
+                    <Color x:Key="SctSegmentedCheckedTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctBadgeBgColor">#1F797EFE</Color>
+                    <Color x:Key="SctBadgeBgHoverColor">#33797EFE</Color>
+                    <Color x:Key="SctBadgeTextColor">#797EFE</Color>
+                    <!-- 搜索命中底色：品牌紫 20%（比徽章底 12% 重一档，一行宽的卡片文字行上才看得见） -->
+                    <Color x:Key="SctSearchMarkColor">#33797EFE</Color>
+                    <!-- 划词荧光底色：荧光黄 30%。刻意不复用 SctSearchMarkColor —— 那一档是"这一行是搜索结果"
+                         的界面高亮，压在正文上读成紫色；荧光笔的语义色是黄，且要盖得住深色正文仍留出对比。 -->
+                    <Color x:Key="SctMarkHlColor">#4DFACC15</Color>
+                    <!-- 划词翻译指向标记底色：品牌紫 20%（2026-09-30 随划词翻译指向交互引入）。
+                         与 SctSearchMarkColor 同值但语义独立——那是"搜索结果行"的界面高亮，
+                         这枚是"原文已被钉上译文"的内容标记；荧光黄的划词标注（SctMarkHl）是第三种语义，三者不复用。 -->
+                    <Color x:Key="SctAccentSoftColor">#33797EFE</Color>
+                    <!-- 凹槽滑块空格（比面板底 #EFEFEF 深一档，与已填品牌紫拉开对比） -->
+                    <Color x:Key="SctNotchEmptyColor">#C9CBD3</Color>
+                    <!-- 警告态（翻译窗口错误提示等）：浅色用深琥珀字 + 淡黄底 -->
+                    <Color x:Key="SctWarnColor">#B45309</Color>
+                    <Color x:Key="SctWarnBgColor">#FEF3C7</Color>
+                    <!-- 底部通栏状态条（设置页操作反馈）：实底饱和色 + 白字白图标，
+                         刻意不跟随 SctDangerColor —— 该 Token 深色档是浅 coral #F87171，
+                         白字压上去对比度不足，所以状态条自带一档更深的实心红 -->
+                    <Color x:Key="SctStatusBgColor">#797EFE</Color>
+                    <Color x:Key="SctStatusErrorBgColor">#DC2626</Color>
+                    <Color x:Key="SctStatusTextColor">#FFFFFF</Color>
+                    <!-- 轻雾糖果：截图紫 / AI 雾蓝 / OCR 薄荷 / 翻译杏桃。
+                         图例、面积和占比用柔和色；曲线同色系微加深保证白底可辨，数字用正文色。 -->
+                    <Color x:Key="SctChartSeries1Color">#A59AF2</Color>
+                    <Color x:Key="SctChartSeries2Color">#8CB8EE</Color>
+                    <Color x:Key="SctChartSeries3Color">#8BCFB9</Color>
+                    <Color x:Key="SctChartSeries4Color">#EDB59B</Color>
+                    <Color x:Key="SctChartSeries5Color">#DE9DBC</Color>
+                    <Color x:Key="SctChartSeries1LineColor">#958BD9</Color>
+                    <Color x:Key="SctChartSeries2LineColor">#7596C3</Color>
+                    <Color x:Key="SctChartSeries3LineColor">#6E9E92</Color>
+                    <Color x:Key="SctChartSeries4LineColor">#B48B7D</Color>
+                    <Color x:Key="SctChartSeries5LineColor">#B27792</Color>
+                    <!-- 文本贴图配色（四枚成对，刻意独立于卡片/输入框等界面 Token）：
+                         贴图是钉在桌面上的独立画布，底色与字色必须成对取值才保证对比度；
+                         复用 SctCardColor / SctTextPrimaryColor 会让浅色档正文由 #333333 变 #222222。
+                         浅色档取值与 TextStickerRenderer 原字面量逐字节相同。 -->
+                    <Color x:Key="SctStickerCanvasGlowColor">#24A5C4</Color>
+                    <!-- 画布抓手的玻璃底、曲面描边与内沿反光，随主题成套解析。 -->
+                    <LinearGradientBrush x:Key="SctStickerGripGlassBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#D9FFFFFF" />
+                        <GradientStop Offset="1" Color="#B8E7EDF6" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="SctStickerGripRimBrush" StartPoint="20%,0%" EndPoint="80%,100%">
+                        <GradientStop Offset="0" Color="#F2FFFFFF" />
+                        <GradientStop Offset="0.55" Color="#5C6D9CB6" />
+                        <GradientStop Offset="1" Color="#CFFFFFFF" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="SctStickerGripSheenBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#A6FFFFFF" />
+                        <GradientStop Offset="0.6" Color="Transparent" />
+                    </LinearGradientBrush>
+                    <Color x:Key="SctStickerBgColor">#FFFFFF</Color>
+                    <Color x:Key="SctStickerTextColor">#333333</Color>
+                    <Color x:Key="SctStickerCodeBgColor">#F8F9FA</Color>
+                    <Color x:Key="SctStickerCodeBorderColor">#E9ECEF</Color>
+                    <!-- 贴图透明承托层：品牌紫韵微晶格（浅色档） -->
+                    <Color x:Key="SctCheckerboardBgColor">#F7F8FA</Color>
+                    <Color x:Key="SctCheckerboardTileColor">#E9ECF8</Color>
+                    <DrawingBrush x:Key="SctCheckerboardBrush" Stretch="None" TileMode="Tile" SourceRect="0,0,16,16" DestinationRect="0,0,16,16">
+                        <DrawingBrush.Drawing>
+                            <DrawingGroup>
+                                <GeometryDrawing Brush="#F7F8FA">
+                                    <GeometryDrawing.Geometry>
+                                        <RectangleGeometry Rect="0,0,16,16" />
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                                <GeometryDrawing Brush="#E9ECF8">
+                                    <GeometryDrawing.Geometry>
+                                        <GeometryGroup>
+                                            <RectangleGeometry Rect="0,0,8,8" />
+                                            <RectangleGeometry Rect="8,8,8,8" />
+                                        </GeometryGroup>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                            </DrawingGroup>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </ResourceDictionary>
+
+                <!-- ============ 深色（品牌调色板：沉浸暗调，卡片去描边） ============ -->
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="SctSkyDayStartColor">#2A304A</Color>
+                    <Color x:Key="SctSkyDayEndColor">#465F86</Color>
+                    <Color x:Key="SctSkyDayTextColor">#F3F0FA</Color>
+                    <Color x:Key="SctSkyDuskStartColor">#353047</Color>
+                    <Color x:Key="SctSkyDuskEndColor">#805C73</Color>
+                    <Color x:Key="SctSkyDuskTextColor">#F3F0FA</Color>
+                    <Color x:Key="SctSkyNightStartColor">#24243D</Color>
+                    <Color x:Key="SctSkyNightEndColor">#34365F</Color>
+                    <Color x:Key="SctSkyNightTextColor">#F4F1FF</Color>
+                    <Color x:Key="SctSkyCloudColor">#DEFFFFFF</Color>
+                    <Color x:Key="SctSkyStarColor">#DBE2FF</Color>
+                    <Color x:Key="SctSkyActionFillColor">#20000000</Color>
+                    <Color x:Key="SctSkyActionHoverColor">#38000000</Color>
+                    <Color x:Key="SctSkySunColor">#FFC65C</Color>
+                    <Color x:Key="SctSkyDayStormColor">#46566F</Color>
+                    <Color x:Key="SctSkyNightStormColor">#282D46</Color>
+                    <Color x:Key="SctSkyDayCloudColor">#8394AC</Color>
+                    <Color x:Key="SctSkyNightCloudColor">#697392</Color>
+                    <Color x:Key="SctSkySnowColor">#E8F1FF</Color>
+                    <Color x:Key="SctSkyDayRainColor">#B1C8E0</Color>
+                    <Color x:Key="SctSkyNightRainColor">#A5B5D8</Color>
+
+                    <Color x:Key="SctWorkspaceSampleLightCanvasColor">#F8F7FB</Color>
+                    <Color x:Key="SctWorkspaceSampleLightSidebarColor">#E9E5F3</Color>
+                    <Color x:Key="SctWorkspaceSampleLightCardColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceSampleLightLineColor">#DDD8E9</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkCanvasColor">#1C1A23</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkSidebarColor">#373143</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkCardColor">#292632</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkLineColor">#494152</Color>
+                    <!-- Workspace 新主题：设置窗口先迁移，其他窗口按需引入 Workspace.axaml。 -->
+                    <Color x:Key="SctWorkspaceCanvasColor">#1C1A23</Color>
+                    <Color x:Key="SctWorkspaceSidebarColor">#24212E</Color>
+                    <Color x:Key="SctWorkspaceCardColor">#292632</Color>
+                    <Color x:Key="SctWorkspaceElevatedColor">#302C3B</Color>
+                    <Color x:Key="SctWorkspaceFieldColor">#211E2A</Color>
+                    <Color x:Key="SctWorkspaceHoverColor">#343040</Color>
+                    <Color x:Key="SctWorkspaceBorderColor">#403A4E</Color>
+                    <Color x:Key="SctWorkspaceDividerColor">#383242</Color>
+                    <Color x:Key="SctWorkspaceTextColor">#F3F0FA</Color>
+                    <Color x:Key="SctWorkspaceSecondaryColor">#C7C1D2</Color>
+                    <Color x:Key="SctWorkspaceMutedColor">#AAA1BA</Color>
+                    <Color x:Key="SctWorkspaceSelectedColor">#37334F</Color>
+                    <Color x:Key="SctWorkspaceBrandTextColor">#B6B8FF</Color>
+                    <Color x:Key="SctWorkspaceGlowColor">#28797EFE</Color>
+                    <Color x:Key="SctWorkspaceGlowClearColor">#00797EFE</Color>
+                    <Color x:Key="SctWorkspaceScrimColor">#700D0A1A</Color>
+
+                    <Color x:Key="SystemAccentColor">#797EFE</Color>
+                    <Color x:Key="SctAccentColor">#797EFE</Color>
+                    <Color x:Key="SctAccentHoverColor">#8E93FF</Color>
+                    <Color x:Key="SctAccentPressedColor">#6267E6</Color>
+                    <Color x:Key="SctBackgroundColor">#282828</Color>
+                    <Color x:Key="SctCardColor">#333333</Color>
+                    <Color x:Key="SctPanelColor">#282828</Color>
+                    <Color x:Key="SctCardFillColor">#333333</Color>
+                    <Color x:Key="SctSubtleColor">#383838</Color>
+                    <!-- 译文进行态徽标底：深色主题下用深色胶囊，保证文字对比度 -->
+                    <Color x:Key="SctTranslatingBadgeColor">#F02A2A2E</Color>
+                    <Color x:Key="SctNavBackgroundColor">#282828</Color>
+                    <Color x:Key="SctNavActiveColor">#797EFE</Color>
+                    <Color x:Key="SctNavActiveTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctNavActiveHintColor">#FFFFFF</Color>
+                    <Color x:Key="SctBorderColor">#555555</Color>
+                    <Color x:Key="SctSoftBorderColor">#444444</Color>
+                    <Color x:Key="SctTextPrimaryColor">#FFFFFF</Color>
+                    <Color x:Key="SctTextSecondaryColor">#FFFFFF</Color>
+                    <Color x:Key="SctTextMutedColor">#9F9FA1</Color>
+                    <!-- 三级灰（深色）：比 muted 再淡一档，#2B2B2B 浮层底上仍有约 4.9:1 对比度 -->
+                    <Color x:Key="SctTextTertiaryColor">#8A8A8E</Color>
+                    <Color x:Key="SctSubTitleColor">#9F9FA1</Color>
+                    <Color x:Key="SctCardTitleColor">#FFFFFF</Color>
+                    <Color x:Key="SctDangerColor">#F87171</Color>
+                    <Color x:Key="SctDangerBgColor">#451A1A</Color>
+                    <!-- 成功态胶囊深色档（稿 4 dark .statuspill.ok） -->
+                    <Color x:Key="SctOkColor">#7ED491</Color>
+                    <Color x:Key="SctOkBgColor">#1E3A27</Color>
+                    <Color x:Key="SctOkBorderColor">#2A5237</Color>
+                    <Color x:Key="SctButtonHoverColor">#14FFFFFF</Color>
+                    <Color x:Key="SctButtonPressedColor">#20FFFFFF</Color>
+                    <Color x:Key="SctControlBarOuterColor">#60000000</Color>
+                    <Color x:Key="SctSeparatorColor">#30FFFFFF</Color>
+                    <!-- ToolTip 三件套（2026-09-22 收口）：见浅色档那条说明。深色档与 Fluent 原值同族
+                         （深底浅字），只是把底提亮一档、加一圈淡描边，与 SctCardFillBrush 的深色档拉开层次 -->
+                    <Color x:Key="SctTooltipBgColor">#3A3A3A</Color>
+                    <Color x:Key="SctTooltipBorderColor">#4A4A4A</Color>
+                    <Color x:Key="SctTooltipFgColor">#F2F2F2</Color>
+                    <!-- 视频预览窗一枚（与 Light 字典同名键成对）：深色档保持原钉黑值 -->
+                    <Color x:Key="SctPlayerBgColor">#FF000000</Color>
+                    <!-- Fluent ToolTip 取值键（与 Light/Default 字典同名键成对）：见 Light 字典里的说明 -->
+                    <SolidColorBrush x:Key="ToolTipBackground" Color="{DynamicResource SctTooltipBgColor}" />
+                    <SolidColorBrush x:Key="ToolTipForeground" Color="{DynamicResource SctTooltipFgColor}" />
+                    <SolidColorBrush x:Key="ToolTipBorderBrush" Color="{DynamicResource SctTooltipBorderColor}" />
+                    <Color x:Key="SctSizeLabelBackgroundColor">#FFFFFF</Color>
+                    <Color x:Key="SctComboBoxBgColor">#2B2B2B</Color>
+                    <Color x:Key="SctComboBoxHoverColor">#3A3A3A</Color>
+                    <!-- 输入框 / 列表行 -->
+                    <Color x:Key="SctInputBgColor">#2B2B2B</Color>
+                    <Color x:Key="SctRowBgColor">#2A2A2A</Color>
+                    <Color x:Key="SctRowHoverBgColor">#3A3A3A</Color>
+                    <!-- 卡片描边（深色去描边，靠明暗度呈现层次） -->
+                    <Color x:Key="SctCardBorderColor">#00FFFFFF</Color>
+                    <Thickness x:Key="SctCardBorderThickness">0</Thickness>
+                    <!-- 放大镜 -->
+                    <Color x:Key="SctMagnifierBgColor">#2B2B2B</Color>
+                    <Color x:Key="SctMagnifierInnerColor">#1A1A1A</Color>
+                    <Color x:Key="SctMagnifierTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctMagnifierSwatchBorderColor">#404040</Color>
+                    <Color x:Key="SctMagnifierCrossDarkColor">#3A3A3A</Color>
+                    <Color x:Key="SctMagnifierCrossLightColor">#FFFFFF</Color>
+                    <Color x:Key="SctEyeIconColor">#B8B8C4</Color>
+                    <Color x:Key="SctEyeOffColor">#A08BF8</Color>
+                    <!-- 右键菜单与菜单浮层（深色暗底） -->
+                    <Color x:Key="SctMenuBgColor">#2B2B2B</Color>
+                    <Color x:Key="SctMenuBorderColor">#404040</Color>
+                    <Color x:Key="SctMenuIconColor">#AAAAAA</Color>
+                    <Color x:Key="SctMenuSeparatorColor">#3C3C3C</Color>
+                    <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#2B2B2B" />
+                    <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="#404040" />
+                    <!-- 分段控件宿主 / 选中态 / 徽标：深色下选中段用品牌蓝紫实底，徽标用亮紫文字保证对比度 -->
+                    <Color x:Key="SctTitleBarColor">#282828</Color>
+                    <Color x:Key="SctControlOuterColor">#3A3A45</Color>
+                    <!-- 分段专用表面；旧 SegmentedChecked Token 仍供主操作、复选框与滑块使用。 -->
+                    <Color x:Key="SctChoiceTrackColor">#211E29</Color>
+                    <Color x:Key="SctChoiceTrackBorderColor">#292532</Color>
+                    <Color x:Key="SctChoiceSelectedColor">#36313F</Color>
+                    <Color x:Key="SctChoiceSelectedBorderColor">#51495F</Color>
+                    <Color x:Key="SctChoiceSelectedHoverColor">#40394B</Color>
+                    <Color x:Key="SctChoiceSelectedPressedColor">#2F293A</Color>
+                    <Color x:Key="SctChoiceTextColor">#F3F0FA</Color>
+                    <Color x:Key="SctChoiceMutedColor">#B0A7BD</Color>
+                    <Color x:Key="SctChoiceHoverColor">#2B2634</Color>
+                    <Color x:Key="SctChoicePressedColor">#302A3A</Color>
+                    <Color x:Key="SctChoiceAccentColor">#797EFE</Color>
+                    <Color x:Key="SctSegmentedCheckedBgColor">#797EFE</Color>
+                    <Color x:Key="SctSegmentedCheckedTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctBadgeBgColor">#40797EFE</Color>
+                    <Color x:Key="SctBadgeBgHoverColor">#59797EFE</Color>
+                    <Color x:Key="SctBadgeTextColor">#A08BF8</Color>
+                    <!-- 搜索命中底色（深色）：亮紫 28%，与浅色的品牌紫 20% 同等观感 -->
+                    <Color x:Key="SctSearchMarkColor">#48A08BF8</Color>
+                    <!-- 划词荧光底色（深色）：同一支荧光黄提到 35% —— 深底上叠得太薄就读不出黄 -->
+                    <Color x:Key="SctMarkHlColor">#59FACC15</Color>
+                    <!-- 划词翻译指向标记底色（深色）：亮紫 28%，与浅色档同观感 -->
+                    <Color x:Key="SctAccentSoftColor">#48A08BF8</Color>
+                    <!-- 凹槽滑块空格（比面板底 #383838 亮一档，与已填品牌紫拉开对比） -->
+                    <Color x:Key="SctNotchEmptyColor">#52525F</Color>
+                    <!-- 警告态：深色下反转——亮琥珀字 + 暗琥珀底，保证深底对比度 -->
+                    <Color x:Key="SctWarnColor">#FBBF24</Color>
+                    <Color x:Key="SctWarnBgColor">#3B2E12</Color>
+                    <!-- 底部通栏状态条：深色下失败档下沉一档到 #B91C1C，
+                         本主题 SctDangerColor #F87171 太亮，白字压上去读不清 -->
+                    <Color x:Key="SctStatusBgColor">#797EFE</Color>
+                    <Color x:Key="SctStatusErrorBgColor">#B91C1C</Color>
+                    <Color x:Key="SctStatusTextColor">#FFFFFF</Color>
+                    <!-- 轻雾糖果深色档：暗底上维持柔和、清楚的四色身份。 -->
+                    <Color x:Key="SctChartSeries1Color">#B7ADF8</Color>
+                    <Color x:Key="SctChartSeries2Color">#A3CAFA</Color>
+                    <Color x:Key="SctChartSeries3Color">#9CDCC5</Color>
+                    <Color x:Key="SctChartSeries4Color">#F0C1A8</Color>
+                    <Color x:Key="SctChartSeries5Color">#E8B1CD</Color>
+                    <Color x:Key="SctChartSeries1LineColor">#B7ADF8</Color>
+                    <Color x:Key="SctChartSeries2LineColor">#A3CAFA</Color>
+                    <Color x:Key="SctChartSeries3LineColor">#9CDCC5</Color>
+                    <Color x:Key="SctChartSeries4LineColor">#F0C1A8</Color>
+                    <Color x:Key="SctChartSeries5LineColor">#E8B1CD</Color>
+                    <!-- 文本贴图配色（深色档）：与本主题浮层底 #2B2B2B / 代码底 #1E1E1E 同档，
+                         与浅色档成对——暗底配 #E8E8E8 浅字约 12:1 对比度。 -->
+                    <Color x:Key="SctStickerCanvasGlowColor">#24A5C4</Color>
+                    <!-- 画布抓手的玻璃底、曲面描边与内沿反光，随主题成套解析。 -->
+                    <LinearGradientBrush x:Key="SctStickerGripGlassBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#DB454D5E" />
+                        <GradientStop Offset="1" Color="#C2262D3C" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="SctStickerGripRimBrush" StartPoint="20%,0%" EndPoint="80%,100%">
+                        <GradientStop Offset="0" Color="#B8E5F5FF" />
+                        <GradientStop Offset="0.55" Color="#38698CA3" />
+                        <GradientStop Offset="1" Color="#6FA8D2E4" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="SctStickerGripSheenBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#70FFFFFF" />
+                        <GradientStop Offset="0.6" Color="Transparent" />
+                    </LinearGradientBrush>
+                    <Color x:Key="SctStickerBgColor">#2B2B2B</Color>
+                    <Color x:Key="SctStickerTextColor">#E8E8E8</Color>
+                    <Color x:Key="SctStickerCodeBgColor">#1E1E1E</Color>
+                    <Color x:Key="SctStickerCodeBorderColor">#333333</Color>
+                    <!-- 贴图透明承托层：品牌紫韵微晶格（深色档） -->
+                    <Color x:Key="SctCheckerboardBgColor">#18191E</Color>
+                    <Color x:Key="SctCheckerboardTileColor">#222432</Color>
+                    <DrawingBrush x:Key="SctCheckerboardBrush" Stretch="None" TileMode="Tile" SourceRect="0,0,16,16" DestinationRect="0,0,16,16">
+                        <DrawingBrush.Drawing>
+                            <DrawingGroup>
+                                <GeometryDrawing Brush="#18191E">
+                                    <GeometryDrawing.Geometry>
+                                        <RectangleGeometry Rect="0,0,16,16" />
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                                <GeometryDrawing Brush="#222432">
+                                    <GeometryDrawing.Geometry>
+                                        <GeometryGroup>
+                                            <RectangleGeometry Rect="0,0,8,8" />
+                                            <RectangleGeometry Rect="8,8,8,8" />
+                                        </GeometryGroup>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                            </DrawingGroup>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </ResourceDictionary>
+
+                <!-- ============ 默认（与浅色保持一致） ============ -->
+                <ResourceDictionary x:Key="Default">
+                    <Color x:Key="SctSkyDayStartColor">#EDF0FF</Color>
+                    <Color x:Key="SctSkyDayEndColor">#B5D8F5</Color>
+                    <Color x:Key="SctSkyDayTextColor">#303653</Color>
+                    <Color x:Key="SctSkyDuskStartColor">#EEE5FA</Color>
+                    <Color x:Key="SctSkyDuskEndColor">#F4C2AD</Color>
+                    <Color x:Key="SctSkyDuskTextColor">#453653</Color>
+                    <Color x:Key="SctSkyNightStartColor">#292B50</Color>
+                    <Color x:Key="SctSkyNightEndColor">#45457C</Color>
+                    <Color x:Key="SctSkyNightTextColor">#F4F1FF</Color>
+                    <Color x:Key="SctSkyCloudColor">#DEFFFFFF</Color>
+                    <Color x:Key="SctSkyStarColor">#DBE2FF</Color>
+                    <Color x:Key="SctSkyActionFillColor">#28FFFFFF</Color>
+                    <Color x:Key="SctSkyActionHoverColor">#48FFFFFF</Color>
+                    <Color x:Key="SctSkySunColor">#F6BD4F</Color>
+                    <Color x:Key="SctSkyDayStormColor">#A6BECF</Color>
+                    <Color x:Key="SctSkyNightStormColor">#30364E</Color>
+                    <Color x:Key="SctSkyDayCloudColor">#A4B7C8</Color>
+                    <Color x:Key="SctSkyNightCloudColor">#6C7595</Color>
+                    <Color x:Key="SctSkySnowColor">#FFFFFF</Color>
+                    <Color x:Key="SctSkyDayRainColor">#60788F</Color>
+                    <Color x:Key="SctSkyNightRainColor">#A5B5D8</Color>
+
+                    <Color x:Key="SctWorkspaceSampleLightCanvasColor">#F8F7FB</Color>
+                    <Color x:Key="SctWorkspaceSampleLightSidebarColor">#E9E5F3</Color>
+                    <Color x:Key="SctWorkspaceSampleLightCardColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceSampleLightLineColor">#DDD8E9</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkCanvasColor">#1C1A23</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkSidebarColor">#373143</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkCardColor">#292632</Color>
+                    <Color x:Key="SctWorkspaceSampleDarkLineColor">#494152</Color>
+                    <!-- Workspace 新主题：设置窗口先迁移，其他窗口按需引入 Workspace.axaml。 -->
+                    <Color x:Key="SctWorkspaceCanvasColor">#F8F7FB</Color>
+                    <Color x:Key="SctWorkspaceSidebarColor">#F3F1F9</Color>
+                    <Color x:Key="SctWorkspaceCardColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceElevatedColor">#FFFFFF</Color>
+                    <Color x:Key="SctWorkspaceFieldColor">#F9F8FC</Color>
+                    <Color x:Key="SctWorkspaceHoverColor">#F0EEF6</Color>
+                    <Color x:Key="SctWorkspaceBorderColor">#E3DFED</Color>
+                    <Color x:Key="SctWorkspaceDividerColor">#EDEAF3</Color>
+                    <Color x:Key="SctWorkspaceTextColor">#282533</Color>
+                    <Color x:Key="SctWorkspaceSecondaryColor">#595364</Color>
+                    <Color x:Key="SctWorkspaceMutedColor">#716A7D</Color>
+                    <Color x:Key="SctWorkspaceSelectedColor">#E9E7FF</Color>
+                    <Color x:Key="SctWorkspaceBrandTextColor">#5357C7</Color>
+                    <Color x:Key="SctWorkspaceGlowColor">#24797EFE</Color>
+                    <Color x:Key="SctWorkspaceGlowClearColor">#00797EFE</Color>
+                    <Color x:Key="SctWorkspaceScrimColor">#470D0A1A</Color>
+
+                    <Color x:Key="SystemAccentColor">#797EFE</Color>
+                    <Color x:Key="SctAccentColor">#797EFE</Color>
+                    <Color x:Key="SctAccentHoverColor">#8E93FF</Color>
+                    <Color x:Key="SctAccentPressedColor">#6267E6</Color>
+                    <Color x:Key="SctBackgroundColor">#F2F2F2</Color>
+                    <Color x:Key="SctCardColor">#EAEAEA</Color>
+                    <Color x:Key="SctPanelColor">#F2F2F2</Color>
+                    <Color x:Key="SctCardFillColor">#EAEAEA</Color>
+                    <Color x:Key="SctSubtleColor">#EFEFEF</Color>
+                    <Color x:Key="SctTranslatingBadgeColor">#F2FFFFFF</Color>
+                    <Color x:Key="SctNavBackgroundColor">#F2F2F2</Color>
+                    <Color x:Key="SctNavActiveColor">#797EFE</Color>
+                    <Color x:Key="SctNavActiveTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctNavActiveHintColor">#FFFFFF</Color>
+                    <Color x:Key="SctBorderColor">#DCDCDC</Color>
+                    <Color x:Key="SctSoftBorderColor">#DCDCDC</Color>
+                    <Color x:Key="SctTextPrimaryColor">#222222</Color>
+                    <Color x:Key="SctTextSecondaryColor">#222222</Color>
+                    <Color x:Key="SctTextMutedColor">#222222</Color>
+                    <!-- 三级灰：浮层窗口的 meta 行 / 页脚提示这类"界面说明文字"专用；上面四档在浅色下全是 #222222，
+                         再要淡一档只能新建 Token，禁止用 Opacity 造假层级（设计规范 §4.3） -->
+                    <Color x:Key="SctTextTertiaryColor">#6E6E73</Color>
+                    <Color x:Key="SctSubTitleColor">#222222</Color>
+                    <Color x:Key="SctCardTitleColor">#222222</Color>
+                    <Color x:Key="SctDangerColor">#DC2626</Color>
+                    <Color x:Key="SctDangerBgColor">#FEF2F2</Color>
+                    <!-- 成功态胶囊（录屏设置 FFmpeg「已就绪」等；稿 4 02 卡 statuspill.ok） -->
+                    <Color x:Key="SctOkColor">#1F7A38</Color>
+                    <Color x:Key="SctOkBgColor">#E3F5E8</Color>
+                    <Color x:Key="SctOkBorderColor">#B5DFC0</Color>
+                    <Color x:Key="SctButtonHoverColor">#0A000000</Color>
+                    <Color x:Key="SctButtonPressedColor">#14000000</Color>
+                    <Color x:Key="SctControlBarOuterColor">#30000000</Color>
+                    <Color x:Key="SctSeparatorColor">#20000000</Color>
+                    <!-- ToolTip 三件套与预览窗两枚（2026-09-22 补齐）：Default 字典此前漏了这五枚——
+                         主题变体解析不到 Light/Dark 时会落到这里，漏了等于那个场景下 ToolTip 与预览画面底
+                         落空回退 Fluent 默认（灰底白字）。取值与 Light 一档（本字典即"与浅色保持一致"）。 -->
+                    <Color x:Key="SctTooltipBgColor">#FAFAFA</Color>
+                    <Color x:Key="SctTooltipBorderColor">#DCDCDC</Color>
+                    <Color x:Key="SctTooltipFgColor">#222222</Color>
+                    <Color x:Key="SctPlayerBgColor">#FAFAFA</Color>
+                    <!-- Fluent ToolTip 取值键（2026-09-22）：FluentTheme 内部 ToolTip 样式以 DynamicResource
+                         消费 ToolTipBackground / ToolTipForeground / ToolTipBorderBrush。此前只在 ToolTip
+                         控件上挂属性样式，但 Fluent 的取值链不完全经 TemplateBinding，属性压不进默认样式
+                         ——悬浮提示仍是 Fluent 默认深灰底白字（用户两轮实报）。在主题字典里直接供值
+                         这三枚（浅深两态各一档，走同字典的 SctTooltip*Color），才能稳定盖过 Fluent palette。 -->
+                    <SolidColorBrush x:Key="ToolTipBackground" Color="{DynamicResource SctTooltipBgColor}" />
+                    <SolidColorBrush x:Key="ToolTipForeground" Color="{DynamicResource SctTooltipFgColor}" />
+                    <SolidColorBrush x:Key="ToolTipBorderBrush" Color="{DynamicResource SctTooltipBorderColor}" />
+                    <Color x:Key="SctSizeLabelBackgroundColor">#1C1C1C</Color>
+                    <Color x:Key="SctComboBoxBgColor">#F5F5F5</Color>
+                    <Color x:Key="SctComboBoxHoverColor">#E6E6E6</Color>
+                    <!-- 输入框 / 列表行 -->
+                    <Color x:Key="SctInputBgColor">#F5F5F5</Color>
+                    <Color x:Key="SctRowBgColor">#F2F2F2</Color>
+                    <Color x:Key="SctRowHoverBgColor">#E6E6E6</Color>
+                    <!-- 卡片描边（浅色带发丝描边） -->
+                    <Color x:Key="SctCardBorderColor">#E0E0E0</Color>
+                    <Thickness x:Key="SctCardBorderThickness">1</Thickness>
+                    <!-- 放大镜 -->
+                    <Color x:Key="SctMagnifierBgColor">#F3F5F7</Color>
+                    <Color x:Key="SctMagnifierInnerColor">#FFFFFF</Color>
+                    <Color x:Key="SctMagnifierTextColor">#1E1E1E</Color>
+                    <Color x:Key="SctMagnifierSwatchBorderColor">#D1D1D1</Color>
+                    <Color x:Key="SctMagnifierCrossDarkColor">#3A3A3A</Color>
+                    <Color x:Key="SctMagnifierCrossLightColor">#FFFFFF</Color>
+                    <Color x:Key="SctEyeIconColor">#8A8A8A</Color>
+                    <Color x:Key="SctEyeOffColor">#797EFE</Color>
+                    <!-- 右键菜单与菜单浮层（默认沿用浅色纯白） -->
+                    <Color x:Key="SctMenuBgColor">#FFFFFF</Color>
+                    <Color x:Key="SctMenuBorderColor">#E5E7EB</Color>
+                    <Color x:Key="SctMenuIconColor">#555555</Color>
+                    <Color x:Key="SctMenuSeparatorColor">#EBEBEF</Color>
+                    <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="#E5E7EB" />
+                    <!-- 分段控件宿主 / 选中态 / 徽标（默认 = 浅色） -->
+                    <Color x:Key="SctTitleBarColor">#F2F2F2</Color>
+                    <Color x:Key="SctControlOuterColor">#E5E7EB</Color>
+                    <!-- 分段专用表面；旧 SegmentedChecked Token 仍供主操作、复选框与滑块使用。 -->
+                    <Color x:Key="SctChoiceTrackColor">#EEECF3</Color>
+                    <Color x:Key="SctChoiceTrackBorderColor">#E7E3EF</Color>
+                    <Color x:Key="SctChoiceSelectedColor">#FFFFFF</Color>
+                    <Color x:Key="SctChoiceSelectedBorderColor">#DAD5E5</Color>
+                    <Color x:Key="SctChoiceSelectedHoverColor">#FAF9FD</Color>
+                    <Color x:Key="SctChoiceSelectedPressedColor">#F2EFF8</Color>
+                    <Color x:Key="SctChoiceTextColor">#302C3B</Color>
+                    <Color x:Key="SctChoiceMutedColor">#625A6E</Color>
+                    <Color x:Key="SctChoiceHoverColor">#E5E1ED</Color>
+                    <Color x:Key="SctChoicePressedColor">#DCD7E6</Color>
+                    <Color x:Key="SctChoiceAccentColor">#797EFE</Color>
+                    <Color x:Key="SctSegmentedCheckedBgColor">#797EFE</Color>
+                    <Color x:Key="SctSegmentedCheckedTextColor">#FFFFFF</Color>
+                    <Color x:Key="SctBadgeBgColor">#1F797EFE</Color>
+                    <Color x:Key="SctBadgeBgHoverColor">#33797EFE</Color>
+                    <Color x:Key="SctBadgeTextColor">#797EFE</Color>
+                    <!-- 搜索命中底色（默认 = 浅色） -->
+                    <Color x:Key="SctSearchMarkColor">#33797EFE</Color>
+                    <!-- 划词荧光底色（默认 = 浅色） -->
+                    <Color x:Key="SctMarkHlColor">#4DFACC15</Color>
+                    <!-- 划词翻译指向标记底色：品牌紫 20%（2026-09-30 随划词翻译指向交互引入）。
+                         与 SctSearchMarkColor 同值但语义独立——那是"搜索结果行"的界面高亮，
+                         这枚是"原文已被钉上译文"的内容标记；荧光黄的划词标注（SctMarkHl）是第三种语义，三者不复用。 -->
+                    <Color x:Key="SctAccentSoftColor">#33797EFE</Color>
+                    <!-- 凹槽滑块空格（默认 = 浅色） -->
+                    <Color x:Key="SctNotchEmptyColor">#C9CBD3</Color>
+                    <!-- 警告态（默认 = 浅色） -->
+                    <Color x:Key="SctWarnColor">#B45309</Color>
+                    <Color x:Key="SctWarnBgColor">#FEF3C7</Color>
+                    <!-- 底部通栏状态条（默认 = 浅色） -->
+                    <Color x:Key="SctStatusBgColor">#797EFE</Color>
+                    <Color x:Key="SctStatusErrorBgColor">#DC2626</Color>
+                    <Color x:Key="SctStatusTextColor">#FFFFFF</Color>
+                    <!-- 轻雾糖果（默认 = 浅色） -->
+                    <Color x:Key="SctChartSeries1Color">#A59AF2</Color>
+                    <Color x:Key="SctChartSeries2Color">#8CB8EE</Color>
+                    <Color x:Key="SctChartSeries3Color">#8BCFB9</Color>
+                    <Color x:Key="SctChartSeries4Color">#EDB59B</Color>
+                    <Color x:Key="SctChartSeries5Color">#DE9DBC</Color>
+                    <Color x:Key="SctChartSeries1LineColor">#958BD9</Color>
+                    <Color x:Key="SctChartSeries2LineColor">#7596C3</Color>
+                    <Color x:Key="SctChartSeries3LineColor">#6E9E92</Color>
+                    <Color x:Key="SctChartSeries4LineColor">#B48B7D</Color>
+                    <Color x:Key="SctChartSeries5LineColor">#B27792</Color>
+                    <!-- 文本贴图配色（默认 = 浅色） -->
+                    <Color x:Key="SctStickerCanvasGlowColor">#24A5C4</Color>
+                    <!-- 画布抓手的玻璃底、曲面描边与内沿反光，随主题成套解析。 -->
+                    <LinearGradientBrush x:Key="SctStickerGripGlassBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#D9FFFFFF" />
+                        <GradientStop Offset="1" Color="#B8E7EDF6" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="SctStickerGripRimBrush" StartPoint="20%,0%" EndPoint="80%,100%">
+                        <GradientStop Offset="0" Color="#F2FFFFFF" />
+                        <GradientStop Offset="0.55" Color="#5C6D9CB6" />
+                        <GradientStop Offset="1" Color="#CFFFFFFF" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="SctStickerGripSheenBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#A6FFFFFF" />
+                        <GradientStop Offset="0.6" Color="Transparent" />
+                    </LinearGradientBrush>
+                    <Color x:Key="SctStickerBgColor">#FFFFFF</Color>
+                    <Color x:Key="SctStickerTextColor">#333333</Color>
+                    <Color x:Key="SctStickerCodeBgColor">#F8F9FA</Color>
+                    <Color x:Key="SctStickerCodeBorderColor">#E9ECEF</Color>
+                    <!-- 贴图透明承托层：品牌紫韵微晶格（默认 = 浅色档） -->
+                    <Color x:Key="SctCheckerboardBgColor">#F7F8FA</Color>
+                    <Color x:Key="SctCheckerboardTileColor">#E9ECF8</Color>
+                    <DrawingBrush x:Key="SctCheckerboardBrush" Stretch="None" TileMode="Tile" SourceRect="0,0,16,16" DestinationRect="0,0,16,16">
+                        <DrawingBrush.Drawing>
+                            <DrawingGroup>
+                                <GeometryDrawing Brush="#F7F8FA">
+                                    <GeometryDrawing.Geometry>
+                                        <RectangleGeometry Rect="0,0,16,16" />
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                                <GeometryDrawing Brush="#E9ECF8">
+                                    <GeometryDrawing.Geometry>
+                                        <GeometryGroup>
+                                            <RectangleGeometry Rect="0,0,8,8" />
+                                            <RectangleGeometry Rect="8,8,8,8" />
+                                        </GeometryGroup>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                            </DrawingGroup>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- Win11 风格选区模式栏固定深灰半透明，独立于主工具栏主题。 -->
+            <SolidColorBrush x:Key="SctSelectionToolbarGlassBrush" Color="#E6202020" />
+            <SolidColorBrush x:Key="SctSelectionToolbarGlassBorderBrush" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="SctSelectionToolbarSelectedBrush" Color="#1FFFFFFF" />
+            <SolidColorBrush x:Key="SctSelectionToolbarHoverBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="SctSelectionToolbarPressedBrush" Color="#2BFFFFFF" />
+
+            <SolidColorBrush x:Key="SctAccentBrush" Color="{DynamicResource SctAccentColor}" />
+            <SolidColorBrush x:Key="SctAccentHoverBrush" Color="{DynamicResource SctAccentHoverColor}" />
+            <SolidColorBrush x:Key="SctAccentPressedBrush" Color="{DynamicResource SctAccentPressedColor}" />
+            <SolidColorBrush x:Key="SctBackgroundBrush" Color="{DynamicResource SctBackgroundColor}" />
+            <SolidColorBrush x:Key="SctCardBrush" Color="{DynamicResource SctCardColor}" />
+            <SolidColorBrush x:Key="SctPanelBrush" Color="{DynamicResource SctPanelColor}" />
+            <SolidColorBrush x:Key="SctCardFillBrush" Color="{DynamicResource SctCardFillColor}" />
+            <SolidColorBrush x:Key="SctSubtleBrush" Color="{DynamicResource SctSubtleColor}" />
+            <SolidColorBrush x:Key="SctTranslatingBadgeBrush" Color="{DynamicResource SctTranslatingBadgeColor}" />
+            <SolidColorBrush x:Key="SctNavBackgroundBrush" Color="{DynamicResource SctNavBackgroundColor}" />
+            <SolidColorBrush x:Key="SctNavActiveBrush" Color="{DynamicResource SctNavActiveColor}" />
+            <SolidColorBrush x:Key="SctNavActiveTextBrush" Color="{DynamicResource SctNavActiveTextColor}" />
+            <SolidColorBrush x:Key="SctNavActiveHintBrush" Color="{DynamicResource SctNavActiveHintColor}" />
+            <SolidColorBrush x:Key="SctBorderBrush" Color="{DynamicResource SctBorderColor}" />
+            <SolidColorBrush x:Key="SctSoftBorderBrush" Color="{DynamicResource SctSoftBorderColor}" />
+            <SolidColorBrush x:Key="SctTextPrimaryBrush" Color="{DynamicResource SctTextPrimaryColor}" />
+            <SolidColorBrush x:Key="SctTextSecondaryBrush" Color="{DynamicResource SctTextSecondaryColor}" />
+            <SolidColorBrush x:Key="SctTextMutedBrush" Color="{DynamicResource SctTextMutedColor}" />
+            <SolidColorBrush x:Key="SctTextTertiaryBrush" Color="{DynamicResource SctTextTertiaryColor}" />
+            <SolidColorBrush x:Key="SctSubTitleBrush" Color="{DynamicResource SctSubTitleColor}" />
+            <SolidColorBrush x:Key="SctCardTitleBrush" Color="{DynamicResource SctCardTitleColor}" />
+            <SolidColorBrush x:Key="SctDangerBrush" Color="{DynamicResource SctDangerColor}" />
+            <SolidColorBrush x:Key="SctDangerBgBrush" Color="{DynamicResource SctDangerBgColor}" />
+            <SolidColorBrush x:Key="SctOkBrush" Color="{DynamicResource SctOkColor}" />
+            <SolidColorBrush x:Key="SctOkBgBrush" Color="{DynamicResource SctOkBgColor}" />
+            <SolidColorBrush x:Key="SctOkBorderBrush" Color="{DynamicResource SctOkBorderColor}" />
+            <SolidColorBrush x:Key="SctIconBrush" Color="{DynamicResource SctTextPrimaryColor}" />
+            <SolidColorBrush x:Key="SctButtonHoverBrush" Color="{DynamicResource SctButtonHoverColor}" />
+            <SolidColorBrush x:Key="SctButtonPressedBrush" Color="{DynamicResource SctButtonPressedColor}" />
+            <SolidColorBrush x:Key="SctControlBarOuterBrush" Color="{DynamicResource SctControlBarOuterColor}" />
+            <SolidColorBrush x:Key="SctComboBoxBgBrush" Color="{DynamicResource SctComboBoxBgColor}" />
+            <SolidColorBrush x:Key="SctComboBoxHoverBrush" Color="{DynamicResource SctComboBoxHoverColor}" />
+            <SolidColorBrush x:Key="SctSeparatorBrush" Color="{DynamicResource SctSeparatorColor}" />
+            <!-- ToolTip 三件套（2026-09-22 收口）：三档主题各一枚色，这里只做"色→刷"的转发。
+                 全局 ToolTip 皮挂在 Themes/Controls.axaml，那里是唯一的取值点，窗口内不得再写局部 ToolTip 皮 -->
+            <SolidColorBrush x:Key="SctTooltipBgBrush" Color="{DynamicResource SctTooltipBgColor}" />
+            <SolidColorBrush x:Key="SctTooltipBorderBrush" Color="{DynamicResource SctTooltipBorderColor}" />
+            <SolidColorBrush x:Key="SctTooltipFgBrush" Color="{DynamicResource SctTooltipFgColor}" />
+            <SolidColorBrush x:Key="SctSizeLabelBackgroundBrush" Color="{DynamicResource SctSizeLabelBackgroundColor}" />
+            <SolidColorBrush x:Key="SctInputBgBrush" Color="{DynamicResource SctInputBgColor}" />
+            <SolidColorBrush x:Key="SctRowBgBrush" Color="{DynamicResource SctRowBgColor}" />
+            <SolidColorBrush x:Key="SctRowHoverBgBrush" Color="{DynamicResource SctRowHoverBgColor}" />
+            <SolidColorBrush x:Key="SctCardBorderBrush" Color="{DynamicResource SctCardBorderColor}" />
+            <SolidColorBrush x:Key="SctMagnifierBgBrush" Color="{DynamicResource SctMagnifierBgColor}" />
+            <SolidColorBrush x:Key="SctMagnifierInnerBrush" Color="{DynamicResource SctMagnifierInnerColor}" />
+            <SolidColorBrush x:Key="SctMagnifierTextBrush" Color="{DynamicResource SctMagnifierTextColor}" />
+            <SolidColorBrush x:Key="SctMagnifierSwatchBorderBrush" Color="{DynamicResource SctMagnifierSwatchBorderColor}" />
+            <SolidColorBrush x:Key="SctMagnifierCrossDarkBrush" Color="{DynamicResource SctMagnifierCrossDarkColor}" />
+            <SolidColorBrush x:Key="SctMagnifierCrossLightBrush" Color="{DynamicResource SctMagnifierCrossLightColor}" />
+            <SolidColorBrush x:Key="SctEyeIconBrush" Color="{DynamicResource SctEyeIconColor}" />
+            <SolidColorBrush x:Key="SctEyeOffBrush" Color="{DynamicResource SctEyeOffColor}" />
+            <SolidColorBrush x:Key="SctMenuBackgroundBrush" Color="{DynamicResource SctMenuBgColor}" />
+            <SolidColorBrush x:Key="SctMenuBorderBrush" Color="{DynamicResource SctMenuBorderColor}" />
+            <SolidColorBrush x:Key="SctMenuIconBrush" Color="{DynamicResource SctMenuIconColor}" />
+            <SolidColorBrush x:Key="SctMenuSeparatorBrush" Color="{DynamicResource SctMenuSeparatorColor}" />
+            <SolidColorBrush x:Key="SctTitleBarBrush" Color="{DynamicResource SctTitleBarColor}" />
+            <SolidColorBrush x:Key="SctControlOuterBrush" Color="{DynamicResource SctControlOuterColor}" />
+            <SolidColorBrush x:Key="SctNotchEmptyBrush" Color="{DynamicResource SctNotchEmptyColor}" />
+            <SolidColorBrush x:Key="SctChoiceTrackBrush" Color="{DynamicResource SctChoiceTrackColor}" />
+            <SolidColorBrush x:Key="SctChoiceTrackBorderBrush" Color="{DynamicResource SctChoiceTrackBorderColor}" />
+            <SolidColorBrush x:Key="SctChoiceSelectedBrush" Color="{DynamicResource SctChoiceSelectedColor}" />
+            <SolidColorBrush x:Key="SctChoiceSelectedBorderBrush" Color="{DynamicResource SctChoiceSelectedBorderColor}" />
+            <SolidColorBrush x:Key="SctChoiceSelectedHoverBrush" Color="{DynamicResource SctChoiceSelectedHoverColor}" />
+            <SolidColorBrush x:Key="SctChoiceSelectedPressedBrush" Color="{DynamicResource SctChoiceSelectedPressedColor}" />
+            <SolidColorBrush x:Key="SctChoiceTextBrush" Color="{DynamicResource SctChoiceTextColor}" />
+            <SolidColorBrush x:Key="SctChoiceMutedBrush" Color="{DynamicResource SctChoiceMutedColor}" />
+            <SolidColorBrush x:Key="SctChoiceHoverBrush" Color="{DynamicResource SctChoiceHoverColor}" />
+            <SolidColorBrush x:Key="SctChoicePressedBrush" Color="{DynamicResource SctChoicePressedColor}" />
+            <SolidColorBrush x:Key="SctChoiceAccentBrush" Color="{DynamicResource SctChoiceAccentColor}" />
+            <SolidColorBrush x:Key="SctSegmentedCheckedBgBrush" Color="{DynamicResource SctSegmentedCheckedBgColor}" />
+            <SolidColorBrush x:Key="SctSegmentedCheckedTextBrush" Color="{DynamicResource SctSegmentedCheckedTextColor}" />
+            <SolidColorBrush x:Key="SctBadgeBgBrush" Color="{DynamicResource SctBadgeBgColor}" />
+            <SolidColorBrush x:Key="SctBadgeBgHoverBrush" Color="{DynamicResource SctBadgeBgHoverColor}" />
+            <SolidColorBrush x:Key="SctBadgeTextBrush" Color="{DynamicResource SctBadgeTextColor}" />
+            <SolidColorBrush x:Key="SctSearchMarkBrush" Color="{DynamicResource SctSearchMarkColor}" />
+            <SolidColorBrush x:Key="SctMarkHlBrush" Color="{DynamicResource SctMarkHlColor}" />
+            <SolidColorBrush x:Key="SctAccentSoftBrush" Color="{DynamicResource SctAccentSoftColor}" />
+            <SolidColorBrush x:Key="SctWarnBrush" Color="{DynamicResource SctWarnColor}" />
+            <SolidColorBrush x:Key="SctWarnBgBrush" Color="{DynamicResource SctWarnBgColor}" />
+            <!-- 图表系列画刷（关于页趋势图与占比条；自绘控件按 Key 取色，见 Controls/UsageChart.cs） -->
+            <SolidColorBrush x:Key="SctChartSeries1Brush" Color="{DynamicResource SctChartSeries1Color}" />
+            <SolidColorBrush x:Key="SctChartSeries2Brush" Color="{DynamicResource SctChartSeries2Color}" />
+            <SolidColorBrush x:Key="SctChartSeries3Brush" Color="{DynamicResource SctChartSeries3Color}" />
+            <SolidColorBrush x:Key="SctChartSeries4Brush" Color="{DynamicResource SctChartSeries4Color}" />
+            <SolidColorBrush x:Key="SctChartSeries5Brush" Color="{DynamicResource SctChartSeries5Color}" />
+            <SolidColorBrush x:Key="SctChartSeries1LineBrush" Color="{DynamicResource SctChartSeries1LineColor}" />
+            <SolidColorBrush x:Key="SctChartSeries2LineBrush" Color="{DynamicResource SctChartSeries2LineColor}" />
+            <SolidColorBrush x:Key="SctChartSeries3LineBrush" Color="{DynamicResource SctChartSeries3LineColor}" />
+            <SolidColorBrush x:Key="SctChartSeries4LineBrush" Color="{DynamicResource SctChartSeries4LineColor}" />
+            <SolidColorBrush x:Key="SctChartSeries5LineBrush" Color="{DynamicResource SctChartSeries5LineColor}" />
+            <SolidColorBrush x:Key="SctStatusBgBrush" Color="{DynamicResource SctStatusBgColor}" />
+            <SolidColorBrush x:Key="SctStatusErrorBgBrush" Color="{DynamicResource SctStatusErrorBgColor}" />
+            <SolidColorBrush x:Key="SctStatusTextBrush" Color="{DynamicResource SctStatusTextColor}" />
+            <!-- 状态条（实底彩条）上的悬浮 / 按下叠加层：叠加面本身浅深两态同色，
+                 白色半透明对两态都成立，故不必拆成对 Color，全局一份笔刷即可 -->
+            <SolidColorBrush x:Key="SctStatusOverlayHoverBrush" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="SctStatusOverlayPressBrush" Color="#40FFFFFF" />
+            <!-- 设置页「截图选框样式」预览舞台的模拟遮罩：取值与真实截图遮罩一致
+                 （SelectionLayer.MaskBrush，alpha 96）。遮罩压的是屏幕内容而非主题表面，
+                 浅深两态同色，故与状态条叠加层同理只留一份全局笔刷 -->
+            <SolidColorBrush x:Key="SctPreviewMaskBrush" Color="#60000000" />
+            <!-- 预览舞台的"屏幕"底色与内容块：**刻意与主题脱钩、浅深两态同色**——预览模拟的是
+                 被截的屏幕内容，不是本软件的界面表面。取中灰而非跟随主题，是为了让选框边框的
+                 出厂默认纯白（#FFFFFF）与色板里的纯黑都能在这块底上同时看清：白线对中灰约 3.9:1，
+                 黑线约 5.3:1；若底色跟随浅色主题（#EFEFEF 一类），白线会直接糊在底上消失 -->
+            <SolidColorBrush x:Key="SctPreviewStageBrush" Color="#7A7A80" />
+            <SolidColorBrush x:Key="SctPreviewContentBrush" Color="#8E8E95" />
+            <!-- 样片底的悬浮态：比舞台亮一档（#7A7A80 → #868690，与 SctPreviewContentBrush 同族）。
+                 序号样式小样格要用它给出鼠标反馈，而按钮自带的 SctButtonHoverBrush 是半透明主题色，
+                 铺在与主题脱钩的中灰舞台上会跟着明暗态变灰度 → 另开一枚同族固定值 -->
+            <SolidColorBrush x:Key="SctPreviewStageHoverBrush" Color="#868690" />
+            <!-- 标题栏关闭按钮悬浮 / 按下（设计规范 §6.8）：实底红 + 白图标。
+                 红色是"危险"语义而非明暗主题语义，浅深两态同色，故与状态条叠加层同理只留一份全局笔刷 -->
+            <SolidColorBrush x:Key="SctTitleBarCloseBrush" Color="#F95353" />
+            <SolidColorBrush x:Key="SctTitleBarClosePressedBrush" Color="#E04040" />
+            <SolidColorBrush x:Key="SctTitleBarCloseTextBrush" Color="#FFFFFF" />
+            <!-- 贴图透明底板单色 Token 画刷 -->
+            <SolidColorBrush x:Key="SctCheckerboardBgBrush" Color="{DynamicResource SctCheckerboardBgColor}" />
+            <SolidColorBrush x:Key="SctCheckerboardTileBrush" Color="{DynamicResource SctCheckerboardTileColor}" />
+            <!-- 录屏状态双色（稿 2 D06/D07/D08）：录制红 =「正在录」，暂停琥珀 =「时间停走」。刻意与主题脱钩、
+                 浅深两态同色——它们是录制状态的语义色而非界面表面色，红边框/角标红点/完成主按钮/琥珀暂停态
+                 全部同源取这两枚，禁止在窗口里再写死 #FF5152 / #FF9F0A 字面量 -->
+            <SolidColorBrush x:Key="SctRecRedBrush" Color="#FFFF5152" />
+            <SolidColorBrush x:Key="SctRecAmberBrush" Color="#FFFF9F0A" />
+            <!-- 浮层档投影（设计规范 §3.6）：凡"脱离窗口、悬浮在桌面上"的独立浮窗都用这一枚。
+                 2026-09-21 把此前散在 6 个文件里的 6 个字面阴影值收口到此一处；界面内部条（截图那两条栏、
+                 遮罩内参数条）不在此列，它们仍用各自的 §7.5 内部条值，判据见 §3.6 第五铁律 -->
+            <BoxShadows x:Key="SctShadowOverlay">0 6 20 0 #38000000</BoxShadows>
+            <!-- 深色 HUD 族（2026-09-21 岔路一甲案）：判据是"会不会被录进画面"。键帽药丸与点击波纹由录屏
+                 遮罩画在选区之内、压在任意应用内容上并被 ffmpeg 直接抓进视频，底色必须与主题脱钩钉死
+                 ——浅色档下面可能是纯白文档。"钉死"不等于"各写一份"：以下五枚即那一族浮层的唯一取值处，
+                 值与收口前的 C# 字面量逐位相同，只搬位置不改观感 -->
+            <SolidColorBrush x:Key="SctHudBgBrush" Color="#CC1C1C1E" />
+            <SolidColorBrush x:Key="SctHudBorderBrush" Color="#32FFFFFF" />
+            <SolidColorBrush x:Key="SctHudFgBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="SctHudRippleStrokeBrush" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="SctHudRippleFillBrush" Color="#2EFFFFFF" />
+            <BoxShadows x:Key="SctHudShadow">0 4 12 0 #46000000</BoxShadows>
+            <!-- 钉黑胶囊族（2026-09-22 录屏第（五）项收口）：判据同上面 SctHud* 那族——浮在**任意应用内容**上
+                 （截图选区右上角的读数胶囊、录屏右上 REC 徽标），底色若随主题，浅色档下就会是一块浅灰压在
+                 白文档上、直接读不出。值取自截图 InfoPill 原先的四枚**窗口内联字面量**（逐位相同、只搬位置），
+                 由全局类 Border.darkPill 消费，禁止再在任何窗口里内联这一族色值 -->
+            <SolidColorBrush x:Key="SctDarkPillBgBrush" Color="#FF000000" />
+            <SolidColorBrush x:Key="SctDarkPillBorderBrush" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="SctDarkPillFgBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="SctDarkPillLabelBrush" Color="#B8FFFFFF" />
+            <!-- 视频预览窗族（2026-09-22 改随主题后收窄）：预览窗的工具条／文字／发丝线已全部回归
+                 主题 Token（与录制控制条同一张皮），本族只剩画面 letterbox 底一枚
+                 （浅深两态取值见上方三个主题字典的 SctPlayerBgColor）
+                 与三枚两态同值的语义色（进度紫＝品牌色实底、危险红系＝转码失败态）。
+                 危险红不用 SctDangerBrush：那枚是主题色，取值随主题漂移，而失败态的红色语义两态同值。 -->
+            <SolidColorBrush x:Key="SctPlayerBgBrush" Color="{DynamicResource SctPlayerBgColor}" />
+            <!-- 进度填充（预览窗进度条／转码条）：品牌紫实底，两态同值保持固定，不随主题 Token 漂移 -->
+            <SolidColorBrush x:Key="SctPlayerProgressBrush" Color="#FF797EFE" />
+            <SolidColorBrush x:Key="SctPlayerDangerBrush" Color="#FFFF5152" />
+            <SolidColorBrush x:Key="SctPlayerDangerBgBrush" Color="#30FF5152" />
+            <SolidColorBrush x:Key="SctPlayerDangerTextBrush" Color="#FFFFCCCC" />
+            <!-- P4 OCR 语义资产开始：原有编辑橙、选区及状态配色只集中定义，不改采集叠层。 -->
+            <SolidColorBrush x:Key="SctOcrEditBrush" Color="#E8862B" />
+            <SolidColorBrush x:Key="SctOcrEditSoftBrush" Color="#1FE8862B" />
+            <SolidColorBrush x:Key="SctOcrEditHoverBrush" Color="#3DE8862B" />
+            <SolidColorBrush x:Key="SctOcrHoverBrush" Color="#0F797EFE" />
+            <SolidColorBrush x:Key="SctOcrSelectionBrush" Color="#80797EFE" />
+            <SolidColorBrush x:Key="SctOcrSelectionMutedBrush" Color="#40828282" />
+            <SolidColorBrush x:Key="SctOcrOkBrush" Color="#10B981" />
+            <SolidColorBrush x:Key="SctOcrBadBrush" Color="#EF4444" />
+            <Color x:Key="SctOcrProgressStartColor">#4219F2</Color>
+            <Color x:Key="SctOcrProgressEndColor">#9D86FF</Color>
+            <Color x:Key="SctOcrShimmerClearColor">#00FFFFFF</Color>
+            <Color x:Key="SctOcrShimmerColor">#73FFFFFF</Color>
+            <SolidColorBrush x:Key="SctOcrOkSoftBrush" Color="#1A10B981" />
+            <!-- P4 OCR 语义资产结束 -->
+        </ResourceDictionary>
+    </Styles.Resources>
+</Styles>
