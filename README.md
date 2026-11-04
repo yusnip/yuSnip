@@ -15,6 +15,8 @@ yuSnip 是一款免费开源的 Windows 截图、标注、贴图和录屏工具�
 
 OCR、抠图和录屏所需的额外组件可在「设置 → 依赖运行」中管理。组件下载与更新检查需要联网。使用翻译、AI 或云同步时，对应功能会按配置向所选服务发送文字、图片或同步数据。
 
+GitHub Releases 提供 GitHub 版，官网提供官网版。两个渠道使用同一份源码和版本号，各自检查更新和下载依赖。GitHub 版的 FFmpeg 来自上游的固定 GitHub Release，其余组件由 yuSnip 的 GitHub Release 提供。
+
 从公开源码构建时，Google Drive 同步需要在本机 `settings.ini` 中配置自己的桌面 OAuth 客户端 `GoogleDriveClientId` 和 `GoogleDriveClientSecret`。请勿将本机配置提交到仓库。
 
 ## 从源码构建
@@ -28,7 +30,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -NativeAot
 ```
 
-第一条生成开发构建，输出在 `artifacts/debug/`。第二条生成 Windows x64 NativeAOT 发布目录，输出在 `artifacts/win-x64/`，运行时请保留该目录中的依赖文件。脚本会还原 NuGet 依赖并在本地编译，不启动 yuSnip 或上传文件。
+第一条生成开发构建，输出在 `artifacts/debug/`。第二条生成 Windows x64 NativeAOT 发布目录，输出在 `artifacts/win-x64/`，运行时请保留该目录中的依赖文件。两种构建均使用 GitHub 下载渠道。脚本会还原 NuGet 依赖并在本地编译，不启动 yuSnip 或上传文件。
 
 ## 许可与致谢
 

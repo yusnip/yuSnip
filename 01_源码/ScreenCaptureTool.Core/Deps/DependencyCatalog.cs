@@ -37,6 +37,7 @@ namespace ScreenCaptureTool.Core.Deps
     public sealed class DepFileDef
     {
         public string Name { get; init; } = "";
+        public string ArchiveEntry { get; init; } = "";
         public long Size { get; init; }
         public string Sha256 { get; init; } = "";
     }
@@ -47,6 +48,7 @@ namespace ScreenCaptureTool.Core.Deps
         public string Id { get; init; } = "";
         public string Version { get; init; } = "";
         public string FileName { get; init; } = "";
+        public string DownloadUrl { get; init; } = "";
         public long Size { get; init; }
         public string Sha256 { get; init; } = "";
         public IReadOnlyList<DepFileDef> Files { get; init; } = Array.Empty<DepFileDef>();
@@ -96,7 +98,7 @@ namespace ScreenCaptureTool.Core.Deps
                     if (pe.ValueKind != JsonValueKind.Object) continue;
                     string id = Str(pe, "id"), ver = Str(pe, "version"), file = Str(pe, "file");
                     string sha = Str(pe, "sha256");
-                    if (id.Length == 0 || ver.Length == 0 || file.Length == 0 || sha.Length == 0) continue;
+                    if (!IsFileName(id) || !IsFileName(ver) || !IsFileName(file) || sha.Length == 0) continue;
                     if (!pe.TryGetProperty("files", out var fe) || fe.ValueKind != JsonValueKind.Array) continue;
 
                     var files = new List<DepFileDef>();
@@ -104,15 +106,17 @@ namespace ScreenCaptureTool.Core.Deps
                     {
                         if (f.ValueKind != JsonValueKind.Object) continue;
                         string name = Str(f, "name"), fsha = Str(f, "sha256");
-                        if (name.Length == 0 || fsha.Length == 0) continue;
-                        files.Add(new DepFileDef { Name = name, Size = Num(f, "size"), Sha256 = fsha });
+                        if (!IsFileName(name) || fsha.Length == 0) continue;
+                        var entry = Str(f, "archive_entry");
+                        files.Add(new DepFileDef { Name = name, ArchiveEntry = entry.Length == 0 ? name : entry,
+                            Size = Num(f, "size"), Sha256 = fsha });
                     }
                     if (files.Count == 0) continue;
 
                     list.Add(new DepPackageDef
                     {
                         Id = id, Version = ver, FileName = file,
-                        Size = Num(pe, "size"), Sha256 = sha, Files = files,
+                        DownloadUrl = Str(pe, "download_url"), Size = Num(pe, "size"), Sha256 = sha, Files = files,
                     });
                 }
                 if (list.Count == 0) return false;
@@ -128,6 +132,11 @@ namespace ScreenCaptureTool.Core.Deps
 
         private static long Num(JsonElement e, string prop) =>
             e.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt64() : 0;
+
+        private static bool IsFileName(string name) =>
+            name.Length > 0 && name is not "." and not ".."
+            && !name.EndsWith('.') && !name.EndsWith(' ')
+            && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
     }
 
     /// <summary>已就绪登记（deps.lock.json）里的一条。</summary>
@@ -146,9 +155,9 @@ namespace ScreenCaptureTool.Core.Deps
     public static class DependencyCatalog
     {
         public static string RootDir => Path.Combine(AppSettings.SettingsDirectory, "deps");
-        private static string ManifestCachePath => Path.Combine(RootDir, "deps.json");
+        private static string ManifestCachePath => Path.Combine(RootDir, ReleaseChannel.IsGitHub ? "deps-github.json" : "deps.json");
         private static string LockPath => Path.Combine(RootDir, "deps.lock.json");
-        public static string DownloadDir => Path.Combine(RootDir, "_download");
+        public static string DownloadDir => Path.Combine(RootDir, ReleaseChannel.IsGitHub ? "_download-github" : "_download");
 
         /// <summary>旧「一键下载 FFmpeg」的落位处，收编的 FFmpeg 来源；与 deps 目录并存。</summary>
         public static string LegacyFfmpegDir => Path.Combine(AppSettings.SettingsDirectory, "ffmpeg");

@@ -39,7 +39,7 @@ namespace ScreenCaptureTool.Core.Deps
     public static class DependencyManager
     {
         /// <summary>服务器清单地址（与 version.json 同目录同域名）。</summary>
-        public const string ManifestUrl = "https://yusnip.top/yusnip/deps.json";
+        public const string ManifestUrl = ReleaseChannel.DependencyManifest;
 
         /// <summary>状态跃迁时触发（下载中不算，进度另有 <see cref="ProgressTick"/>）。</summary>
         public static event Action<string>? Changed;
@@ -246,13 +246,15 @@ namespace ScreenCaptureTool.Core.Deps
             }
             try
             {
-                using var hc = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                using var hc = ReleaseChannel.CreateClient(TimeSpan.FromSeconds(10));
                 string json = await hc.GetStringAsync(ManifestUrl).ConfigureAwait(false);
                 if (!DepManifest.TryParse(json, out var parsed) || parsed == null)
                 {
                     AppLogger.Warn("Deps: 清单解析失败（结构不合法或 schema 不支持），沿用本地缓存");
                     return false;
                 }
+                foreach (var package in parsed.Packages)
+                    _ = ReleaseChannel.DependencyDownload(package.Id, package.FileName, package.DownloadUrl);
                 DependencyCatalog.SaveManifestCache(json);
                 lock (Sync)
                 {
@@ -540,8 +542,8 @@ namespace ScreenCaptureTool.Core.Deps
                 long existing = pass == 0 ? (File.Exists(partPath) ? new FileInfo(partPath).Length : 0) : 0;
                 if (existing > p.Size) { TryDelete(partPath); existing = 0; }
 
-                using var hc = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
-                using var req = new HttpRequestMessage(HttpMethod.Get, ManifestBaseUrl() + p.FileName);
+                using var hc = ReleaseChannel.CreateClient(TimeSpan.FromMinutes(30));
+                using var req = new HttpRequestMessage(HttpMethod.Get, ReleaseChannel.DependencyDownload(p.Id, p.FileName, p.DownloadUrl));
                 if (existing > 0) req.Headers.Range = new RangeHeaderValue(existing, null);
 
                 using var resp = await hc.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
@@ -578,12 +580,6 @@ namespace ScreenCaptureTool.Core.Deps
             }
         }
 
-        private static string ManifestBaseUrl()
-        {
-            int cut = ManifestUrl.LastIndexOf('/');
-            return ManifestUrl.Substring(0, cut + 1);
-        }
-
         /// <summary>速度取近 3 秒滑动均值；250ms 节拍往上抛一次。</summary>
         private static void ReportProgress(Runtime r, string id, long done, long total)
         {
@@ -617,7 +613,7 @@ namespace ScreenCaptureTool.Core.Deps
                     && string.Equals(DependencyCatalog.Sha256File(target), f.Sha256, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                var entry = zip.GetEntry(f.Name)
+                var entry = zip.GetEntry(f.ArchiveEntry)
                     ?? throw new DependencyFailedException($"组件包内缺少 {f.Name}");
                 entry.ExtractToFile(target, true);
             }
@@ -784,7 +780,7 @@ namespace ScreenCaptureTool.Core.Deps
                     using var zip = ZipFile.OpenRead(zipPath);
                     foreach (var f in files)
                     {
-                        var entry = zip.GetEntry(f.Name)
+                        var entry = zip.GetEntry(f.ArchiveEntry)
                             ?? throw new DependencyFailedException($"压缩包内缺少 {f.Name}");
                         entry.ExtractToFile(Path.Combine(dir, f.Name), true);
                     }

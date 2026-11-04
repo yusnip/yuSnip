@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,18 +16,19 @@ namespace ScreenCaptureTool.Core.Update
         public string Version { get; set; } = "";
         public int Build { get; set; }
         public string DownloadUrl { get; set; } = "";
+        public string Sha256 { get; set; } = "";
         public string UpdatedAt { get; set; } = "";
         public string Changelog { get; set; } = "";
         public bool ForceUpdate { get; set; }
     }
 
     /// <summary>
-    /// 自动更新服务：检查 https://yusnip.top/yusnip/version.json 的新版本并流式下载安装包。
+    /// 自动更新服务：按构建时选定的发行渠道检查版本并流式下载安装包。
     /// 版本比较基于 build 号（major*10000 + minor*100 + patch），与服务端 deploy 脚本计算规则一致。
     /// </summary>
     public static class UpdateService
     {
-        public const string VersionJsonUrl = "https://yusnip.top/yusnip/version.json";
+        public const string VersionJsonUrl = ReleaseChannel.VersionManifest;
 
         private static readonly Lazy<string> _versionStr = new(GetVersionString);
         private static readonly Lazy<int> _buildNum = new(GetBuildNumber);
@@ -67,7 +69,7 @@ namespace ScreenCaptureTool.Core.Update
         /// </summary>
         public static async Task<UpdateInfo> CheckAsync(CancellationToken ct = default)
         {
-            using var hc = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            using var hc = ReleaseChannel.CreateClient(TimeSpan.FromSeconds(10));
             using var resp = await hc.GetAsync(VersionJsonUrl, ct);
             if (!resp.IsSuccessStatusCode)
             {
@@ -86,6 +88,7 @@ namespace ScreenCaptureTool.Core.Update
             if (root.TryGetProperty("version", out p)) info.Version = p.GetString() ?? "";
             if (root.TryGetProperty("build", out p) && p.ValueKind == JsonValueKind.Number) info.Build = p.GetInt32();
             if (root.TryGetProperty("download_url", out p)) info.DownloadUrl = p.GetString() ?? "";
+            if (root.TryGetProperty("sha256", out p)) info.Sha256 = p.GetString() ?? "";
             if (root.TryGetProperty("updated_at", out p)) info.UpdatedAt = p.GetString() ?? "";
             if (root.TryGetProperty("changelog", out p)) info.Changelog = p.GetString() ?? "";
             if (root.TryGetProperty("force_update", out p) && p.ValueKind is JsonValueKind.True or JsonValueKind.False)
@@ -99,11 +102,15 @@ namespace ScreenCaptureTool.Core.Update
         /// 流式下载安装包到目标路径，progress 汇报（已下载字节, 总字节或 -1）。
         /// </summary>
         public static async Task DownloadAsync(
-            string downloadUrl, string destPath, IProgress<(long read, long total)>? progress,
+            UpdateInfo info, string destPath, IProgress<(long read, long total)>? progress,
             CancellationToken ct = default)
         {
-            using var hc = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-            using var resp = await hc.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            string url = ReleaseChannel.UpdateDownload(info.DownloadUrl);
+            bool verifyHash = ReleaseChannel.IsGitHub || info.Sha256.Length > 0;
+            if (verifyHash && (info.Sha256.Length != 64 || !info.Sha256.All(char.IsAsciiHexDigit)))
+                throw new InvalidDataException("更新清单缺少有效的 SHA-256 校验值。");
+            using var hc = ReleaseChannel.CreateClient(TimeSpan.FromMinutes(10));
+            using var resp = await hc.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!resp.IsSuccessStatusCode)
             {
                 throw new HttpRequestException("下载失败：服务器返回 HTTP " + (int)resp.StatusCode);
@@ -115,6 +122,7 @@ namespace ScreenCaptureTool.Core.Update
 
             using var src = await resp.Content.ReadAsStreamAsync(ct);
             using var fs = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            using var hash = verifyHash ? IncrementalHash.CreateHash(HashAlgorithmName.SHA256) : null;
             byte[] buffer = new byte[81920];
             long readTotal = 0;
             int read;
@@ -122,6 +130,7 @@ namespace ScreenCaptureTool.Core.Update
             while ((read = await src.ReadAsync(buffer, ct)) > 0)
             {
                 await fs.WriteAsync(buffer.AsMemory(0, read), ct);
+                hash?.AppendData(buffer, 0, read);
                 readTotal += read;
                 if (progress != null && (readTotal - lastReport >= 512 * 1024 || readTotal == total))
                 {
@@ -129,6 +138,10 @@ namespace ScreenCaptureTool.Core.Update
                     progress.Report((readTotal, total));
                 }
             }
+            if (total >= 0 && readTotal != total)
+                throw new InvalidDataException("更新下载未完成。");
+            if (hash != null && !string.Equals(Convert.ToHexString(hash.GetHashAndReset()), info.Sha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("更新文件的 SHA-256 校验失败。");
             progress?.Report((readTotal, total));
         }
 

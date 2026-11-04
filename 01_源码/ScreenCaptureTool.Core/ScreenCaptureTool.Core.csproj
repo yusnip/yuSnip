@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup Condition="'$(YuSnipDistributionChannel)' == 'Website'">
+    <DefineConstants>$(DefineConstants);YUSNIP_WEBSITE_CHANNEL</DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="ValidateDistributionChannel" BeforeTargets="CoreCompile">
+    <Error Condition="'$(YuSnipDistributionChannel)' != '' And '$(YuSnipDistributionChannel)' != 'GitHub' And '$(YuSnipDistributionChannel)' != 'Website'"
+           Text="YuSnipDistributionChannel must be GitHub or Website." />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\ScreenCaptureTool.Platform\ScreenCaptureTool.Platform.csproj" />
     <InternalsVisibleTo Include="HdrCaptureProbe" />

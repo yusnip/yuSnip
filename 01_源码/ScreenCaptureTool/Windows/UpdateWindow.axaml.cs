@@ -125,6 +125,7 @@ public partial class UpdateWindow : Window
         if (_pending == null) return;
         var info = _pending;
         ShowDownloading();
+        string? tmpPath = null;
 
         try
         {
@@ -134,7 +135,7 @@ public partial class UpdateWindow : Window
                 throw new InvalidOperationException("无法定位当前程序路径。");
             }
 
-            string tmpPath = Path.Combine(Path.GetTempPath(), $"yusnip_update_{info.Build}.exe");
+            tmpPath = Path.Combine(Path.GetTempPath(), $"yusnip_update_{ReleaseChannel.Name}_{Guid.NewGuid():N}.exe");
             var sw = Stopwatch.StartNew();
             var progress = new Progress<(long read, long total)>(p =>
             {
@@ -154,11 +155,10 @@ public partial class UpdateWindow : Window
             });
 
             _cts = new CancellationTokenSource();
-            await UpdateService.DownloadAsync(info.DownloadUrl, tmpPath, progress, _cts.Token);
+            await UpdateService.DownloadAsync(info, tmpPath, progress, _cts.Token);
 
             string newExe = exePath + ".new";
             File.Copy(tmpPath, newExe, overwrite: true);
-            try { File.Delete(tmpPath); } catch { }
             _downloadedNewExe = newExe;
 
             // 下载完成：无需多余提示与二次确认，直接自动重启软件完成更新
@@ -179,6 +179,13 @@ public partial class UpdateWindow : Window
         {
             AppLogger.Error("UpdateWindow: 下载更新失败: " + ex.Message);
             ShowError("下载更新失败：\n" + ex.Message);
+        }
+        finally
+        {
+            if (tmpPath != null)
+            {
+                try { File.Delete(tmpPath); } catch { }
+            }
         }
     }
 
