@@ -118,6 +118,16 @@ Bug reports, feature requests and pull requests are welcome. Redact private info
 
 [Usage statistics and privacy (Chinese)](USER_GUIDE.md#sec-13-h6)
 
+## Technology stack and acknowledgments
+
+| Feature | Main components |
+| --- | --- |
+| Desktop UI | **.NET 10, Avalonia UI, and SkiaSharp** provide the runtime, UI framework, and graphics rendering. |
+| Offline OCR | **ONNX Runtime** runs **PaddleOCR PP-OCRv6 small** text detection and recognition models locally. |
+| Background removal | **U²-NetP** segments general subjects, and **MODNet** handles portrait matting. |
+| Scrolling capture | **OpenCV / OpenCvSharp** match scrolling frames and stitch them together. |
+| Screen recording and export | **Windows Media Foundation** is the default recording backend. **FFmpeg** powers an optional recording backend, animated WebP export, and some transcoding. |
+
 ## License
 
 yuSnip is maintained by 北京林或西. Its own source code is available under the MIT License, which allows use, modification and redistribution, including commercial use, with the copyright and license notices retained. Third-party libraries, models and components keep their own licenses. [MIT License](LICENSE) · [Third-party licenses](01_源码/ScreenCaptureTool/Assets/ThirdParty/)

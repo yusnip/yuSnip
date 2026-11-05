@@ -118,6 +118,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 [使用统计与隐私](USER_GUIDE.md#sec-13-h6)
 
+## 技术栈与第三方致谢
+
+| 用途 | 主要组件 |
+| --- | --- |
+| 桌面界面 | **.NET 10、Avalonia UI、SkiaSharp** 提供运行环境、界面框架和图形渲染。 |
+| 离线 OCR | **PaddleOCR PP-OCRv6 small** 的检测和识别模型由 **ONNX Runtime** 在本机运行。 |
+| 智能抠图 | **U²-NetP** 用于通用主体分割，**MODNet** 用于人像抠图。 |
+| 长截图 | **OpenCV / OpenCvSharp** 用于匹配滚动帧和拼接长图。 |
+| 录屏与导出 | 默认优先使用 **Windows Media Foundation**，**FFmpeg** 用于可选录屏引擎、WebP 动图导出和部分转码。 |
+
 ## 开源许可
 
 yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](LICENSE) · [第三方许可](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
