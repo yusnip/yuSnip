@@ -57,17 +57,19 @@ namespace ScreenCaptureTool.Platform
         /// 微信/QQ 等应用可直接 Ctrl+V 发送文件（计划 §3.10，录屏预览「复制」用）。
         /// 内部与 SetDib 同款 3 次重试，全失败抛 <see cref="InvalidOperationException"/>（调用方 toast，不静默）。
         /// </summary>
-        public static void WriteFileDrop(System.Collections.Generic.IReadOnlyList<string> filePaths)
+        public static void WriteFileDrop(System.Collections.Generic.IReadOnlyList<string> filePaths, IntPtr owner)
         {
             if (filePaths == null || filePaths.Count == 0)
                 throw new ArgumentException("文件列表为空。", nameof(filePaths));
+            if (owner == IntPtr.Zero)
+                throw new ArgumentException("缺少剪贴板所有者窗口。", nameof(owner));
 
             Exception? lastError = null;
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 try
                 {
-                    SetFileDropCore(filePaths);
+                    SetFileDropCore(filePaths, owner);
                     return;
                 }
                 catch (Exception ex)
@@ -81,7 +83,7 @@ namespace ScreenCaptureTool.Platform
                 "Win32Clipboard.WriteFileDrop 失败：" + (lastError?.Message ?? "未知错误"), lastError);
         }
 
-        private static void SetFileDropCore(System.Collections.Generic.IReadOnlyList<string> filePaths)
+        private static void SetFileDropCore(System.Collections.Generic.IReadOnlyList<string> filePaths, IntPtr owner)
         {
             // DROPFILES{pFiles=20; POINT pt{0,0}; BOOL fNC=0; BOOL fWide=1} + 每条路径 UTF16\0 + 末尾再一个 \0（双零收尾）
             using var ms = new System.IO.MemoryStream();
@@ -99,7 +101,7 @@ namespace ScreenCaptureTool.Platform
             }
             ms.Write(new byte[2], 0, 2);
 
-            SetClipboardBytes(ms.ToArray(), CF_HDROP);
+            SetClipboardBytes(ms.ToArray(), CF_HDROP, owner);
         }
 
         /// <summary>
@@ -580,7 +582,7 @@ namespace ScreenCaptureTool.Platform
             SetClipboardBytes(textBytes, NativeMethods.CF_UNICODETEXT);
         }
 
-        private static void SetClipboardBytes(byte[] bytes, uint format)
+        private static void SetClipboardBytes(byte[] bytes, uint format, IntPtr owner = default)
         {
             IntPtr hGlobal = IntPtr.Zero;
             bool clipboardOpened = false;
@@ -608,7 +610,7 @@ namespace ScreenCaptureTool.Platform
                     NativeMethods.GlobalUnlock(hGlobal);
                 }
 
-                if (!NativeMethods.OpenClipboard(IntPtr.Zero))
+                if (!NativeMethods.OpenClipboard(owner))
                 {
                     throw new InvalidOperationException("OpenClipboard 失败，错误码：" + Marshal.GetLastWin32Error());
                 }

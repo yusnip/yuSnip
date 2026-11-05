@@ -105,9 +105,8 @@ namespace ScreenCaptureTool.Core.Capture
                     if (!NativeMethods.GdiFlush())
                         throw new InvalidOperationException("GDI 截屏像素同步失败");
 
-                    // 自动补齐 HDR 输出；SDR 不创建设备，失败沿用已完成的 GDI 截图。
-                    using (var hdr = HdrScreenCapture.TryCreate(virt))
-                        hdr?.TryCopyTo(pBits, checked(width * 4));
+                    // 冻结并发布前补齐 HDR 输出，未完成的输出可补采一次。
+                    HdrScreenCapture.CopySnapshot(virt, pBits, checked(width * 4));
 
                     // 使用零拷贝 Bitmap 包装 DIBSection 内存块
                     int stride = width * 4;

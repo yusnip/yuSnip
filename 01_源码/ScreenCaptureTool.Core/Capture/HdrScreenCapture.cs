@@ -10,21 +10,29 @@ namespace ScreenCaptureTool.Core.Capture;
 /// </summary>
 public sealed unsafe class HdrScreenCapture : IDisposable
 {
-    private readonly List<OutputCapture> _outputs = new();
+    private readonly List<OutputCapture> _outputs;
     private readonly Rectangle _bounds;
     private bool _disposed;
-    private HdrScreenCapture(Rectangle bounds) => _bounds = bounds;
+    internal HdrScreenCapture(Rectangle bounds, params OutputCapture[] outputs)
+    {
+        _bounds = bounds;
+        _outputs = new(outputs);
+    }
 
     /// <summary>仅在当前输出确实启用 HDR 且提供 SDR 白电平时创建；失败保留调用方原有 GDI 像素。</summary>
     public static HdrScreenCapture? TryCreate(Rectangle bounds)
+        => TryCreate(bounds, null, out _);
+
+    private static HdrScreenCapture? TryCreate(Rectangle bounds, IReadOnlySet<string>? completed, out bool retry)
     {
+        retry = false;
         if (bounds.Width <= 0 || bounds.Height <= 0) return null;
         HdrScreenCapture? result = null;
         nint factory = 0;
         try
         {
             using var detection = PerformanceTimer.Measure("HDR.Detect");
-            var displays = ReadDisplays();
+            var displays = ReadDisplays(out retry);
             if (displays.Count == 0) return null;
             result = new HdrScreenCapture(bounds);
             Guid iid = new("770aae78-f26f-4dba-a829-253c83d1b387"); // IDXGIFactory1
@@ -51,16 +59,25 @@ public sealed unsafe class HdrScreenCapture : IDisposable
                             // 仅“支持 HDR”不够；必须是当前启用的 PQ/BT.2020 输出，排除 SDR 自动色彩管理。
                             if (desc.Attached == 0 || desc.ColorSpace != 12) continue;
                             string name = new(desc.DeviceName);
-                            var display = displays.Find(d => d.Name == name);
-                            if (display == null) continue;
+                            if (completed?.Contains(name) == true) continue;
                             var monitor = Rectangle.FromLTRB(desc.Left, desc.Top, desc.Right, desc.Bottom);
                             var intersection = Rectangle.Intersect(bounds, monitor);
                             if (intersection.IsEmpty) continue;
+                            var display = displays.Find(d => string.Equals(d.Name, name, StringComparison.OrdinalIgnoreCase));
+                            if (display == null)
+                            {
+                                retry = true;
+                                continue;
+                            }
                             var local = new Rectangle(intersection.X - monitor.X, intersection.Y - monitor.Y, intersection.Width, intersection.Height);
                             var target = new Point(intersection.X - bounds.X, intersection.Y - bounds.Y);
                             result._outputs.Add(OutputCapture.Create(adapter, output6, local, target, display.WhiteScale, name));
                         }
-                        catch (Exception ex) { AppLogger.Warn("HDR 输出初始化失败，保留 GDI：" + ErrorCode(ex)); }
+                        catch (Exception ex)
+                        {
+                            retry |= ex.HResult == AccessLost;
+                            AppLogger.Warn("HDR 输出初始化失败，保留 GDI：" + ErrorCode(ex));
+                        }
                         finally { Release(output6); Release(output); }
                     }
                 }
@@ -68,10 +85,40 @@ public sealed unsafe class HdrScreenCapture : IDisposable
             }
             if (result._outputs.Count > 0) return result;
         }
-        catch (Exception ex) { AppLogger.Warn("HDR 初始化失败，保留 GDI：" + ErrorCode(ex)); }
+        catch (Exception ex)
+        {
+            retry |= ex.HResult == AccessLost;
+            AppLogger.Warn("HDR 初始化失败，保留 GDI：" + ErrorCode(ex));
+        }
         finally { Release(factory); }
         result?.Dispose();
         return null;
+    }
+
+    internal static void CopySnapshot(Rectangle bounds, nint destination, int stride)
+        => CopySnapshot(destination, stride, (IReadOnlySet<string> completed, out bool retry) => TryCreate(bounds, completed, out retry));
+
+    internal delegate HdrScreenCapture? SnapshotFactory(IReadOnlySet<string> completed, out bool retry);
+
+    /// <summary>一次性冻结图最多补采一轮。先释放旧复制接口，再重新读取元数据并尝试未完成的输出。</summary>
+    internal static void CopySnapshot(nint destination, int stride, SnapshotFactory create)
+    {
+        var completed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            using var hdr = create(completed, out bool retry);
+            if (hdr != null)
+            {
+                foreach (var output in hdr._outputs)
+                {
+                    if (output.TryCopyTo(destination, stride)) completed.Add(output.Name);
+                    else retry |= output.RetrySnapshot;
+                }
+            }
+            if (!retry) return;
+            if (attempt == 0) AppLogger.Info("HDR 截图首帧未齐，释放复制接口后补采一次");
+        }
+        AppLogger.Warn("HDR 截图补采未齐，未完成区域保留 GDI");
     }
 
     /// <summary>调用前须 GdiFlush，确保队列中的 GDI 写入不会晚于 HDR 替换；只接受正步长 32 位自有 DIB。</summary>
@@ -93,26 +140,31 @@ public sealed unsafe class HdrScreenCapture : IDisposable
     }
 
     internal sealed record Display(string Name, float WhiteScale);
-    internal static List<Display> ReadDisplays()
+    internal static List<Display> ReadDisplays(out bool incomplete)
     {
+        incomplete = false;
         var result = new List<Display>();
         // 只查询元数据，SDR 机器不创建 D3D 设备。拓扑竞态仅重试一次，避免截图入口无限等待。
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            if (GetDisplayConfigBufferSizes(2, out uint pathsCount, out uint modesCount) != 0
-                || pathsCount == 0 || pathsCount > 128 || modesCount > 512) return result;
+            int sizeResult = GetDisplayConfigBufferSizes(2, out uint pathsCount, out uint modesCount);
+            if (sizeResult == ErrorGenFailure) incomplete = true;
+            if (sizeResult != 0 || pathsCount == 0 || pathsCount > 128 || modesCount > 512) return result;
             var paths = new PathInfo[pathsCount];
             var modes = new ModeInfo[modesCount];
             int hr;
             fixed (PathInfo* p = paths)
             fixed (ModeInfo* m = modes) hr = QueryDisplayConfig(2, ref pathsCount, p, ref modesCount, m, 0);
-            if (hr == 122) continue;
-            if (hr != 0) return result;
+            if (hr == 122) { incomplete = true; continue; }
+            if (hr != 0) { incomplete |= hr == ErrorGenFailure; return result; }
+            incomplete = false;
             for (int i = 0; i < pathsCount; i++)
             {
                 var path = paths[i];
                 AdvancedColor color = new() { Header = new DeviceHeader(9, (uint)sizeof(AdvancedColor), path.TargetAdapter, path.TargetId) };
-                if (DisplayConfigGetDeviceInfo(&color.Header) != 0 || (color.Flags & 2) == 0) continue;
+                int colorResult = DisplayConfigGetDeviceInfo(&color.Header);
+                if (colorResult == ErrorGenFailure) incomplete = true;
+                if (colorResult != 0 || (color.Flags & 2) == 0) continue;
                 WhiteLevel white = new() { Header = new DeviceHeader(11, (uint)sizeof(WhiteLevel), path.TargetAdapter, path.TargetId) };
                 SourceName source = new() { Header = new DeviceHeader(1, (uint)sizeof(SourceName), path.SourceAdapter, path.SourceId) };
                 // 不猜一个固定亮度值；没有白电平时宁可回退，也不把 SDR 桌面错误压暗。
@@ -120,6 +172,7 @@ public sealed unsafe class HdrScreenCapture : IDisposable
                 int sourceResult = DisplayConfigGetDeviceInfo(&source.Header);
                 if (whiteResult != 0 || white.Level == 0 || sourceResult != 0)
                 {
+                    incomplete = true;
                     AppLogger.Warn($"HDR 高级颜色元数据不完整，保留 GDI：whiteResult={whiteResult} whiteLevel={white.Level} sourceResult={sourceResult}");
                     continue;
                 }
@@ -142,6 +195,8 @@ public sealed unsafe class HdrScreenCapture : IDisposable
         private bool _initialWaitDone, _waitingLogged, _protectedLogged;
         private int _pointerOnlyFrames, _timeouts;
         private readonly string _name;
+        internal string Name => _name;
+        internal bool RetrySnapshot { get; private set; }
         private uint _rotation;
         // 原生指针所有权移交到实例；普通创建分步初始化，自测可使用受控复制接口。
         internal OutputCapture(Rectangle local, Point target, float white, nint device = 0, nint context = 0,
@@ -179,6 +234,7 @@ public sealed unsafe class HdrScreenCapture : IDisposable
         internal bool TryCopyTo(nint target, int stride)
         {
             if (_disabled) return false;
+            RetrySnapshot = false;
             nint resource = 0, texture = 0;
             bool acquired = false;
             string stage = "AcquireNextFrame";
@@ -220,7 +276,10 @@ public sealed unsafe class HdrScreenCapture : IDisposable
                 TextureDesc desc = default;
                 ((delegate* unmanaged[Stdcall]<nint, TextureDesc*, void>)Slot(texture, 10))(texture, &desc);
                 if (desc.Format != 10 || desc.SampleCount != 1)
+                {
+                    RetrySnapshot = true;
                     throw new InvalidOperationException($"HDR 复制未返回单采样 FP16：format={desc.Format} samples={desc.SampleCount} size={desc.Width}x{desc.Height}");
+                }
                 var source = HdrToneMapper.SourceRect(_local, checked((int)desc.Width), checked((int)desc.Height), _rotation);
                 if (source.Width <= 0 || source.Height <= 0 || source.Left < 0 || source.Top < 0
                     || source.Right > desc.Width || source.Bottom > desc.Height) throw new InvalidOperationException("HDR 输出尺寸已变化");
@@ -237,6 +296,7 @@ public sealed unsafe class HdrScreenCapture : IDisposable
             catch (Exception ex)
             {
                 // 会话内失败一次即停用，不在高频长截图循环中反复建设备／等待，保留当前 GDI 结果。
+                RetrySnapshot |= ex.HResult == AccessLost || ex is TimeoutException;
                 _disabled = true;
                 AppLogger.Warn($"HDR 捕获回退 GDI：output={_name} stage={stage} region={_local} " + ErrorCode(ex));
                 return false;
@@ -251,6 +311,7 @@ public sealed unsafe class HdrScreenCapture : IDisposable
 
         private void LogWaiting()
         {
+            RetrySnapshot = true;
             if (_waitingLogged) return;
             _waitingLogged = true;
             AppLogger.Warn($"HDR 暂无有效桌面帧，本次保留 GDI、下次继续采集：{_name} pointerOnly={_pointerOnlyFrames} timeouts={_timeouts}");
@@ -560,7 +621,9 @@ public sealed unsafe class HdrScreenCapture : IDisposable
         return result;
     }
     internal static void Release(nint obj) { if (obj != 0) ((delegate* unmanaged[Stdcall]<nint, uint>)Slot(obj, 2))(obj); }
-    private const int NotFound = unchecked((int)0x887A0002), WaitTimeout = unchecked((int)0x887A0027), StillDrawing = unchecked((int)0x887A000A);
+    private const int ErrorGenFailure = 31;
+    private const int NotFound = unchecked((int)0x887A0002), AccessLost = unchecked((int)0x887A0026),
+        WaitTimeout = unchecked((int)0x887A0027), StillDrawing = unchecked((int)0x887A000A);
 
     // 以下布局与 Windows SDK dxgi1_2.h／dxgi1_6.h／d3d11.h／wingdi.h 对齐；不使用运行时 COM 封送。
     [StructLayout(LayoutKind.Sequential)]

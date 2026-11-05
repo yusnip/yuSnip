@@ -135,6 +135,7 @@ public partial class VideoStickerWindow : Window
     public VideoStickerWindow()
     {
         InitializeComponent();
+        AddHandler(KeyDownEvent, OnCopyShortcut, RoutingStrategies.Tunnel);
         ApplyCustomToolbar();
 
         // C 甲：时间读数去 Consolas 之后，必须按"本读数最宽那一档"预留宽度，否则 00:08→10:00、
@@ -778,7 +779,7 @@ public partial class VideoStickerWindow : Window
     {
         if (_encoding) return;
         string dest = Path.Combine(DefaultSaveDir(), SuggestedName(_format));
-        await SaveCoreAsync(dest, notify: true);
+        await SaveCoreAsync(dest);
     }
 
     private async Task SaveAsAsync()
@@ -811,7 +812,7 @@ public partial class VideoStickerWindow : Window
                 // 用户在对话框里改了扩展名不跟随格式时，以当前格式为准补正确扩展名（转码产物名实相符）
                 path = Path.ChangeExtension(path, ExportService.ExtensionFor(_format).TrimStart('.'));
             }
-            await SaveCoreAsync(path, notify: true);
+            await SaveCoreAsync(path);
         }
         catch (Exception ex)
         {
@@ -820,7 +821,7 @@ public partial class VideoStickerWindow : Window
     }
 
     /// <summary>统一保存出口：MP4 无烙印 = 母带直拷秒存；GIF/WebP/烙印 MP4 = D17 工具条内进度转码。</summary>
-    private async Task SaveCoreAsync(string dest, bool notify)
+    private async Task SaveCoreAsync(string dest, bool copyToClipboard = false)
     {
         if (_encoding) return;
         _lastDestPath = dest;
@@ -830,7 +831,7 @@ public partial class VideoStickerWindow : Window
             try
             {
                 File.Copy(_masterPath, dest, true);
-                OnSaved(dest, notify);
+                OnSaved(dest, copyToClipboard);
             }
             catch (Exception ex)
             {
@@ -884,15 +885,29 @@ public partial class VideoStickerWindow : Window
             ShowEncodingFailure(err);
             return;
         }
-        OnSaved(dest, notify);
+        OnSaved(dest, copyToClipboard);
     }
 
-    private void OnSaved(string dest, bool notify)
+    private void OnSaved(string dest, bool copyToClipboard)
     {
+        if (copyToClipboard)
+        {
+            try
+            {
+                // 用仍存活的预览窗作为剪贴板所有者，写入成功后再退场。
+                Win32Clipboard.WriteFileDrop(new[] { dest }, TryGetPlatformHandle()?.Handle ?? IntPtr.Zero);
+                StickerToastWindow.Show("视频文件已复制到剪贴板");
+            }
+            catch (Exception ex)
+            {
+                StickerToastWindow.Show("复制失败：" + ex.Message);
+                return;
+            }
+        }
         _saved = true;
         AppLogger.Info("VideoStickerWindow: 已保存 " + dest);
         try { TempSpace.DeleteDelayed(_sessionDir); } catch { } // D22：保存成功 30s 后清临时目录
-        if (notify)
+        if (!copyToClipboard)
         {
             try { new SavedNotificationWindow(dest, "视频已保存").Show(); }
             catch (Exception ex) { AppLogger.Warn("VideoStickerWindow: 保存通知弹出失败：" + ex.Message); }
@@ -914,18 +929,7 @@ public partial class VideoStickerWindow : Window
         string dir = Path.Combine(TempSpace.Root, "clipboard");
         Directory.CreateDirectory(dir);
         string dest = Path.Combine(dir, SuggestedName(_format));
-        await SaveCoreAsync(dest, notify: false);
-        if (_lastDestPath != dest || !_saved) return; // 保存失败／取消不复制不存在的文件。
-
-        try
-        {
-            Win32Clipboard.WriteFileDrop(new[] { dest });
-            StickerToastWindow.Show("视频文件已复制到剪贴板");
-        }
-        catch (Exception ex)
-        {
-            StickerToastWindow.Show("复制失败：" + ex.Message); // 计划：失败 toast，不静默
-        }
+        await SaveCoreAsync(dest, copyToClipboard: true);
     }
 
     // ================= D17 转码进度态 =================
@@ -967,7 +971,7 @@ public partial class VideoStickerWindow : Window
     {
         string dest = _lastDestPath ?? Path.Combine(DefaultSaveDir(), SuggestedName(_format));
         ExitEncodingModeSilently();
-        _ = SaveCoreAsync(dest, notify: true);
+        _ = SaveCoreAsync(dest);
     }
 
     private void OnEncMp4Click(object? sender, RoutedEventArgs e)
@@ -978,7 +982,7 @@ public partial class VideoStickerWindow : Window
         _format = RecordFormat.Mp4;
         UpdateFormatUi();
         PersistFormat(RecordFormat.Mp4);   // 改存 MP4 同样更新默认格式（用户明显不再想要那个转码格式）
-        _ = SaveCoreAsync(dest, notify: true); // 母带直拷 = 秒存（MP4 高画质档快速封装，计划 §3.11）
+        _ = SaveCoreAsync(dest); // 母带直拷 = 秒存（MP4 高画质档快速封装，计划 §3.11）
     }
 
     private void ExitEncodingModeSilently()
@@ -1063,6 +1067,16 @@ public partial class VideoStickerWindow : Window
 
     // ================= 键盘 =================
 
+    private void OnCopyShortcut(object? sender, KeyEventArgs e)
+    {
+        const KeyModifiers modifiers = KeyModifiers.Control | KeyModifiers.Shift;
+        if (e.Key != Key.C || (e.KeyModifiers & modifiers) != modifiers) return;
+
+        // 在焦点控件处理按键前接住窗口快捷键，与工具栏按钮共用复制入口。
+        e.Handled = true;
+        OnCopyClick(sender, e);
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
@@ -1084,10 +1098,6 @@ public partial class VideoStickerWindow : Window
                 break;
             case Key.S when ctrl:
                 _ = QuickSaveAsync();
-                e.Handled = true;
-                break;
-            case Key.C when ctrl && shift:
-                _ = CopyAsync();
                 e.Handled = true;
                 break;
             // Ctrl+Del 与 Esc 现在同一条路（都是"关闭＝放弃"）。保留这个键位是因为老用户可能习惯它。

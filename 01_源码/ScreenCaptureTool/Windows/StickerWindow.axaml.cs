@@ -2891,13 +2891,24 @@ _sourcePixelHeight = _bitmap.Height;
     private bool UsesImageViewport => _bitmap != null && !_isThumbnailMode && !_isCanvasMode
         && StickerImage is { IsVisible: true, Source: Avalonia.Media.Imaging.Bitmap };
 
+    private const int ImageMonitorSnapshotMs = 300;
+    private static IReadOnlyList<System.Drawing.Rectangle>? _imageMonitorRects;
+    private static long _imageMonitorSnapshotTime;
+
     private IReadOnlyList<System.Drawing.Rectangle> GetStickerDisplayRects()
     {
         if (!UsesImageViewport) return GetStableWorkAreaRects();
-        var screens = Screens.All;
-        if (screens.Count == 0) return ScreenCaptureTool.Platform.MonitorHelper.GetMonitorRects();
-        return screens.Select(screen => new System.Drawing.Rectangle(screen.Bounds.X, screen.Bounds.Y,
-            screen.Bounds.Width, screen.Bounds.Height)).ToArray();
+
+        // 和 GetCursorPos / SetWindowPos 一样直接取 Win32 物理坐标。
+        // 框架屏幕列表非空也可能仍是旧布局；缺少副屏时最小可见规则会把贴图拉回主屏。
+        // 短期复用读数，避免在指针移动和视口合帧中逐帧枚举显示器。
+        long now = Environment.TickCount64;
+        if (_imageMonitorRects == null || now - _imageMonitorSnapshotTime >= ImageMonitorSnapshotMs)
+        {
+            _imageMonitorRects = ScreenCaptureTool.Platform.MonitorHelper.GetMonitorRects();
+            _imageMonitorSnapshotTime = now;
+        }
+        return _imageMonitorRects;
     }
 
     /// <summary>图片整体只受最小可见内容限制。窗口裁切是输出，不能反过来改图片位置。</summary>

@@ -5366,6 +5366,11 @@ public sealed class CaptureSession
                 return;
             }
 
+            // 单键和 Shift 字符输入优先交给正在编辑的输入框；Esc 仍按截图取消绑定分发。
+            if (window.HasActiveTextEditing && e.Key != Key.Escape
+                && (e.KeyModifiers & ~KeyModifiers.Shift) == KeyModifiers.None)
+                return;
+
             // 内置快捷键分发：按绑定表匹配（修饰键要求精确一致，组内唯一）
             BuiltinShortcutsStore.BuiltinShortcut? matched = null;
             foreach (var sc in captureShortcuts.Values)
