@@ -1,0 +1,25 @@
+name: 功能建议 / Feature request
+description: 分享一个使用场景和改进建议 / Share a use case and an improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: 请先搜索已有建议，附件请脱敏。 / Please search existing suggestions and redact any attachments.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 使用场景 / Use case
+      description: 你想完成什么？现有操作卡在哪里？ / What are you trying to do, and where do you get stuck?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的操作或结果 / Proposed behavior or outcome
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充信息 / Additional context
+      description: 可附脱敏后的示意图、当前做法或参考。 / You can include a redacted mockup, your current workaround, or a reference.

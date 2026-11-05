@@ -1,0 +1,25 @@
+name: Build Windows x64
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: 01_源码/global.json
+      - name: Build Debug x64
+        shell: powershell
+        run: .\build.ps1

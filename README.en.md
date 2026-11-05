@@ -12,6 +12,8 @@ yuSnip is a free, open-source screenshot, pinning and screen recording tool for 
 
 Supports Windows 10 version 2004 (build 19041) or later and Windows 11 on x64.
 
+Download `yuSnip.exe` from the Assets section of the GitHub Release.
+
 ## Interface and interaction
 
 ### Capture interface
@@ -112,7 +114,9 @@ The command line can trigger a configured action. This example starts the action
 
 ## Feedback and contributions
 
-Issues and pull requests are welcome. Include your yuSnip version, Windows version and steps to reproduce. Redact private information before sharing screenshots or logs, and report security vulnerabilities privately. [Issues](https://github.com/yusnip/yuSnip/issues) · [Security reporting](SECURITY.md)
+Bug reports, feature requests and pull requests are welcome. Redact private information before sharing screenshots or logs. [Open an issue](https://github.com/yusnip/yuSnip/issues/new/choose) · [Contributing](CONTRIBUTING.md) · [Private security reporting](SECURITY.md)
+
+[Usage statistics and privacy (Chinese)](USER_GUIDE.md#sec-13-h6)
 
 ## License
 

@@ -12,6 +12,8 @@ yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图�
 
 支持 Windows 10 版本 2004（内部版本 19041）及以上和 Windows 11 x64。
 
+在 GitHub Release 的「Assets」中下载 `yuSnip.exe`。
+
 ## 界面与交互
 
 ### 截图界面
@@ -112,7 +114,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 ## 反馈与贡献
 
-欢迎提 Issue 或 Pull Request。报告问题时请附上 yuSnip 版本、Windows 版本和复现步骤，分享截图或日志前请遮盖私人信息。安全漏洞请通过私下渠道报告。 [Issues](https://github.com/yusnip/yuSnip/issues) · [安全报告](SECURITY.md)
+欢迎反馈问题、建议功能或提交 Pull Request。分享截图或日志前请遮盖私人信息。 [提交反馈](https://github.com/yusnip/yuSnip/issues/new/choose) · [贡献指南](CONTRIBUTING.md) · [私密安全报告](SECURITY.md)
+
+[使用统计与隐私](USER_GUIDE.md#sec-13-h6)
 
 ## 开源许可
 

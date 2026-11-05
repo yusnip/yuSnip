@@ -1,0 +1,53 @@
+name: Bug 反馈 / Bug report
+description: 报告可复现的问题 / Report a reproducible problem
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先搜索已有 Issue。公开上传前，请遮盖截图和日志中的账号、密钥、个人信息和本机路径。
+        Please search existing issues first. Redact accounts, secrets, personal details and local paths before sharing screenshots or logs.
+        安全漏洞请通过 [私密入口](https://github.com/yusnip/yuSnip/security/advisories/new) 报告。 / [Report vulnerabilities privately](https://github.com/yusnip/yuSnip/security/advisories/new).
+  - type: input
+    id: version
+    attributes:
+      label: yuSnip 完整版本 / Full yuSnip version
+      description: 从「设置 → 关于」复制版本号。 / Copy the version from Settings → About.
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: 软件来源 / Where did you get yuSnip?
+      options:
+        - GitHub Release
+        - 官网 / Official website
+        - 自行构建 / Built from source
+        - 其他或不确定 / Other or unsure
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本 / Windows version
+      description: 可用 winver 查看版本和内部版本号。 / Run winver to find the version and OS build.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      description: 从哪个入口操作，依次点了什么或按了什么键？ / Where did you start, and what did you click or press?
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 实际表现与预期 / Actual and expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充信息 / Additional context
+      description: 如相关，可附显示器数量、各屏缩放、依赖运行状态或脱敏后的截图和日志。 / If relevant, include monitor count, per-monitor scaling, component status, or redacted screenshots and logs.

@@ -258,7 +258,8 @@ namespace ScreenCaptureTool.Core
                 DirectoryInfo dir = new DirectoryInfo(AppContext.BaseDirectory);
                 while (dir != null)
                 {
-                    if (ContainsPrefixedDirectory(dir, "01_")
+                    if ((ContainsPrefixedDirectory(dir, "01_")
+                            || Directory.Exists(Path.Combine(dir.FullName, "GitHub", "01_源码")))
                         && ContainsPrefixedDirectory(dir, "02_")
                         && ContainsPrefixedDirectory(dir, "03_"))
                     {
