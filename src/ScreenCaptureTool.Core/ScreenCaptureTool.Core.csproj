@@ -7,7 +7,13 @@
   <Target Name="ValidateDistributionChannel" BeforeTargets="CoreCompile">
     <Error Condition="'$(YuSnipDistributionChannel)' != '' And '$(YuSnipDistributionChannel)' != 'GitHub' And '$(YuSnipDistributionChannel)' != 'Website'"
            Text="YuSnipDistributionChannel must be GitHub or Website." />
+    <Error Condition="'$(RequireYuSnipOAuth)' == 'true' And !Exists('$(YuSnipOAuthConfig)')"
+           Text="The official release requires a desktop OAuth configuration file." />
   </Target>
+
+  <ItemGroup Condition="'$(YuSnipOAuthConfig)' != ''">
+    <EmbeddedResource Include="$(YuSnipOAuthConfig)" LogicalName="YuSnip.GoogleDrive.DesktopOAuth.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ScreenCaptureTool.Platform\ScreenCaptureTool.Platform.csproj" />

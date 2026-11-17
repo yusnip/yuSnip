@@ -23,9 +23,7 @@ namespace ScreenCaptureTool.Core.CloudSync
         // ================================================================
         // Google OAuth 凭据
         // ================================================================
-        // 公开源码从本机设置读取已配置的桌面 OAuth 凭据。
-        private const string DefaultClientId = "";
-        private const string DefaultClientSecret = "";
+        private static readonly Lazy<(string Id, string Secret)> BuiltInCredentials = new(LoadBuiltInCredentials);
 
         // Desktop app 类型无需在 Console 注册 redirect URI，Google 自动允许 127.0.0.1 任意端口。
         // 使用 38439 端口，与其他使用同一凭据的软件错开，避免同时登录时的端口占用。
@@ -69,16 +67,31 @@ namespace ScreenCaptureTool.Core.CloudSync
         // 凭据
         // ================================================================
 
-        private string ClientId => !string.IsNullOrWhiteSpace(_settings.GoogleDriveClientId)
-            ? _settings.GoogleDriveClientId
-            : DefaultClientId;
+        private string ClientId => CredentialsFor(_settings).Id;
+        private string ClientSecret => CredentialsFor(_settings).Secret;
 
-        private string ClientSecret => !string.IsNullOrWhiteSpace(_settings.GoogleDriveClientSecret)
-            ? _settings.GoogleDriveClientSecret
-            : DefaultClientSecret;
+        public bool HasOAuthCredentials => CredentialsFor(_settings).Id.Length != 0;
 
-        public bool HasOAuthCredentials =>
-            !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
+        private static (string Id, string Secret) CredentialsFor(AppSettings settings) =>
+            !string.IsNullOrWhiteSpace(settings.GoogleDriveClientId) && !string.IsNullOrWhiteSpace(settings.GoogleDriveClientSecret)
+                ? (settings.GoogleDriveClientId, settings.GoogleDriveClientSecret)
+                : BuiltInCredentials.Value;
+
+        private static (string Id, string Secret) LoadBuiltInCredentials()
+        {
+            using var resource = typeof(GoogleDriveSyncService).Assembly.GetManifestResourceStream("YuSnip.GoogleDrive.DesktopOAuth.json");
+            if (resource != null)
+            {
+                try
+                {
+                    if (ReadDesktopCredentials(resource) is { } credentials)
+                        return credentials;
+                }
+                catch (JsonException) { }
+            }
+
+            return ("", "");
+        }
 
         private const string MissingCredentialsMessage = "请先在云存储设置中导入 Google Drive 桌面 OAuth 凭据。";
 
@@ -88,19 +101,7 @@ namespace ScreenCaptureTool.Core.CloudSync
             try
             {
                 using var file = File.OpenRead(path);
-                if (file.Length > 64 * 1024)
-                    return invalidFile;
-
-                using var document = JsonDocument.Parse(file);
-                var root = document.RootElement;
-                if (root.ValueKind != JsonValueKind.Object
-                    || !root.TryGetProperty("installed", out var installed)
-                    || installed.ValueKind != JsonValueKind.Object)
-                    return invalidFile;
-
-                string? id = ReadCredential(installed, "client_id");
-                string? secret = ReadCredential(installed, "client_secret");
-                if (id == null || !id.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal) || secret == null)
+                if (file.Length > 64 * 1024 || ReadDesktopCredentials(file) is not { } credentials)
                     return invalidFile;
 
                 lock (CloudSnapshot.FileGate)
@@ -110,8 +111,8 @@ namespace ScreenCaptureTool.Core.CloudSync
 
                     string previousId = _settings.GoogleDriveClientId;
                     string previousSecret = _settings.GoogleDriveClientSecret;
-                    _settings.GoogleDriveClientId = id;
-                    _settings.GoogleDriveClientSecret = secret;
+                    _settings.GoogleDriveClientId = credentials.Id;
+                    _settings.GoogleDriveClientSecret = credentials.Secret;
                     if (_settings.TrySave())
                         return null;
 
@@ -128,6 +129,22 @@ namespace ScreenCaptureTool.Core.CloudSync
             {
                 return "无法读取 OAuth 凭据文件，请检查文件是否可以打开。";
             }
+        }
+
+        private static (string Id, string Secret)? ReadDesktopCredentials(Stream stream)
+        {
+            using var document = JsonDocument.Parse(stream);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("installed", out var installed)
+                || installed.ValueKind != JsonValueKind.Object)
+                return null;
+
+            string? id = ReadCredential(installed, "client_id");
+            string? secret = ReadCredential(installed, "client_secret");
+            return id != null && id.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal) && secret != null
+                ? (id, secret)
+                : null;
         }
 
         private static string? ReadCredential(JsonElement installed, string key)
@@ -457,8 +474,7 @@ namespace ScreenCaptureTool.Core.CloudSync
                 return access;
 
             string refresh = _settings.GoogleDriveRefreshToken ?? "";
-            string requestClientId = ClientId;
-            string requestClientSecret = ClientSecret;
+            var (requestClientId, requestClientSecret) = CredentialsFor(_settings);
             string requestEmail = _settings.GoogleDriveUserEmail ?? "";
             if (string.IsNullOrWhiteSpace(refresh))
             {
@@ -506,8 +522,7 @@ namespace ScreenCaptureTool.Core.CloudSync
 
                 // 等待期间可能开过设置页（Reload 换实例）或切换账号，只更新当前实例的登录态。
                 var current = AppSettings.Current;
-                string currentClientId = string.IsNullOrWhiteSpace(current.GoogleDriveClientId) ? DefaultClientId : current.GoogleDriveClientId;
-                string currentClientSecret = string.IsNullOrWhiteSpace(current.GoogleDriveClientSecret) ? DefaultClientSecret : current.GoogleDriveClientSecret;
+                var (currentClientId, currentClientSecret) = CredentialsFor(current);
                 if (current.GoogleDriveRefreshToken != refresh || current.GoogleDriveUserEmail != requestEmail
                     || currentClientId != requestClientId || currentClientSecret != requestClientSecret)
                 {
