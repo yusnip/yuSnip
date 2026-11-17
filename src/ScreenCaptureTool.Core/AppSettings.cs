@@ -1024,16 +1024,11 @@ namespace ScreenCaptureTool.Core
 
         public void Save()
         {
-            TrySave();
-        }
-
-        internal bool TrySave()
-        {
             // 包住取值、写盘和缓存回填，事务应用期间不允许排队的旧快照随后整表写回。
-            lock (CloudSync.CloudSnapshot.FileGate) return SaveLocked();
+            lock (CloudSync.CloudSnapshot.FileGate) SaveLocked();
         }
 
-        private bool SaveLocked()
+        private void SaveLocked()
         {
             try
             {
@@ -1276,12 +1271,10 @@ namespace ScreenCaptureTool.Core
                 if (_cached == null) _cached = this;
                 else if (!ReferenceEquals(_cached, this)) _cached.CopyFrom(this);
             }
-            return true;
             }
             catch (Exception ex)
             {
                 AppLogger.Error("Failed to save settings.", ex);
-                return false;
             }
         }
 

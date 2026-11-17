@@ -23,10 +23,6 @@ namespace ScreenCaptureTool.Core.CloudSync
         // ================================================================
         // Google OAuth 凭据
         // ================================================================
-        // 公开源码从本机设置读取已配置的桌面 OAuth 凭据。
-        private const string DefaultClientId = "";
-        private const string DefaultClientSecret = "";
-
         // Desktop app 类型无需在 Console 注册 redirect URI，Google 自动允许 127.0.0.1 任意端口。
         // 使用 38439 端口，与其他使用同一凭据的软件错开，避免同时登录时的端口占用。
         private const string RedirectUri = "http://127.0.0.1:38439/oauth/callback";
@@ -35,6 +31,7 @@ namespace ScreenCaptureTool.Core.CloudSync
         private const string ConfigFileName = "yuSnip-config-v1.json";
 
         private const string AuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+        private const string OfficialOAuthUrl = "https://yusnip.top/yusnip/oauth";
         private const string TokenUrl = "https://oauth2.googleapis.com/token";
         private const string RevokeUrl = "https://oauth2.googleapis.com/revoke";
         private const string UserInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -42,6 +39,10 @@ namespace ScreenCaptureTool.Core.CloudSync
         private const string DriveUploadUrl = "https://www.googleapis.com/upload/drive/v3/files";
 
         private static readonly HttpClient Http = new HttpClient();
+        private static readonly HttpClient OfficialOAuthHttp = new(new HttpClientHandler { AllowAutoRedirect = false })
+        {
+            Timeout = TimeSpan.FromSeconds(15)
+        };
 
         private string? _oauthCodeVerifier;
         private string? _oauthState;
@@ -58,87 +59,52 @@ namespace ScreenCaptureTool.Core.CloudSync
 
         private readonly AppSettings _settings;
         private readonly HttpClient _http;
+        private readonly HttpClient _officialOAuthHttp;
+        private (string Id, string Secret) _loginClient;
 
         public GoogleDriveSyncService(AppSettings settings, HttpClient? http = null)
         {
             _settings = settings;
             _http = http ?? Http;
+            _officialOAuthHttp = http ?? OfficialOAuthHttp;
         }
 
         // ================================================================
         // 凭据
         // ================================================================
 
-        private string ClientId => !string.IsNullOrWhiteSpace(_settings.GoogleDriveClientId)
-            ? _settings.GoogleDriveClientId
-            : DefaultClientId;
+        private static (string Id, string Secret) LocalClient(AppSettings settings) =>
+            !string.IsNullOrWhiteSpace(settings.GoogleDriveClientId) && !string.IsNullOrWhiteSpace(settings.GoogleDriveClientSecret)
+                ? (settings.GoogleDriveClientId, settings.GoogleDriveClientSecret)
+                : ("", "");
 
-        private string ClientSecret => !string.IsNullOrWhiteSpace(_settings.GoogleDriveClientSecret)
-            ? _settings.GoogleDriveClientSecret
-            : DefaultClientSecret;
-
-        public bool HasOAuthCredentials =>
-            !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
-
-        private const string MissingCredentialsMessage = "请先在云存储设置中导入 Google Drive 桌面 OAuth 凭据。";
-
-        public string? ImportDesktopCredentials(string path)
+        private async Task<string> GetOfficialClientIdAsync()
         {
-            const string invalidFile = "请选择从 Google Cloud 下载的「桌面应用」OAuth 凭据 JSON 文件。";
-            try
-            {
-                using var file = File.OpenRead(path);
-                if (file.Length > 64 * 1024)
-                    return invalidFile;
+            using var response = await _officialOAuthHttp.GetAsync(OfficialOAuthUrl + "/client");
+            response.EnsureSuccessStatusCode();
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            string? id = document.RootElement.GetProperty("client_id").GetString();
+            if (string.IsNullOrWhiteSpace(id) || !id.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal))
+                throw new InvalidDataException("yuSnip OAuth 配置不可用。");
 
-                using var document = JsonDocument.Parse(file);
-                var root = document.RootElement;
-                if (root.ValueKind != JsonValueKind.Object
-                    || !root.TryGetProperty("installed", out var installed)
-                    || installed.ValueKind != JsonValueKind.Object)
-                    return invalidFile;
-
-                string? id = ReadCredential(installed, "client_id");
-                string? secret = ReadCredential(installed, "client_secret");
-                if (id == null || !id.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal) || secret == null)
-                    return invalidFile;
-
-                lock (CloudSnapshot.FileGate)
-                {
-                    if (!string.IsNullOrWhiteSpace(_settings.GoogleDriveRefreshToken))
-                        return "请先退出 Google Drive 登录，再导入新的凭据。";
-
-                    string previousId = _settings.GoogleDriveClientId;
-                    string previousSecret = _settings.GoogleDriveClientSecret;
-                    _settings.GoogleDriveClientId = id;
-                    _settings.GoogleDriveClientSecret = secret;
-                    if (_settings.TrySave())
-                        return null;
-
-                    _settings.GoogleDriveClientId = previousId;
-                    _settings.GoogleDriveClientSecret = previousSecret;
-                    return "无法保存 OAuth 凭据，请检查本机配置目录的写入权限。";
-                }
-            }
-            catch (JsonException)
-            {
-                return invalidFile;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                return "无法读取 OAuth 凭据文件，请检查文件是否可以打开。";
-            }
+            return id;
         }
 
-        private static string? ReadCredential(JsonElement installed, string key)
+        private async Task<HttpResponseMessage> RequestTokenAsync(
+            (string Id, string Secret) client, Dictionary<string, string> form, CancellationToken cancellationToken = default)
         {
-            if (!installed.TryGetProperty(key, out var field) || field.ValueKind != JsonValueKind.String)
-                return null;
+            if (client.Id.Length == 0)
+            {
+                using var content = new FormUrlEncodedContent(form);
+                return await _officialOAuthHttp.PostAsync(OfficialOAuthUrl + "/token", content, cancellationToken);
+            }
 
-            string? value = field.GetString();
-            return !string.IsNullOrWhiteSpace(value) && !value.Any(c => char.IsWhiteSpace(c) || char.IsControl(c))
-                ? value
-                : null;
+            form["client_id"] = client.Id;
+            form["client_secret"] = client.Secret;
+            if (form["grant_type"] == "authorization_code")
+                form["redirect_uri"] = RedirectUri;
+            using var directContent = new FormUrlEncodedContent(form);
+            return await _http.PostAsync(TokenUrl, directContent, cancellationToken);
         }
 
         // ================================================================
@@ -182,14 +148,13 @@ namespace ScreenCaptureTool.Core.CloudSync
         /// 启动 Google OAuth2 登录：生成 PKCE 参数、打开浏览器、监听回调。
         /// 返回 null 表示成功启动，返回错误字符串表示失败。
         /// </summary>
-        public string? StartLogin()
+        public async Task<string?> StartLoginAsync()
         {
-            if (!HasOAuthCredentials)
-                return MissingCredentialsMessage;
-
             try
             {
                 _loginCts?.Cancel();
+                _loginClient = LocalClient(_settings);
+                string clientId = _loginClient.Id.Length == 0 ? await GetOfficialClientIdAsync() : _loginClient.Id;
                 _loginCts = new CancellationTokenSource();
 
                 _oauthCodeVerifier = GenerateRandomString(64);
@@ -197,7 +162,7 @@ namespace ScreenCaptureTool.Core.CloudSync
                 string challenge = Sha256Base64Url(_oauthCodeVerifier);
 
                 var url = AuthUrl +
-                    "?client_id=" + Uri.EscapeDataString(ClientId) +
+                    "?client_id=" + Uri.EscapeDataString(clientId) +
                     "&redirect_uri=" + Uri.EscapeDataString(RedirectUri) +
                     "&response_type=code" +
                     "&scope=" + Uri.EscapeDataString(Scope) +
@@ -221,7 +186,8 @@ namespace ScreenCaptureTool.Core.CloudSync
             catch (Exception ex)
             {
                 AppLogger.Warn("GoogleDriveSyncService.StartLogin 失败：" + ex.GetType().Name);
-                return "无法启动 Google 登录：" + ex.Message;
+                CancelLogin();
+                return "暂时无法打开 Google 登录，请检查网络后重试。";
             }
         }
 
@@ -344,17 +310,14 @@ namespace ScreenCaptureTool.Core.CloudSync
             _lastAuthError = "";
             try
             {
-                var form = new[]
+                var form = new Dictionary<string, string>
                 {
-                    new KeyValuePair<string, string>("client_id", ClientId),
-                    new KeyValuePair<string, string>("client_secret", ClientSecret),
-                    new KeyValuePair<string, string>("code", code),
-                    new KeyValuePair<string, string>("code_verifier", verifier),
-                    new KeyValuePair<string, string>("grant_type", "authorization_code"),
-                    new KeyValuePair<string, string>("redirect_uri", RedirectUri),
+                    ["code"] = code,
+                    ["code_verifier"] = verifier,
+                    ["grant_type"] = "authorization_code"
                 };
 
-                using var resp = await _http.PostAsync(TokenUrl, new FormUrlEncodedContent(form));
+                using var resp = await RequestTokenAsync(_loginClient, form);
                 var body = await resp.Content.ReadAsStringAsync();
 
                 if (!resp.IsSuccessStatusCode)
@@ -457,8 +420,7 @@ namespace ScreenCaptureTool.Core.CloudSync
                 return access;
 
             string refresh = _settings.GoogleDriveRefreshToken ?? "";
-            string requestClientId = ClientId;
-            string requestClientSecret = ClientSecret;
+            var client = LocalClient(_settings);
             string requestEmail = _settings.GoogleDriveUserEmail ?? "";
             if (string.IsNullOrWhiteSpace(refresh))
             {
@@ -467,25 +429,15 @@ namespace ScreenCaptureTool.Core.CloudSync
                 return "";
             }
 
-            if (string.IsNullOrWhiteSpace(requestClientId) || string.IsNullOrWhiteSpace(requestClientSecret))
-            {
-                _lastAuthError = MissingCredentialsMessage;
-                _lastAuthFailure = true;
-                return "";
-            }
-
             try
             {
-                var form = new[]
+                var form = new Dictionary<string, string>
                 {
-                    new KeyValuePair<string, string>("client_id", requestClientId),
-                    new KeyValuePair<string, string>("client_secret", requestClientSecret),
-                    new KeyValuePair<string, string>("refresh_token", refresh),
-                    new KeyValuePair<string, string>("grant_type", "refresh_token"),
+                    ["refresh_token"] = refresh,
+                    ["grant_type"] = "refresh_token"
                 };
 
-                using var formContent = new FormUrlEncodedContent(form);
-                using var resp = await _http.PostAsync(TokenUrl, formContent, cancellationToken);
+                using var resp = await RequestTokenAsync(client, form, cancellationToken);
                 var body = await resp.Content.ReadAsStringAsync(cancellationToken);
                 if (!resp.IsSuccessStatusCode)
                 {
@@ -506,10 +458,8 @@ namespace ScreenCaptureTool.Core.CloudSync
 
                 // 等待期间可能开过设置页（Reload 换实例）或切换账号，只更新当前实例的登录态。
                 var current = AppSettings.Current;
-                string currentClientId = string.IsNullOrWhiteSpace(current.GoogleDriveClientId) ? DefaultClientId : current.GoogleDriveClientId;
-                string currentClientSecret = string.IsNullOrWhiteSpace(current.GoogleDriveClientSecret) ? DefaultClientSecret : current.GoogleDriveClientSecret;
                 if (current.GoogleDriveRefreshToken != refresh || current.GoogleDriveUserEmail != requestEmail
-                    || currentClientId != requestClientId || currentClientSecret != requestClientSecret)
+                    || LocalClient(current) != client)
                 {
                     _lastAuthError = "Google 登录信息已变化，等待重新检查";
                     return "";
