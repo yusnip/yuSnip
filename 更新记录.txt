@@ -1,9 +1,9 @@
 ### 更新日志（2026-11-17）
 
-#### Google Drive 登录改进
+#### Google Drive
 
-- 官网版和 GitHub 版内置 yuSnip 的桌面 OAuth 客户端。点击「登录 Google Drive」后，在浏览器选择自己的 Google 账号并授权即可。
-- 已有 Google Drive 登录和同步配置可继续使用。自行构建的版本支持导入自己的桌面 OAuth 凭据。
+- Google Drive 登录缺少 OAuth 凭据时，设置页提供「导入 OAuth 凭据」入口，支持 Google Cloud 下载的桌面应用凭据 JSON。
+- 导入后可继续在浏览器中授权。已有本机凭据的用户可直接登录。
 
 ### 更新日志（2026-11-05）
 

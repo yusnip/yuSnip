@@ -42,24 +42,7 @@ function Assert-ReleaseAssets($release) {
     }
 }
 
-function Get-ReleaseOAuthConfig($projectRoot) {
-    $path = $env:YuSnipOAuthConfig
-    if (-not $path) { $path = Join-Path $projectRoot '.local-private/google-drive-desktop-oauth.json' }
-    try {
-        $file = Get-Item -LiteralPath $path
-        if ($file.PSIsContainer -or $file.Length -gt 64KB) { throw 'Invalid file' }
-        $credentials = ([IO.File]::ReadAllText($file.FullName) | ConvertFrom-Json).installed
-        if ($credentials.client_id -isnot [string] -or $credentials.client_id -cnotmatch '^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$' -or
-            $credentials.client_secret -isnot [string] -or $credentials.client_secret -cnotmatch '^[A-Za-z0-9_-]+$') {
-            throw 'Invalid credentials'
-        }
-        return $file.FullName
-    } catch {
-        throw '正式发布需要有效的 Google 桌面 OAuth 配置。请在本机提供 YuSnipOAuthConfig 或 .local-private/google-drive-desktop-oauth.json。'
-    }
-}
-
-function Build-GitHubPackage($commit, $work, $expectedVersion, $oauthConfig) {
+function Build-GitHubPackage($commit, $work, $expectedVersion) {
     $archive = Join-Path $work 'public.zip'
     Invoke-WebRequest -Uri "https://codeload.github.com/$repository/zip/$commit" -UseBasicParsing -OutFile $archive -TimeoutSec 300
     Expand-Archive -LiteralPath $archive -DestinationPath $work
@@ -80,16 +63,11 @@ function Build-GitHubPackage($commit, $work, $expectedVersion, $oauthConfig) {
     $source = Join-Path $root '01_源码'
     if (-not (Test-Path -LiteralPath $source -PathType Container)) { $source = Join-Path $root 'src' }
     Push-Location -LiteralPath $source
-    $previousOAuthConfig = $env:YuSnipOAuthConfig
     try {
-        $env:YuSnipOAuthConfig = $oauthConfig
-        $command = 'call "' + $vcvars + '" && dotnet publish "ScreenCaptureTool/ScreenCaptureTool.csproj" -c Release -r win-x64 -p:Platform=x64 -p:YuSnipDistributionChannel=GitHub -p:RequireYuSnipOAuth=true -p:EmbedNativeForSingleExe=true -p:DebugType=None -p:DebugSymbols=false -p:UseSharedCompilation=false -m:1 --nologo -o "' + $output + '"'
+        $command = 'call "' + $vcvars + '" && dotnet publish "ScreenCaptureTool/ScreenCaptureTool.csproj" -c Release -r win-x64 -p:Platform=x64 -p:YuSnipDistributionChannel=GitHub -p:EmbedNativeForSingleExe=true -p:DebugType=None -p:DebugSymbols=false -p:UseSharedCompilation=false -m:1 --nologo -o "' + $output + '"'
         & cmd.exe /d /c $command | Out-Host
         if ($LASTEXITCODE -ne 0) { throw '公开版 NativeAOT 构建失败。' }
-    } finally {
-        $env:YuSnipOAuthConfig = $previousOAuthConfig
-        Pop-Location
-    }
+    } finally { Pop-Location }
     $exe = Get-Item -LiteralPath (Join-Path $output 'yuSnip.exe')
     if ($exe.VersionInfo.FileVersion -ne "$expectedVersion.0") { throw '公开版 EXE 的文件版本不正确。' }
 
@@ -153,16 +131,12 @@ try {
         Assert-ReleaseAssets $latest
         Write-Host "公开版将从 $repository 的提交 $commit 构建。"
     }
-    $needsBuild = -not $existing -and (-not $draft -or @($draft.assets).Count -lt $assetNames.Count)
-    if ($needsBuild) {
-        $oauthConfig = Get-ReleaseOAuthConfig $projectRoot
-    }
     if ($CheckOnly) { return }
 
-    if ($needsBuild) {
+    if (-not $existing -and (-not $draft -or @($draft.assets).Count -lt $assetNames.Count)) {
         $work = Join-Path ([IO.Path]::GetTempPath()) ('yuSnip-public-' + [Guid]::NewGuid().ToString('N'))
         [void](New-Item -ItemType Directory -Path $work)
-        $package = Build-GitHubPackage $commit $work $version $oauthConfig
+        $package = Build-GitHubPackage $commit $work $version
         Copy-Item -LiteralPath $package.Exe -Destination (Join-Path $projectRoot 'yuSnip.exe') -Force
         $deps = Join-Path $work 'deps.json'
         $publicDeps = $latest.assets | Where-Object name -eq 'deps.json' | Select-Object -First 1
