@@ -2,7 +2,7 @@
 
 官网版和 GitHub 版共用 `https://yusnip.top/yusnip/oauth`。客户端用 `GET /client` 读取桌面 OAuth 客户端 ID，通过系统浏览器在 Google 完成 PKCE 授权，再用 `POST /token` 交换授权码或刷新令牌。同步文件由客户端直接和 Google Drive 传输。
 
-使用仍可访问旧备份的桌面 OAuth 客户端。将 Google 的 `installed` 凭据 JSON 保存到服务器的非公开目录并限制文件访问。使用 Node.js 22 或更新版本，运行 `node google-oauth.mjs /path/to/desktop-oauth.json`，或通过 systemd 的 `LoadCredential=desktop-oauth.json:/path/to/desktop-oauth.json` 提供配置。进程只监听 `127.0.0.1:18765`。
+使用仍可访问旧备份的桌面 OAuth 客户端。将 Google 的 `installed` 凭据 JSON 保存到服务器的非公开目录并限制文件访问。运行 `python3 google-oauth.py /path/to/desktop-oauth.json`，或通过 systemd 的 `LoadCredential=desktop-oauth.json:/path/to/desktop-oauth.json` 提供配置。进程只监听 `127.0.0.1:18765`。当服务器需经已有的 HTTPS 代理访问 Google 时，为服务设置 `https_proxy`。
 
 在 Nginx 的 `http` 中配置每 IP 限流区。
 
