@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          global-json-file: 01_源码/global.json
+          global-json-file: src/global.json
       - name: Build Debug x64
         shell: powershell
         run: .\build.ps1

@@ -3,9 +3,9 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$source = Join-Path $PSScriptRoot '01_源码'
+$source = Join-Path $PSScriptRoot 'src'
 $project = 'ScreenCaptureTool/ScreenCaptureTool.csproj'
-$artifacts = Join-Path $PSScriptRoot 'artifacts'
+$artifacts = Join-Path $PSScriptRoot 'dist'
 $buildOptions = @('-p:Platform=x64', '-p:UseSharedCompilation=false', '-m:1', '--nologo')
 
 # 从源码目录执行，以便 dotnet 读取随仓库提供的 global.json。

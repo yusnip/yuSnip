@@ -20,7 +20,7 @@ namespace ScreenCaptureTool.Core
     ///   10_Avalonia新项目/log/app.log
     ///
     /// 注意：这里不硬编码绝对路径，也不硬编码中文目录完整名称。
-    /// 查找方式是从 exe 目录向上找同时包含 01_* / 02_* / 03_* 的目录。
+    /// 查找方式是从 exe 目录向上找包含公开解决方案与版本号文件的目录。
     /// 如果找不到（例如用户只单独拷走 portable 目录），则回退到 exe 目录下的 log。
     /// </summary>
     public static class AppLogger
@@ -258,10 +258,8 @@ namespace ScreenCaptureTool.Core
                 DirectoryInfo dir = new DirectoryInfo(AppContext.BaseDirectory);
                 while (dir != null)
                 {
-                    if ((ContainsPrefixedDirectory(dir, "01_")
-                            || Directory.Exists(Path.Combine(dir.FullName, "GitHub", "01_源码")))
-                        && ContainsPrefixedDirectory(dir, "02_")
-                        && ContainsPrefixedDirectory(dir, "03_"))
+                    if (File.Exists(Path.Combine(dir.FullName, "src", "ScreenCaptureTool.sln"))
+                        && File.Exists(Path.Combine(dir.FullName, "版本号.txt")))
                     {
                         return Path.Combine(dir.FullName, "log");
                     }
@@ -275,19 +273,6 @@ namespace ScreenCaptureTool.Core
             }
 
             return Path.Combine(AppContext.BaseDirectory, "log");
-        }
-
-        private static bool ContainsPrefixedDirectory(DirectoryInfo parent, string prefix)
-        {
-            try
-            {
-                DirectoryInfo[] dirs = parent.GetDirectories(prefix + "*");
-                return dirs != null && dirs.Length > 0;
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         private static int SafeGetProcessIdOnce()

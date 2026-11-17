@@ -8,7 +8,7 @@
 
 yuSnip is a free, open-source screenshot, pinning and screen recording tool for Windows, built from a designer's perspective. It is for people who use screenshots to write tutorials, document bugs or keep a design reference in view. After selecting an area, you can annotate it, extract its text, record it or pin the result for further work. Developers can build the application from source or integrate capture, OCR and pinning into their own workflows.
 
-[Download yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [Official website](https://yusnip.top/) · **[User guide (Chinese)](USER_GUIDE.md)** · [Changelog](CHANGELOG.md) · [Build from source](#build-from-source) · [Report an issue](https://github.com/yusnip/yuSnip/issues)
+[Download yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [Official website](https://yusnip.top/) · **[User guide (Chinese)](USER_GUIDE.md)** · [Changelog](更新记录.txt) · [Build from source](#build-from-source) · [Report an issue](https://github.com/yusnip/yuSnip/issues)
 
 Supports Windows 10 version 2004 (build 19041) or later and Windows 11 on x64.
 
@@ -84,25 +84,25 @@ You can translate a screenshot to text or an image, or configure an AI service t
 
 ## Build from source
 
-yuSnip uses .NET 10 and Avalonia. Download or clone this repository, install the .NET 10 SDK on Windows x64 and run the public build script from the repository root. [build.ps1](build.ps1) · [SDK version](01_源码/global.json)
+yuSnip uses .NET 10 and Avalonia. Download or clone this repository, install the .NET 10 SDK on Windows x64 and run the public build script from the repository root. [build.ps1](build.ps1) · [SDK version](src/global.json)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-The development build goes to `artifacts/debug/`. Start `yuSnip.exe` from that folder with its dependency files alongside it. For NativeAOT, install the Desktop development with C++ workload and the Windows SDK using Visual Studio or Build Tools, then append `-NativeAot` to the command. The output goes to `artifacts/win-x64/`.
+The development build goes to `dist/debug/`. Start `yuSnip.exe` from that folder with its dependency files alongside it. For NativeAOT, install the Desktop development with C++ workload and the Windows SDK using Visual Studio or Build Tools, then append `-NativeAot` to the command. The output goes to `dist/win-x64/`.
 
 ### Source layout
 
 | Project | Where to start |
 | --- | --- |
-| [ScreenCaptureTool](01_源码/ScreenCaptureTool/) | Desktop application, windows and interactions |
-| [ScreenCaptureTool.Core](01_源码/ScreenCaptureTool.Core/) | Capture processing, OCR, background removal, recording and core features |
-| [ScreenCaptureTool.LongScroll](01_源码/ScreenCaptureTool.LongScroll/) | Scrolling capture, stitching and preview |
-| [ScreenCaptureTool.Platform](01_源码/ScreenCaptureTool.Platform/) | Windows APIs and platform interop |
-| [ScreenCaptureTool.Ocr](01_源码/ScreenCaptureTool.Ocr/) | Optional Windows OCR verification project |
+| [ScreenCaptureTool](src/ScreenCaptureTool/) | Desktop application, windows and interactions |
+| [ScreenCaptureTool.Core](src/ScreenCaptureTool.Core/) | Capture processing, OCR, background removal, recording and core features |
+| [ScreenCaptureTool.LongScroll](src/ScreenCaptureTool.LongScroll/) | Scrolling capture, stitching and preview |
+| [ScreenCaptureTool.Platform](src/ScreenCaptureTool.Platform/) | Windows APIs and platform interop |
+| [ScreenCaptureTool.Ocr](src/ScreenCaptureTool.Ocr/) | Optional Windows OCR verification project |
 
-Open [ScreenCaptureTool.sln](01_源码/ScreenCaptureTool.sln) to browse the solution.
+Open [ScreenCaptureTool.sln](src/ScreenCaptureTool.sln) to browse the solution.
 
 ### Call yuSnip from a script
 
@@ -130,7 +130,7 @@ Bug reports, feature requests and pull requests are welcome. Redact private info
 
 ## License
 
-yuSnip is maintained by 北京林或西. Its own source code is available under the MIT License, which allows use, modification and redistribution, including commercial use, with the copyright and license notices retained. Third-party libraries, models and components keep their own licenses. [MIT License](LICENSE) · [Third-party licenses](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
+yuSnip is maintained by 北京林或西. Its own source code is available under the MIT License, which allows use, modification and redistribution, including commercial use, with the copyright and license notices retained. Third-party libraries, models and components keep their own licenses. [MIT License](LICENSE) · [Third-party licenses](src/ScreenCaptureTool/Assets/ThirdParty/)
 
 ## Support yuSnip
 
@@ -138,4 +138,4 @@ If yuSnip has become part of your daily routine for capturing, marking up or ext
 
 **Support via WeChat** · Scan the code below in WeChat. Click the image to view it at full size.
 
-<a href="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="WeChat appreciation code for the creator of yuSnip" width="220"></a>
+<a href="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="WeChat appreciation code for the creator of yuSnip" width="220"></a>

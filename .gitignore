@@ -13,3 +13,10 @@ shortcuts.ini
 /03_软件本体/
 /log/
 /Temp/
+
+# Local binaries, logs and private workspace data
+/dist/
+/log/
+/.local-private/
+/yuSnip.exe
+/yuSnip 开发版.lnk

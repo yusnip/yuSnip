@@ -19,11 +19,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!--
-      仓库根目录的 VERSION 保存一行 x.y.z 版本号，
+      仓库根目录的 版本号.txt 保存一行 x.y.z 版本号，
       编译时注入程序集 Version/FileVersion，客户端据此计算 build 号与服务端 version.json 比较。
       改版本后重新发布。
     -->
-    <VersionFilePath>$(MSBuildProjectDirectory)\..\..\VERSION</VersionFilePath>
+    <VersionFilePath>$(MSBuildProjectDirectory)\..\..\版本号.txt</VersionFilePath>
     <RawVersion Condition="'$(VersionFilePath)' != ''">$([System.IO.File]::ReadAllText('$(VersionFilePath)').Trim())</RawVersion>
     <Version Condition="'$(RawVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(RawVersion)', '^[vV\s]+|[^\d\.].*', ''))</Version>
     <AssemblyVersion>$(Version).0</AssemblyVersion>
@@ -87,9 +87,9 @@
 
   <!-- 根目录更新记录同时用作软件内关于页资源。 -->
   <Target Name="SyncUpdateLogAsset" BeforeTargets="BeforeBuild;CoreCompile;PrepareForBuild">
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\CHANGELOG.md"
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\更新记录.txt"
           DestinationFiles="$(MSBuildProjectDirectory)\Assets\更新记录.txt"
-          Condition="Exists('$(MSBuildProjectDirectory)\..\..\CHANGELOG.md')"
+          Condition="Exists('$(MSBuildProjectDirectory)\..\..\更新记录.txt')"
           SkipUnchangedFiles="true" />
   </Target>
 

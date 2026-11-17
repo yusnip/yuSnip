@@ -8,7 +8,7 @@
 
 yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图与录屏工具。它适合经常用截图写教程、记录问题或对照设计稿的人。框选之后，你可以直接标注、取字、录屏，也可以把结果钉在屏幕上接着用。开发者可以从源码构建，或把截图、OCR 和贴图接进自己的自动化流程。
 
-[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [官方网站](https://yusnip.top/) · **[用户文档](USER_GUIDE.md)** · [更新记录](CHANGELOG.md) · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
+[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [官方网站](https://yusnip.top/) · **[用户文档](USER_GUIDE.md)** · [更新记录](更新记录.txt) · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
 
 支持 Windows 10 版本 2004（内部版本 19041）及以上和 Windows 11 x64。
 
@@ -84,25 +84,25 @@ yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图�
 
 ## 从源码构建
 
-项目使用 .NET 10 与 Avalonia。下载或克隆仓库后，在 Windows x64 安装 .NET 10 SDK，从仓库根目录执行。 [build.ps1](build.ps1) · [SDK 版本](01_源码/global.json)
+项目使用 .NET 10 与 Avalonia。下载或克隆仓库后，在 Windows x64 安装 .NET 10 SDK，从仓库根目录执行。 [build.ps1](build.ps1) · [SDK 版本](src/global.json)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-开发构建输出到 `artifacts/debug/`。从该目录启动 `yuSnip.exe`，并保留同目录的依赖文件。需要 NativeAOT 时，先安装 Visual Studio 或 Build Tools 的「使用 C++ 的桌面开发」工作负载和 Windows SDK，再在命令末尾加 `-NativeAot`。输出在 `artifacts/win-x64/`。
+开发构建输出到 `dist/debug/`。从该目录启动 `yuSnip.exe`，并保留同目录的依赖文件。需要 NativeAOT 时，先安装 Visual Studio 或 Build Tools 的「使用 C++ 的桌面开发」工作负载和 Windows SDK，再在命令末尾加 `-NativeAot`。输出在 `dist/win-x64/`。
 
 ### 源码导航
 
 | 项目 | 从这里找什么 |
 | --- | --- |
-| [ScreenCaptureTool](01_源码/ScreenCaptureTool/) | 桌面应用、窗口与交互 |
-| [ScreenCaptureTool.Core](01_源码/ScreenCaptureTool.Core/) | 截图处理、OCR、抠图、录屏和其他核心功能 |
-| [ScreenCaptureTool.LongScroll](01_源码/ScreenCaptureTool.LongScroll/) | 长截图采集、拼接和预览 |
-| [ScreenCaptureTool.Platform](01_源码/ScreenCaptureTool.Platform/) | Windows API 与平台互操作 |
-| [ScreenCaptureTool.Ocr](01_源码/ScreenCaptureTool.Ocr/) | 可选的 Windows OCR 验证入口 |
+| [ScreenCaptureTool](src/ScreenCaptureTool/) | 桌面应用、窗口与交互 |
+| [ScreenCaptureTool.Core](src/ScreenCaptureTool.Core/) | 截图处理、OCR、抠图、录屏和其他核心功能 |
+| [ScreenCaptureTool.LongScroll](src/ScreenCaptureTool.LongScroll/) | 长截图采集、拼接和预览 |
+| [ScreenCaptureTool.Platform](src/ScreenCaptureTool.Platform/) | Windows API 与平台互操作 |
+| [ScreenCaptureTool.Ocr](src/ScreenCaptureTool.Ocr/) | 可选的 Windows OCR 验证入口 |
 
-完整解决方案位于 [ScreenCaptureTool.sln](01_源码/ScreenCaptureTool.sln)。
+完整解决方案位于 [ScreenCaptureTool.sln](src/ScreenCaptureTool.sln)。
 
 ### 在脚本中调用
 
@@ -130,7 +130,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 ## 开源许可
 
-yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](LICENSE) · [第三方许可](01_源码/ScreenCaptureTool/Assets/ThirdParty/)
+yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](LICENSE) · [第三方许可](src/ScreenCaptureTool/Assets/ThirdParty/)
 
 ## 支持 yuSnip
 
@@ -138,4 +138,4 @@ yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、�
 
 **微信赞赏** · 用微信「扫一扫」识别下方赞赏码。点击图片可查看原图。
 
-<a href="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="01_源码/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="yuSnip 作者的微信赞赏码" width="220"></a>
+<a href="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="yuSnip 作者的微信赞赏码" width="220"></a>
