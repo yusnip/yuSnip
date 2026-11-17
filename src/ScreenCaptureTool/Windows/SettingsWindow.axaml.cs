@@ -7881,6 +7881,12 @@ public partial class SettingsWindow : Window
     private async void OnGDriveLoginClick(object? sender, RoutedEventArgs e)
     {
         _gdriveService = new GoogleDriveSyncService(_settings);
+        if (!_gdriveService.HasOAuthCredentials)
+        {
+            await ImportGDriveCredentialsAsync(_gdriveService);
+            return;
+        }
+
         string? error = _gdriveService.StartLogin();
         if (error != null)
         {
@@ -7920,6 +7926,48 @@ public partial class SettingsWindow : Window
         BtnGDriveLogin.IsEnabled = true;
         BtnGDriveLogin.Content = "登录 Google Drive";
         _gdriveService.CancelLogin();
+    }
+
+    private async Task ImportGDriveCredentialsAsync(GoogleDriveSyncService service)
+    {
+        BtnGDriveLogin.IsEnabled = false;
+        try
+        {
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "选择 Google Cloud 桌面应用 OAuth 凭据",
+                AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType("OAuth 凭据 JSON") { Patterns = ["*.json"] }]
+            });
+
+            var file = files.FirstOrDefault();
+            if (file == null) return;
+
+            string? path = file.TryGetLocalPath();
+            if (string.IsNullOrEmpty(path))
+            {
+                ShowError("请选择保存在本机的 OAuth 凭据文件。");
+                return;
+            }
+
+            string? error = service.ImportDesktopCredentials(path);
+            if (error != null)
+            {
+                ShowError(error);
+                return;
+            }
+
+            UpdateGDriveStatusUi(null);
+            ShowStatus("OAuth 凭据已保存，点击「登录 Google Drive」完成授权。");
+        }
+        catch (Exception)
+        {
+            ShowError("无法导入 OAuth 凭据，请重新选择文件。");
+        }
+        finally
+        {
+            BtnGDriveLogin.IsEnabled = true;
+        }
     }
 
     private async void OnGDriveLogoutClick(object? sender, RoutedEventArgs e)
@@ -8064,6 +8112,9 @@ public partial class SettingsWindow : Window
         TxtGDriveConnected.Text = connected ? "已连接" : "未连接";
         if (connected) GDriveStatusDot.Classes.Add("on"); else GDriveStatusDot.Classes.Remove("on");
         UpdateGDriveAccountLine();
+        BtnGDriveLogin.Content = _gdriveService?.HasOAuthCredentials == true
+            ? "登录 Google Drive"
+            : "导入 OAuth 凭据";
         BtnGDriveLogin.IsVisible = !connected;
         BtnGDriveLogout.IsVisible = connected;
 
@@ -8108,6 +8159,13 @@ public partial class SettingsWindow : Window
     private void UpdateGDriveAccountLine()
     {
         if (TxtGDriveStatus == null) return;
+        if (_gdriveService?.HasOAuthCredentials != true)
+        {
+            TxtGDriveStatus.Text = _gdriveConnected
+                ? "本机缺少 OAuth 凭据，请退出登录后导入。"
+                : "导入从 Google Cloud 下载的桌面应用 OAuth 凭据 JSON 后登录。";
+            return;
+        }
         TxtGDriveStatus.Text = !_gdriveConnected ? "点右侧按钮，在浏览器里完成 Google 授权。"
             : _automaticCloud?.GetLastSuccess() is { } success ? "上次同步 · " + success.LocalDateTime.ToString("MM-dd HH:mm")
             : "暂无成功同步记录";

@@ -23,9 +23,7 @@ namespace ScreenCaptureTool.Core.CloudSync
         // ================================================================
         // Google OAuth 凭据
         // ================================================================
-        // 已在 Google Cloud Console 创建好，Desktop app 类型，可直接使用。
-        // 项目：seventh-odyssey-494613-e4
-        // 用户无需填写任何凭据，点击登录后自动跳转浏览器完成 OAuth 授权。
+        // 公开源码从本机设置读取已配置的桌面 OAuth 凭据。
         private const string DefaultClientId = "";
         private const string DefaultClientSecret = "";
 
@@ -79,6 +77,70 @@ namespace ScreenCaptureTool.Core.CloudSync
             ? _settings.GoogleDriveClientSecret
             : DefaultClientSecret;
 
+        public bool HasOAuthCredentials =>
+            !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
+
+        private const string MissingCredentialsMessage = "请先在云存储设置中导入 Google Drive 桌面 OAuth 凭据。";
+
+        public string? ImportDesktopCredentials(string path)
+        {
+            const string invalidFile = "请选择从 Google Cloud 下载的「桌面应用」OAuth 凭据 JSON 文件。";
+            try
+            {
+                using var file = File.OpenRead(path);
+                if (file.Length > 64 * 1024)
+                    return invalidFile;
+
+                using var document = JsonDocument.Parse(file);
+                var root = document.RootElement;
+                if (root.ValueKind != JsonValueKind.Object
+                    || !root.TryGetProperty("installed", out var installed)
+                    || installed.ValueKind != JsonValueKind.Object)
+                    return invalidFile;
+
+                string? id = ReadCredential(installed, "client_id");
+                string? secret = ReadCredential(installed, "client_secret");
+                if (id == null || !id.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal) || secret == null)
+                    return invalidFile;
+
+                lock (CloudSnapshot.FileGate)
+                {
+                    if (!string.IsNullOrWhiteSpace(_settings.GoogleDriveRefreshToken))
+                        return "请先退出 Google Drive 登录，再导入新的凭据。";
+
+                    string previousId = _settings.GoogleDriveClientId;
+                    string previousSecret = _settings.GoogleDriveClientSecret;
+                    _settings.GoogleDriveClientId = id;
+                    _settings.GoogleDriveClientSecret = secret;
+                    if (_settings.TrySave())
+                        return null;
+
+                    _settings.GoogleDriveClientId = previousId;
+                    _settings.GoogleDriveClientSecret = previousSecret;
+                    return "无法保存 OAuth 凭据，请检查本机配置目录的写入权限。";
+                }
+            }
+            catch (JsonException)
+            {
+                return invalidFile;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return "无法读取 OAuth 凭据文件，请检查文件是否可以打开。";
+            }
+        }
+
+        private static string? ReadCredential(JsonElement installed, string key)
+        {
+            if (!installed.TryGetProperty(key, out var field) || field.ValueKind != JsonValueKind.String)
+                return null;
+
+            string? value = field.GetString();
+            return !string.IsNullOrWhiteSpace(value) && !value.Any(c => char.IsWhiteSpace(c) || char.IsControl(c))
+                ? value
+                : null;
+        }
+
         // ================================================================
         // 状态查询
         // ================================================================
@@ -122,8 +184,8 @@ namespace ScreenCaptureTool.Core.CloudSync
         /// </summary>
         public string? StartLogin()
         {
-            if (string.IsNullOrWhiteSpace(ClientId))
-                return "Google Drive 暂不可用：OAuth 凭据缺失，请联系开发者。";
+            if (!HasOAuthCredentials)
+                return MissingCredentialsMessage;
 
             try
             {
@@ -401,6 +463,13 @@ namespace ScreenCaptureTool.Core.CloudSync
             if (string.IsNullOrWhiteSpace(refresh))
             {
                 _lastAuthError = "Google Drive 未登录，请先登录";
+                _lastAuthFailure = true;
+                return "";
+            }
+
+            if (string.IsNullOrWhiteSpace(requestClientId) || string.IsNullOrWhiteSpace(requestClientSecret))
+            {
+                _lastAuthError = MissingCredentialsMessage;
                 _lastAuthFailure = true;
                 return "";
             }

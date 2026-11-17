@@ -2861,6 +2861,8 @@ OCR、智能抠图、FFmpeg分别按需准备；到「设置 → 依赖运行」
 
 云存储支持 Google Drive 和 WebDAV，也可使用本地 JSON 导入／导出。Google Drive 经系统浏览器授权；WebDAV 填写服务地址和账户，部分服务需要应用专用密码。
 
+如果设置页显示「导入 OAuth 凭据」，请在 Google Cloud 项目中启用 Google Drive API，创建「桌面应用」OAuth 客户端并下载凭据 JSON。导入后点击「登录 Google Drive」。需要继续访问旧版创建的备份时，请使用原 Google Cloud 项目的桌面应用凭据。导入的凭据保存在本机。[Google 桌面应用 OAuth 文档](https://developers.google.com/identity/protocols/oauth2/native-app)
+
 **Google Drive 专属目录自动归拢（2026-10-14 优化）**：Google Drive 授权连接后，yuSnip 会自动在网盘中创建并绑定带有应用专属属性标记的 `yuSnip` 文件夹。新生成的修订与归档文件均写入该文件夹；下次正常同步时，系统会自动将此前旧版本散落在云盘根目录的历史修订文件平滑迁移归入该专属目录，保留文件 ID、修订 ID 和本地账本，绝不侵占或触碰用户自建的同名目录或其它私人文件。
 
 可同步主设置、动作与全局热键、窗口快捷键和录屏画质预设四份配置。截图／录屏保存路径、登录授权等本机信息按范围规则保留；截图图片、截图历史、使用统计和运行组件不参与同步。
