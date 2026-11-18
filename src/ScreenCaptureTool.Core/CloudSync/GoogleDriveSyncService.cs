@@ -23,10 +23,7 @@ namespace ScreenCaptureTool.Core.CloudSync
         // ================================================================
         // Google OAuth 凭据
         // ================================================================
-        // Desktop app 类型无需在 Console 注册 redirect URI，Google 自动允许 127.0.0.1 任意端口。
-        // 使用 38439 端口，与其他使用同一凭据的软件错开，避免同时登录时的端口占用。
-        private const string RedirectUri = "http://127.0.0.1:38439/oauth/callback";
-        private const int CallbackPort = 38439;
+        private const string CallbackPath = "/oauth/callback";
         private const string Scope = "openid email profile https://www.googleapis.com/auth/drive.file";
         private const string ConfigFileName = "yuSnip-config-v1.json";
 
@@ -44,8 +41,6 @@ namespace ScreenCaptureTool.Core.CloudSync
             Timeout = TimeSpan.FromSeconds(15)
         };
 
-        private string? _oauthCodeVerifier;
-        private string? _oauthState;
         private TcpListener? _callbackListener;
         private CancellationTokenSource? _loginCts;
 
@@ -60,7 +55,6 @@ namespace ScreenCaptureTool.Core.CloudSync
         private readonly AppSettings _settings;
         private readonly HttpClient _http;
         private readonly HttpClient _officialOAuthHttp;
-        private (string Id, string Secret) _loginClient;
 
         public GoogleDriveSyncService(AppSettings settings, HttpClient? http = null)
         {
@@ -78,11 +72,11 @@ namespace ScreenCaptureTool.Core.CloudSync
                 ? (settings.GoogleDriveClientId, settings.GoogleDriveClientSecret)
                 : ("", "");
 
-        private async Task<string> GetOfficialClientIdAsync()
+        private async Task<string> GetOfficialClientIdAsync(CancellationToken cancellationToken)
         {
-            using var response = await _officialOAuthHttp.GetAsync(OfficialOAuthUrl + "/client");
+            using var response = await _officialOAuthHttp.GetAsync(OfficialOAuthUrl + "/client", cancellationToken);
             response.EnsureSuccessStatusCode();
-            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
             string? id = document.RootElement.GetProperty("client_id").GetString();
             if (string.IsNullOrWhiteSpace(id) || !id.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal))
                 throw new InvalidDataException("yuSnip OAuth 配置不可用。");
@@ -101,8 +95,6 @@ namespace ScreenCaptureTool.Core.CloudSync
 
             form["client_id"] = client.Id;
             form["client_secret"] = client.Secret;
-            if (form["grant_type"] == "authorization_code")
-                form["redirect_uri"] = RedirectUri;
             using var directContent = new FormUrlEncodedContent(form);
             return await _http.PostAsync(TokenUrl, directContent, cancellationToken);
         }
@@ -148,164 +140,152 @@ namespace ScreenCaptureTool.Core.CloudSync
         /// 启动 Google OAuth2 登录：生成 PKCE 参数、打开浏览器、监听回调。
         /// 返回 null 表示成功启动，返回错误字符串表示失败。
         /// </summary>
-        public async Task<string?> StartLoginAsync()
+        public Task<string?> StartLoginAsync() =>
+            StartLoginAsync(url => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }));
+
+        internal async Task<string?> StartLoginAsync(Action<string> openBrowser)
         {
+            CancelLogin();
+            var login = new CancellationTokenSource();
+            _loginCts = login;
+            CancellationToken cancellationToken = login.Token;
+
             try
             {
-                _loginCts?.Cancel();
-                _loginClient = LocalClient(_settings);
-                string clientId = _loginClient.Id.Length == 0 ? await GetOfficialClientIdAsync() : _loginClient.Id;
-                _loginCts = new CancellationTokenSource();
+                var client = LocalClient(_settings);
+                string clientId = client.Id.Length == 0
+                    ? await GetOfficialClientIdAsync(cancellationToken)
+                    : client.Id;
+                cancellationToken.ThrowIfCancellationRequested();
 
-                _oauthCodeVerifier = GenerateRandomString(64);
-                _oauthState = GenerateRandomString(24);
-                string challenge = Sha256Base64Url(_oauthCodeVerifier);
+                string verifier = GenerateRandomString(64);
+                string state = GenerateRandomString(24);
+                string challenge = Sha256Base64Url(verifier);
 
+                // 由系统分配空闲端口。先绑定并保持监听，再打开授权页。
+                var listener = new TcpListener(IPAddress.Loopback, 0);
+                _callbackListener = listener;
+                listener.Start();
+                int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+                string redirectUri = FormattableString.Invariant($"http://127.0.0.1:{port}{CallbackPath}");
                 var url = AuthUrl +
                     "?client_id=" + Uri.EscapeDataString(clientId) +
-                    "&redirect_uri=" + Uri.EscapeDataString(RedirectUri) +
+                    "&redirect_uri=" + Uri.EscapeDataString(redirectUri) +
                     "&response_type=code" +
                     "&scope=" + Uri.EscapeDataString(Scope) +
                     "&access_type=offline" +
                     "&prompt=consent" +
                     "&code_challenge=" + Uri.EscapeDataString(challenge) +
                     "&code_challenge_method=S256" +
-                    "&state=" + Uri.EscapeDataString(_oauthState);
+                    "&state=" + Uri.EscapeDataString(state);
 
-                // 重置登录结果状态，进入"等待浏览器回调"
-                _loginPhase = 1;
                 _loginError = null;
-
-                // 启动回调监听
-                StartCallbackListener();
-
-                // 打开系统浏览器
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                _loginPhase = 1;
+                _ = Task.Run(() => WaitForCallbackAsync(listener, client, redirectUri, state, verifier, cancellationToken));
+                openBrowser(url);
                 return null;
             }
             catch (Exception ex)
             {
+                if (ReferenceEquals(_loginCts, login))
+                    CancelLogin();
+
                 AppLogger.Warn("GoogleDriveSyncService.StartLogin 失败：" + ex.GetType().Name);
-                CancelLogin();
-                return "暂时无法打开 Google 登录，请检查网络后重试。";
+                return ex is SocketException
+                    ? "无法启动本地 Google 登录回调，请检查安全软件是否允许 yuSnip 使用本机连接。"
+                    : "暂时无法打开 Google 登录，请检查网络后重试。";
             }
         }
 
-        /// <summary>
-        /// 启动 TCP 监听器接收 OAuth 回调。
-        /// 回调到达后自动交换 Token 并保存。
-        /// </summary>
-        private void StartCallbackListener()
+        private async Task WaitForCallbackAsync(TcpListener listener, (string Id, string Secret) client,
+            string redirectUri, string state, string verifier, CancellationToken cancellationToken)
         {
             try
             {
-                _callbackListener?.Stop();
-                _callbackListener = new TcpListener(IPAddress.Loopback, CallbackPort);
-                _callbackListener.Start();
-
-                var cts = _loginCts;
-                if (cts == null) return;
-                Task.Run(async () =>
+                while (true)
                 {
+                    using var connection = await listener.AcceptTcpClientAsync(cancellationToken);
+                    using var stream = connection.GetStream();
+                    Dictionary<string, string>? query = await ReadCallbackAsync(stream, cancellationToken);
+                    if (query == null || !query.TryGetValue("state", out var receivedState) || receivedState != state)
+                        continue;
+
+                    string? failure = null;
+                    if (query.TryGetValue("error", out var error))
+                        failure = "Google 返回错误：" + error;
+                    else if (!query.TryGetValue("code", out var code) || string.IsNullOrWhiteSpace(code))
+                        failure = "未收到授权码";
+                    else if (!await ExchangeCodeAsync(client, code, verifier, redirectUri, cancellationToken))
+                        failure = string.IsNullOrWhiteSpace(_lastAuthError)
+                            ? "无法换取长期凭据，请检查网络后重试。" : _lastAuthError;
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    SetLoginOutcome(failure == null, failure);
+
+                    string html = CallbackHtml(failure == null
+                        ? "Google Drive 登录成功，可以关闭此页面。"
+                        : "Google 登录失败：" + failure);
+                    string response = "HTTP/1.1 200 OK\r\n" +
+                                      "Content-Type: text/html; charset=utf-8\r\n" +
+                                      "Cache-Control: no-store\r\n" +
+                                      "Content-Length: " + Encoding.UTF8.GetByteCount(html) + "\r\n" +
+                                      "Connection: close\r\n\r\n" + html;
                     try
                     {
-                        using var client = await _callbackListener.AcceptTcpClientAsync(cts.Token);
-                        using var ns = client.GetStream();
-
-                        // 读取 HTTP 请求
-                        var buf = new byte[8192];
-                        int total = 0;
-                        int headerEnd;
-                        while (total < buf.Length)
-                        {
-                            int n = await ns.ReadAsync(buf.AsMemory(total), cts.Token);
-                            if (n <= 0) break;
-                            total += n;
-                            string soFar = Encoding.ASCII.GetString(buf, 0, total);
-                            headerEnd = soFar.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-                            if (headerEnd >= 0) break;
-                        }
-
-                        string rawReq = Encoding.ASCII.GetString(buf, 0, total);
-                        // 解析请求行: GET /oauth/callback?code=xxx&state=xxx HTTP/1.1
-                        int firstSpace = rawReq.IndexOf(' ');
-                        int secondSpace = rawReq.IndexOf(' ', firstSpace + 1);
-                        string pathAndQuery = rawReq.Substring(firstSpace + 1, secondSpace - firstSpace - 1);
-                        int qMark = pathAndQuery.IndexOf('?');
-                        string query = qMark >= 0 ? pathAndQuery.Substring(qMark + 1) : "";
-
-                        var map = ParseQuery(query);
-                        string html;
-                        string? failReason = null;
-
-                        // 检查错误
-                        if (map.TryGetValue("error", out var err))
-                        {
-                            failReason = "Google 返回错误：" + err;
-                        }
-                        else if (!map.TryGetValue("state", out var state) || state != _oauthState)
-                        {
-                            failReason = "状态校验失败，请重新发起登录";
-                        }
-                        else if (!map.TryGetValue("code", out var code) || string.IsNullOrWhiteSpace(code))
-                        {
-                            failReason = "未收到授权码";
-                        }
-                        else if (string.IsNullOrWhiteSpace(_oauthCodeVerifier))
-                        {
-                            failReason = "授权会话已失效，请重新发起登录";
-                        }
-                        else
-                        {
-                            bool ok = await ExchangeCodeAsync(code, _oauthCodeVerifier);
-                            if (!ok)
-                                failReason = string.IsNullOrWhiteSpace(_lastAuthError)
-                                    ? "无法换取长期凭据（网络异常或 Client 配置问题），详见日志" : _lastAuthError;
-                        }
-
-                        html = CallbackHtml(failReason == null
-                            ? "Google Drive 登录成功，可以关闭此页面。"
-                            : "Google 登录失败：" + failReason);
-
-                        // 记录登录结果，供设置窗口轮询立即感知成败
-                        SetLoginOutcome(failReason == null, failReason);
-
-                        // 清理 PKCE 临时变量
-                        _oauthCodeVerifier = null;
-                        _oauthState = null;
-
-                        // 发送 HTTP 响应
-                        string response = "HTTP/1.1 200 OK\r\n" +
-                                          "Content-Type: text/html; charset=utf-8\r\n" +
-                                          "Content-Length: " + Encoding.UTF8.GetByteCount(html) + "\r\n" +
-                                          "Connection: close\r\n\r\n" + html;
-                        byte[] respBytes = Encoding.UTF8.GetBytes(response);
-                        await ns.WriteAsync(respBytes, cts.Token);
+                        await stream.WriteAsync(Encoding.UTF8.GetBytes(response), cancellationToken);
                     }
-                    catch (OperationCanceledException) { }
-                    catch (Exception ex)
-                    {
-                        AppLogger.Warn("GoogleDriveSyncService OAuth 回调处理失败：" + ex.GetType().Name);
-                        SetLoginOutcome(false, "回调处理异常：" + ex.Message);
-                    }
-                    finally
-                    {
-                        try { _callbackListener?.Stop(); } catch { }
-                    }
-                }, cts.Token);
+                    catch (IOException) { } // 浏览器可能已经关闭页面，保留应用内登录结果。
+                    return;
+                }
             }
+            catch (Exception) when (cancellationToken.IsCancellationRequested) { }
             catch (Exception ex)
             {
-                AppLogger.Warn("GoogleDriveSyncService.StartCallbackListener 失败：" + ex.GetType().Name);
-                // 常见原因：回调端口 38439 被占用，浏览器授权完成后本应用收不到授权码
-                SetLoginOutcome(false, "本地回调监听启动失败（端口 " + CallbackPort + " 可能被占用）：" + ex.Message);
+                AppLogger.Warn("GoogleDriveSyncService OAuth 回调处理失败：" + ex.GetType().Name);
+                SetLoginOutcome(false, "无法处理本地 Google 登录回调，请重新登录。");
             }
+            finally
+            {
+                listener.Stop();
+            }
+        }
+
+        private static async Task<Dictionary<string, string>?> ReadCallbackAsync(NetworkStream stream,
+            CancellationToken cancellationToken)
+        {
+            using var readTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            readTimeout.CancelAfter(TimeSpan.FromSeconds(5));
+            try
+            {
+                var buffer = new byte[8192];
+                int total = 0;
+                while (total < buffer.Length)
+                {
+                    int count = await stream.ReadAsync(buffer.AsMemory(total), readTimeout.Token);
+                    if (count == 0) return null;
+                    total += count;
+                    string request = Encoding.ASCII.GetString(buffer, 0, total);
+                    if (!request.Contains("\r\n\r\n", StringComparison.Ordinal))
+                        continue;
+
+                    const string prefix = "GET " + CallbackPath + "?";
+                    if (!request.StartsWith(prefix, StringComparison.Ordinal))
+                        return null;
+                    int end = request.IndexOf(' ', prefix.Length);
+                    return end > prefix.Length ? ParseQuery(request[prefix.Length..end]) : null;
+                }
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
+            catch (IOException) { }
+
+            return null;
         }
 
         /// <summary>
         /// 用授权码换取 Token 并保存。
         /// </summary>
-        private async Task<bool> ExchangeCodeAsync(string code, string verifier)
+        private async Task<bool> ExchangeCodeAsync((string Id, string Secret) client, string code, string verifier,
+            string redirectUri, CancellationToken cancellationToken)
         {
             _lastAuthError = "";
             try
@@ -314,11 +294,12 @@ namespace ScreenCaptureTool.Core.CloudSync
                 {
                     ["code"] = code,
                     ["code_verifier"] = verifier,
-                    ["grant_type"] = "authorization_code"
+                    ["grant_type"] = "authorization_code",
+                    ["redirect_uri"] = redirectUri
                 };
 
-                using var resp = await RequestTokenAsync(_loginClient, form);
-                var body = await resp.Content.ReadAsStringAsync();
+                using var resp = await RequestTokenAsync(client, form, cancellationToken);
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
 
                 if (!resp.IsSuccessStatusCode)
                 {
@@ -345,7 +326,7 @@ namespace ScreenCaptureTool.Core.CloudSync
                 using (var permission = new HttpRequestMessage(HttpMethod.Get, DriveFilesUrl + "?pageSize=1&fields=files(id)"))
                 {
                     permission.Headers.Authorization = new AuthenticationHeaderValue("Bearer", access);
-                    await CloudHttp.ReadAsync(_http, permission, default, operation: "Google Drive 检查登录权限");
+                    await CloudHttp.ReadAsync(_http, permission, cancellationToken, operation: "Google Drive 检查登录权限");
                 }
 
                 if (string.IsNullOrWhiteSpace(refresh) && string.IsNullOrWhiteSpace(_settings.GoogleDriveRefreshToken))
@@ -706,10 +687,12 @@ namespace ScreenCaptureTool.Core.CloudSync
         /// </summary>
         public void CancelLogin()
         {
-            _loginCts?.Cancel();
-            try { _callbackListener?.Stop(); } catch { }
-            _oauthCodeVerifier = null;
-            _oauthState = null;
+            var login = _loginCts;
+            _loginCts = null;
+            login?.Cancel();
+            login?.Dispose();
+            _callbackListener?.Stop();
+            _callbackListener = null;
         }
 
         // ================================================================
@@ -750,7 +733,7 @@ namespace ScreenCaptureTool.Core.CloudSync
         {
             return "<!doctype html><meta charset=\"utf-8\"><title>Google 登录</title>" +
                    "<body style=\"font-family:system-ui;padding:32px;line-height:1.6\">" +
-                   "<h2>" + message + "</h2><p>请返回应用。</p></body>";
+                   "<h2>" + WebUtility.HtmlEncode(message) + "</h2><p>请返回应用。</p></body>";
         }
 
         private static string Truncate(string s, int max) =>

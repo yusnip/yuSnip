@@ -11,7 +11,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 BASE_PATH = "/yusnip/oauth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-REDIRECT_URI = "http://127.0.0.1:38439/oauth/callback"
+LEGACY_REDIRECT_URI = "http://127.0.0.1:38439/oauth/callback"
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -26,15 +26,20 @@ def read_grant(headers, stream):
     if not 1 <= length <= 8192:
         return None
 
-    pairs = parse_qsl(stream.read(length).decode("utf-8"), strict_parsing=True, max_num_fields=3)
+    pairs = parse_qsl(stream.read(length).decode("utf-8"), strict_parsing=True, max_num_fields=4)
     form = dict(pairs)
     grant = form.get("grant_type")
     if len(form) != len(pairs):
         return None
-    if (grant == "authorization_code" and form.keys() == {"grant_type", "code", "code_verifier"}
-            and re.fullmatch(r"[!-~]{1,2048}", form["code"])
-            and re.fullmatch(r"[A-Za-z0-9._~-]{43,128}", form["code_verifier"])):
-        return {**form, "redirect_uri": REDIRECT_URI}
+    if grant == "authorization_code":
+        redirect_uri = form.pop("redirect_uri", LEGACY_REDIRECT_URI)
+        match = re.fullmatch(r"http://127\.0\.0\.1:([1-9][0-9]{0,4})/oauth/callback", redirect_uri)
+        if (match and 1 <= int(match[1]) <= 65535
+                and form.keys() == {"grant_type", "code", "code_verifier"}
+                and re.fullmatch(r"[!-~]{1,2048}", form["code"])
+                and re.fullmatch(r"[A-Za-z0-9._~-]{43,128}", form["code_verifier"])):
+            return {**form, "redirect_uri": redirect_uri}
+        return None
     if (grant == "refresh_token" and form.keys() == {"grant_type", "refresh_token"}
             and re.fullmatch(r"[!-~]{1,4096}", form["refresh_token"])):
         return form
