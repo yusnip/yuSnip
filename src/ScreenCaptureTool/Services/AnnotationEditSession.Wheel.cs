@@ -116,7 +116,7 @@ internal sealed partial class AnnotationEditSession
             return Consume("序号半径→" + nextRadius);
         }
 
-        // ⑤ 选中矩形：改描边粗细，夹到工具滑杆区间（截图同档同样不回灌工具默认）
+        // ⑤ 选中矩形：改描边粗细，并同步工具栏显示当前图元的数值。
         if (selected is RectangleShape rectangle)
         {
             int step = mods.HasFlag(KeyModifiers.Shift) ? 5 : 1;
@@ -124,7 +124,9 @@ internal sealed partial class AnnotationEditSession
             double nextThickness = Math.Clamp((double)rectangle.StrokeThickness + dir * step,
                 tb.StrokeThicknessSlider.Minimum, tb.StrokeThicknessSlider.Maximum);
             if (Math.Abs(nextThickness - rectangle.StrokeThickness) <= 0.0001) return Consume("矩形粗细已到边界 thickness=" + rectangle.StrokeThickness);
-            ReplaceSelectedShapeByWheel(rectangle.WithThickness((float)nextThickness));
+            var resizedStroke = rectangle.WithThickness((float)nextThickness);
+            ReplaceSelectedShapeByWheel(resizedStroke);
+            tb.SyncShapeToolState(resizedStroke);
             return Consume("矩形粗细→" + nextThickness);
         }
 

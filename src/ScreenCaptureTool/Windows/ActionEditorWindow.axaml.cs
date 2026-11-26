@@ -1,19 +1,23 @@
 using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Avalonia.Layout;
 using Avalonia.Media;
 using ScreenCaptureTool.Core.Scripting;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ScreenCaptureTool.Core;
 using ScreenCaptureTool.Core.Actions;
+using NativeMethods = ScreenCaptureTool.Platform.NativeMethods;
 using ScreenCaptureTool.Controls;
 
 namespace ScreenCaptureTool.Windows;
@@ -281,7 +285,8 @@ public partial class ActionEditorWindow : Window
             return item;
         }
 
-        bool hasIndependent = existing.Any(c => !c.UsesWorkflow && c.Method is not ("toggleallstickers" or "destroyallpin" or "restorelaststicker"));
+        bool hasIndependent = existing.Any(c => !c.IsWait && !c.UsesWorkflow
+            && c.Method is not ("toggleallstickers" or "destroyallpin" or "restorelaststicker"));
         foreach (var operation in ActionStepCatalog.Operations)
         {
             var group = new MenuItem { Header = operation.Name };
@@ -476,24 +481,28 @@ public partial class ActionEditorWindow : Window
             var operationLabel = new TextBlock { Text = "模块", Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal, Margin = new Thickness(0, 0, 8, 0) };
             head.Children.Add(operationLabel);
             var operationPicker = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, MaxDropDownHeight = 400 };
-            var availableResults = ActionStepCatalog.ResultsBefore(_steps, position);
+            AutomationProperties.SetName(operationPicker, "模块");
             var operations = ActionStepCatalog.Operations.AsEnumerable();
             if (!operations.Contains(step.Operation)) operations = operations.Append(step.Operation);
             foreach (var operation in operations)
                 foreach (var option in operation.Options)
                     operationPicker.Items.Add(new ComboBoxItem
                     {
-                        Content = operation.Name + " · " + option.Label,
+                        Content = operation.Name == option.Label ? operation.Name : operation.Name + " · " + option.Label,
                         Tag = new ActionStepChoice(operation, option),
-                        IsEnabled = ActionStepCatalog.OptionAvailable(option, availableResults),
                     });
             operationPicker.SelectedItem = operationPicker.Items.OfType<ComboBoxItem>().First(item =>
                 item.Tag is ActionStepChoice choice && choice.Operation == step.Operation && choice.Option == step.Option);
             operationPicker.SelectionChanged += (_, _) =>
             {
-                if (_updatingSteps || operationPicker.SelectedItem is not ComboBoxItem { Tag: ActionStepChoice choice, IsEnabled: true }) return;
-                ChangeStepOption(position, choice.Operation, choice.Option);
-                CommitSteps();
+                if (_updatingSteps || operationPicker.SelectedItem is not ComboBoxItem { Tag: ActionStepChoice choice } selected) return;
+                // 让下拉框先处理本次选择并关闭弹层，再替换模块的参数控件。
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (operationPicker.GetVisualRoot() == null || operationPicker.SelectedItem != selected) return;
+                    ChangeStepOption(position, choice.Operation, choice.Option);
+                    CommitSteps();
+                }, DispatcherPriority.Background);
             };
             Grid.SetColumn(operationPicker, 1); head.Children.Add(operationPicker);
             AddModuleParameter(panel, head);
@@ -504,12 +513,13 @@ public partial class ActionEditorWindow : Window
                 var inputLabel = new TextBlock { Text = "输入", Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal, Margin = new Thickness(0, 0, 8, 0) };
                 inputRow.Children.Add(inputLabel);
                 var inputs = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, PlaceholderText = "选择此前模块的结果" };
+                AutomationProperties.SetName(inputs, "输入结果");
                 PopulateInputPicker(inputs, position);
                 inputs.SelectionChanged += (_, _) =>
                 {
                     if (_updatingSteps || inputs.SelectedItem is not ComboBoxItem { Tag: string name }) return;
                     _steps[position] = _steps[position] with { InputName = name };
-                    CommitSteps();
+                    UpdateStepScript();
                 };
                 _inputPickers.Add((inputs, position));
                 Grid.SetColumn(inputs, 1); inputRow.Children.Add(inputs); AddModuleParameter(panel, inputRow);
@@ -540,12 +550,75 @@ public partial class ActionEditorWindow : Window
                 };
                 Grid.SetColumn(resultName, 1); resultRow.Children.Add(resultName); AddModuleParameter(panel, resultRow);
             }
+            if (call.Method == "captureimage") AddStrokeParameter(panel, position);
+            if (call.IsWait) AddWaitParameter(panel, position);
             var description = new TextBlock { Text = step.Option.Description, Classes = { "fieldHint" }, LineHeight = double.NaN };
             AddModuleParameter(panel, description);
         }
         if (_steps.Count == 0) StepListPanel.Children.Add(new TextBlock { Text = "还没有模块，点击「添加模块」开始。", Classes = { "fieldHint" }, LineHeight = double.NaN });
         UpdateAddStepMenu();
         _updatingSteps = false;
+    }
+
+    private void AddWaitParameter(Grid panel, int position)
+    {
+        var delay = new NumericUpDown
+        {
+            Minimum = 0,
+            Maximum = ScriptExecutor.MaximumWaitMilliseconds,
+            Value = _steps[position].WaitMilliseconds,
+            FormatString = "0",
+            ParsingNumberStyle = NumberStyles.None,
+            ClipValueToMinMax = true,
+            AllowSpin = false,
+            ShowButtonSpinner = false,
+            Width = 104,
+        };
+        AutomationProperties.SetName(delay, "等待时间，毫秒");
+        ToolTip.SetTip(delay, $"0 毫秒继续执行，最长等待 {ScriptExecutor.MaximumWaitMilliseconds / 1000} 秒。");
+        var delayField = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        delayField.Children.Add(delay);
+        delayField.Children.Add(new TextBlock { Text = "毫秒", Classes = { "fieldHint" }, VerticalAlignment = VerticalAlignment.Center });
+        delay.ValueChanged += (_, _) =>
+        {
+            if (_updatingSteps) return;
+            _steps[position] = _steps[position] with { WaitMilliseconds = decimal.ToInt32(delay.Value ?? 0) };
+            UpdateStepScript();
+        };
+        AddLabeledModuleParameter(panel, "等待时间", delayField);
+    }
+
+    private void AddStrokeParameter(Grid panel, int position)
+    {
+        var stroke = new ComboBox
+        {
+            ItemsSource = new[] { "默认描边", "无描边" },
+            SelectedIndex = _steps[position].WithoutStroke ? 1 : 0,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        AutomationProperties.SetName(stroke, "截图描边");
+        ToolTip.SetTip(stroke, "默认描边沿用截图设置，无描边只作用于本次截图。");
+
+        stroke.SelectionChanged += (_, _) =>
+        {
+            if (_updatingSteps) return;
+            _steps[position] = _steps[position] with { WithoutStroke = stroke.SelectedIndex == 1 };
+            UpdateStepScript();
+        };
+        AddLabeledModuleParameter(panel, "截图描边", stroke);
+    }
+
+    private static void AddLabeledModuleParameter(Grid panel, string label, Control editor)
+    {
+        var row = new Grid();
+        row.Children.Add(new TextBlock
+        {
+            Text = label, Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal,
+            Margin = new Thickness(0, 0, 8, 0),
+        });
+        Grid.SetColumn(editor, 1);
+        row.Children.Add(editor);
+        AddModuleParameter(panel, row);
     }
 
     /// <summary>所有字段共用一张 Auto 列表格，首次布局即对齐；说明跨两列。</summary>
@@ -585,11 +658,11 @@ public partial class ActionEditorWindow : Window
             TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(summary, 2); content.Children.Add(summary);
         _moduleHeaders.Add((title, summary, position));
-        var handle = new Border { Child = content, Background = Brushes.Transparent, Padding = new Thickness(8, 0, 0, 0), Cursor = new Cursor(StandardCursorType.Hand) };
-        ToolTip.SetTip(handle, ModuleSummary(_steps[position]) + "\n" + _steps[position].Option.Description);
+        var handle = new ContinuousBorder { Child = content, Classes = { "actionModuleHandle" } };
+        ToolTip.SetTip(summary, summary.Text);
         handle.PointerPressed += (_, e) =>
         {
-            if (_moduleDrag.Begin(handle, e, StepListPanel)) _draggedModuleRow = row;
+            if (_moduleDrag.Begin(handle, e, this)) _draggedModuleRow = row;
         };
         handle.PointerMoved += (_, e) =>
         {
@@ -721,12 +794,17 @@ public partial class ActionEditorWindow : Window
 
     private static string ModuleTitle(ActionStepChoice step) => step.Operation.Name;
 
-    private static string ModuleSummary(ActionStepChoice step) => step.Option.Label
+    private static string ModuleSummary(ActionStepChoice step) => ActionStepCatalog.Command(step.Option).IsWait
+        ? $"{step.WaitMilliseconds} 毫秒"
+        : step.Option.Label
         + (step.InputName != null ? " · 输入 " + step.InputName : "")
-        + (step.ResultName != null ? " → " + step.ResultName : "");
+        + (step.ResultName != null ? " → " + step.ResultName : "")
+        + (step.WithoutStroke ? " · 无描边" : "");
 
     private static Avalonia.Controls.Shapes.Path CreateModuleIcon(ActionStepChoice step)
     {
+        if (ActionStepCatalog.Command(step.Option).IsWait)
+            return OcrIconGeometry.CreateIcon(OcrIconGeometry.TrayHistory);
         string? toolId = step.Operation.Name switch
         {
             "识别文字" => "ocr",
@@ -789,8 +867,10 @@ public partial class ActionEditorWindow : Window
         var step = _steps[position];
         foreach (var result in ActionStepCatalog.InputsFor(step.Option, ActionStepCatalog.ResultsBefore(_steps, position)))
             picker.Items.Add(new ComboBoxItem { Content = result.Label, Tag = result.Name });
+        picker.IsEnabled = picker.Items.Count > 0;
+        picker.PlaceholderText = picker.IsEnabled ? "选择此前模块的结果" : "请先添加或上移能提供输入的模块";
         var selected = picker.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, step.InputName));
-        if (selected == null && step.InputName != null)
+        if (selected == null && !string.IsNullOrEmpty(step.InputName))
         {
             selected = new ComboBoxItem { Content = step.InputName + " · 引用不可用", Tag = step.InputName, IsEnabled = false };
             picker.Items.Add(selected);
@@ -800,15 +880,21 @@ public partial class ActionEditorWindow : Window
 
     private void UpdateAddStepMenu()
     {
-        int position = _steps.Count;
-        var results = ActionStepCatalog.ResultsBefore(_steps, position);
         var menu = new MenuFlyout();
         foreach (var operation in ActionStepCatalog.Operations)
         {
-            var option = operation.Options.FirstOrDefault(option => ActionStepCatalog.OptionAvailable(option, results));
-            if (option == null) continue;
             var item = new MenuItem { Header = operation.Name };
-            item.Click += (_, _) => { _steps.Add(ActionStepCatalog.Create(operation, option, _steps, position)); _expandedStep = position; CommitSteps(); };
+            item.Click += (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                if (!IsVisible) return;
+                int position = _steps.Count;
+                var inputs = ActionStepCatalog.ResultsBefore(_steps, position);
+                var option = operation.Options.FirstOrDefault(choice => !ActionStepCatalog.Command(choice).NeedsInput
+                    || ActionStepCatalog.InputsFor(choice, inputs).Count > 0) ?? operation.Options[0];
+                _steps.Add(ActionStepCatalog.Create(operation, option, _steps, position));
+                _expandedStep = position;
+                CommitSteps();
+            }, DispatcherPriority.Background);
             menu.Items.Add(item);
         }
         BtnAddStep.Flyout = menu;
@@ -1122,7 +1208,7 @@ public partial class ActionEditorWindow : Window
                 () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     if (generation == _keyboardRecordingGeneration)
-                        SetHotKeyTip("全局热键需包含辅助键或使用 F1–F12 功能键。");
+                        SetHotKeyTip("请使用带辅助键的组合，或单按 F1–F12、PrtSc。");
                 }));
         }
         catch (Exception ex) { StopRecording(false); SetHotKeyTip("无法开始录制：" + ex.Message); }
@@ -1349,6 +1435,7 @@ public partial class ActionEditorWindow : Window
             0x26 => "Up",
             0x27 => "Right",
             0x28 => "Down",
+            NativeMethods.VK_SNAPSHOT => "PrtSc",
             0xC0 => "~",
             0xBD => "-",
             0xBB => "=",

@@ -1,4 +1,4 @@
-<img src="assets/yusnip-logo.png" alt="yuSnip logo" width="72" height="72">
+<img src="../assets/yusnip-logo.png" alt="yuSnip logo" width="72" height="72">
 
 # yuSnip
 
@@ -8,7 +8,7 @@
 
 yuSnip is a free, open-source screenshot, pinning and screen recording tool for Windows, built from a designer's perspective. It is for people who use screenshots to write tutorials, document bugs or keep a design reference in view. After selecting an area, you can annotate it, extract its text, record it or pin the result for further work. Developers can build the application from source or integrate capture, OCR and pinning into their own workflows.
 
-[Download yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [Official website](https://yusnip.top/) · **[User guide (Chinese)](USER_GUIDE.md)** · [Changelog](更新记录.txt) · [Build from source](#build-from-source) · [Report an issue](https://github.com/yusnip/yuSnip/issues)
+[Download yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [Official website](https://yusnip.top/) · **[User guide (Chinese)](USER_GUIDE.md)** · [Changelog](../更新记录.txt) · [Build from source](#build-from-source) · [Report an issue](https://github.com/yusnip/yuSnip/issues)
 
 Supports Windows 10 version 2004 (build 19041) or later and Windows 11 on x64.
 
@@ -23,7 +23,7 @@ The magnifier follows the cursor as you frame the image. Once you select an area
 <details>
 <summary>Show the capture demo (GIF, about 22 MB)</summary>
 
-![yuSnip capture demo showing the magnifier, area selection and annotation toolbar](assets/showcase/capture-interface.gif)
+![yuSnip capture demo showing the magnifier, area selection and annotation toolbar](../assets/showcase/capture-interface.gif)
 
 </details>
 
@@ -33,7 +33,7 @@ The overview and toolbar editor share the same navigation, search and muted viol
 
 | Overview | Toolbars and styles |
 | --- | --- |
-| [![yuSnip settings overview with weather, usage trends and component status](assets/showcase/settings-overview.png)](assets/showcase/settings-overview.png) | [![yuSnip toolbar editor with a layout preview, groups and available tools](assets/showcase/settings-toolbar.png)](assets/showcase/settings-toolbar.png) |
+| [![yuSnip settings overview with weather, usage trends and component status](../assets/showcase/settings-overview.png)](../assets/showcase/settings-overview.png) | [![yuSnip toolbar editor with a layout preview, groups and available tools](../assets/showcase/settings-toolbar.png)](../assets/showcase/settings-toolbar.png) |
 | Usage trends and component status are visible as soon as you open settings. | The preview, groups and available tools each have a place, so you can see the current layout as you rearrange it. |
 
 [Settings reference](USER_GUIDE.md#sec-13)
@@ -50,7 +50,7 @@ Download and run `yuSnip.exe`, then look for yuSnip in the system tray. Right-cl
 | `Ctrl+Alt+F` | Translate a captured area and pin the result |
 | `Shift+F3` | Show or hide all pins |
 
-Change bindings under Settings → Shortcuts and Actions (「快捷键与动作」). For OCR, background removal or recording features that need extra components, use Settings → Runtime Components (「依赖运行」). [Quick-start guide](USER_GUIDE.md#sec-01) · [Troubleshooting](USER_GUIDE.md#sec-15)
+Change bindings under Settings → Shortcuts and Actions (「快捷键与动作」). You can bind capture to `PrtSc` on its own. Use Settings → Runtime Components (「依赖运行」) to install optional components or select an existing FFmpeg folder. [Quick-start guide](USER_GUIDE.md#sec-01) · [Troubleshooting](USER_GUIDE.md#sec-15)
 
 ## What you can do with yuSnip
 
@@ -78,13 +78,13 @@ Record just the area you need to demonstrate. Pause and resume a take, show clic
 
 ### Give a repeated workflow its own shortcut
 
-Arrange the toolbars for capture, pinning, scrolling capture and recording. A custom action can capture an area once, pin the original image and copy its recognized text. With capture history enabled, find old screenshots by time or by text recognized in them.
+Arrange the toolbars for capture, pinning, scrolling capture and recording. Custom actions can add a wait step before capture and turn off the border for an individual screenshot. You can capture an area once, pin the original image and copy its recognized text. With capture history enabled, find old screenshots by time or by text recognized in them.
 
 You can translate a screenshot to text or an image, or configure an AI service to ask questions about a captured interface, chart or error. Translation, AI and cloud sync send relevant content to the service you configure when used. [Shortcuts and actions](USER_GUIDE.md#sec-11) · [Capture history](USER_GUIDE.md#sec-10) · [Translation](USER_GUIDE.md#sec-07)
 
 ## Build from source
 
-yuSnip uses .NET 10 and Avalonia. Download or clone this repository, install the .NET 10 SDK on Windows x64 and run the public build script from the repository root. [build.ps1](build.ps1) · [SDK version](src/global.json)
+yuSnip uses .NET 10 and Avalonia. Download or clone this repository, install the .NET 10 SDK on Windows x64 and run the public build script from the repository root. [build.ps1](../build.ps1) · [SDK version](../src/global.json)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
@@ -96,13 +96,13 @@ The development build goes to `dist/debug/`. Start `yuSnip.exe` from that folder
 
 | Project | Where to start |
 | --- | --- |
-| [ScreenCaptureTool](src/ScreenCaptureTool/) | Desktop application, windows and interactions |
-| [ScreenCaptureTool.Core](src/ScreenCaptureTool.Core/) | Capture processing, OCR, background removal, recording and core features |
-| [ScreenCaptureTool.LongScroll](src/ScreenCaptureTool.LongScroll/) | Scrolling capture, stitching and preview |
-| [ScreenCaptureTool.Platform](src/ScreenCaptureTool.Platform/) | Windows APIs and platform interop |
-| [ScreenCaptureTool.Ocr](src/ScreenCaptureTool.Ocr/) | Optional Windows OCR verification project |
+| [ScreenCaptureTool](../src/ScreenCaptureTool/) | Desktop application, windows and interactions |
+| [ScreenCaptureTool.Core](../src/ScreenCaptureTool.Core/) | Capture processing, OCR, background removal, recording and core features |
+| [ScreenCaptureTool.LongScroll](../src/ScreenCaptureTool.LongScroll/) | Scrolling capture, stitching and preview |
+| [ScreenCaptureTool.Platform](../src/ScreenCaptureTool.Platform/) | Windows APIs and platform interop |
+| [ScreenCaptureTool.Ocr](../src/ScreenCaptureTool.Ocr/) | Optional Windows OCR verification project |
 
-Open [ScreenCaptureTool.sln](src/ScreenCaptureTool.sln) to browse the solution.
+Open [ScreenCaptureTool.sln](../src/ScreenCaptureTool.sln) to browse the solution.
 
 ### Call yuSnip from a script
 
@@ -130,7 +130,7 @@ Bug reports, feature requests and pull requests are welcome. Redact private info
 
 ## License
 
-yuSnip is maintained by 北京林或西. Its own source code is available under the MIT License, which allows use, modification and redistribution, including commercial use, with the copyright and license notices retained. Third-party libraries, models and components keep their own licenses. [MIT License](LICENSE) · [Third-party licenses](src/ScreenCaptureTool/Assets/ThirdParty/)
+yuSnip is maintained by 北京林或西. Its own source code is available under the MIT License, which allows use, modification and redistribution, including commercial use, with the copyright and license notices retained. Third-party libraries, models and components keep their own licenses. [MIT License](../LICENSE) · [Third-party licenses](../src/ScreenCaptureTool/Assets/ThirdParty/)
 
 ## Support yuSnip
 
@@ -138,4 +138,4 @@ If yuSnip has become part of your daily routine for capturing, marking up or ext
 
 **Support via WeChat** · Scan the code below in WeChat. Click the image to view it at full size.
 
-<a href="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="WeChat appreciation code for the creator of yuSnip" width="220"></a>
+<a href="../src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="../src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="WeChat appreciation code for the creator of yuSnip" width="220"></a>

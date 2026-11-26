@@ -40,6 +40,9 @@ namespace ScreenCaptureTool.Core
         private NativeMethods.LowLevelKeyboardProc _hookProc;
         private uint _targetModifiers;
         private uint _targetKey;
+        private bool? _printScreenPressOwned;
+
+        private bool IsStandalonePrintScreen => _targetModifiers == 0 && _targetKey == NativeMethods.VK_SNAPSHOT;
 
         private const uint MOD_NOREPEAT = 0x4000;
 
@@ -61,8 +64,9 @@ namespace ScreenCaptureTool.Core
         }
 
         /// <summary>
-        /// 注册热键。优先使用 Windows RegisterHotKey；只有被占用或系统拒绝时
-        /// 才回退到低级键盘钩子。RegisterHotKey 不依赖前台窗口和输入法，也不会
+        /// 注册热键。单键 PrtSc 用低级键盘钩子处理 Windows 的截图绑定。
+        /// 其余热键优先使用 Windows RegisterHotKey，注册失败时回退到低级键盘钩子。
+        /// RegisterHotKey 不依赖前台窗口和输入法，也不会
         /// 像低级钩子那样因回调超时被 Windows 静默移除。
         /// </summary>
         public bool Register(uint modifiers, uint virtualKey)
@@ -88,9 +92,10 @@ namespace ScreenCaptureTool.Core
 
             _targetModifiers = modifiers;
             _targetKey = virtualKey;
+            _printScreenPressOwned = null;
 
             int nativeError = 0;
-            bool nativeRegistered = _msgWindow.InvokeOnPumpThread(() =>
+            bool nativeRegistered = !IsStandalonePrintScreen && _msgWindow.InvokeOnPumpThread(() =>
             {
                 bool ok = NativeMethods.RegisterHotKey(
                     _msgWindow.Handle,
@@ -112,8 +117,7 @@ namespace ScreenCaptureTool.Core
                 return true;
             }
 
-            // 兼容极少数已被其他程序占用的快捷键。回调只投递到线程池，绝不在
-            // WH_KEYBOARD_LL 回调里写日志或执行截图逻辑，避免触发系统超时摘钩。
+            // 单键 PrtSc 和原生注册失败的绑定走同一键盘钩子。
             int hookError = 0;
             bool hookRegistered = _msgWindow.InvokeOnPumpThread(() =>
             {
@@ -130,9 +134,12 @@ namespace ScreenCaptureTool.Core
                 _registeredWithNativeHotKey = false;
                 _registeredWithHook = true;
                 LastRegisterError = 0;
-                AppLogger.Warn("HotKeyManager.RegisterHotKey 被拒绝，已回退到键盘钩子。error="
-                    + nativeError + " modifiers=0x" + modifiers.ToString("X")
-                    + " vk=0x" + virtualKey.ToString("X"));
+                if (IsStandalonePrintScreen)
+                    AppLogger.Info("HotKeyManager 单键 PrtSc 已通过键盘钩子注册。");
+                else
+                    AppLogger.Warn("HotKeyManager.RegisterHotKey 被拒绝，已回退到键盘钩子。error="
+                        + nativeError + " modifiers=0x" + modifiers.ToString("X")
+                        + " vk=0x" + virtualKey.ToString("X"));
                 return true;
             }
 
@@ -200,31 +207,44 @@ namespace ScreenCaptureTool.Core
 
         private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0 && (wParam.ToInt32() == NativeMethods.WM_KEYDOWN || wParam.ToInt32() == NativeMethods.WM_SYSKEYDOWN))
+            int message = wParam.ToInt32();
+            bool down = message is NativeMethods.WM_KEYDOWN or NativeMethods.WM_SYSKEYDOWN;
+            bool up = message is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP;
+            if (nCode >= 0 && (down || IsStandalonePrintScreen && up))
             {
                 var kbd = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
-                uint vk = kbd.vkCode;
-
-                bool ctrlDown = (NativeMethods.GetAsyncKeyState(0x11) & 0x8000) != 0;
-                bool altDown = (NativeMethods.GetAsyncKeyState(0x12) & 0x8000) != 0;
-                bool shiftDown = (NativeMethods.GetAsyncKeyState(0x10) & 0x8000) != 0;
-                bool winDown = ((NativeMethods.GetAsyncKeyState(0x5B) & 0x8000) != 0) || ((NativeMethods.GetAsyncKeyState(0x5C) & 0x8000) != 0);
-
-                uint currentModifiers = 0;
-                if (altDown) currentModifiers |= 0x0001;
-                if (ctrlDown) currentModifiers |= 0x0002;
-                if (shiftDown) currentModifiers |= 0x0004;
-                if (winDown) currentModifiers |= 0x0008;
-
-                if (currentModifiers == _targetModifiers && vk == _targetKey)
+                if (kbd.vkCode == _targetKey)
                 {
-                    QueueCallback();
-                    // 返回 1 吞掉按键事件，确保具有最高优先级的拦截
-                    return new IntPtr(1);
+                    if (IsStandalonePrintScreen)
+                    {
+                        // 保留按下时的组合判断，避免先松开修饰键时误触发单键动作。
+                        bool owned = _printScreenPressOwned ?? (ReadNativeModifiers() == 0);
+                        _printScreenPressOwned = down ? owned : null;
+                        if (owned)
+                        {
+                            if (up) QueueCallback();
+                            return new IntPtr(1);
+                        }
+                    }
+                    else if (ReadNativeModifiers() == _targetModifiers)
+                    {
+                        QueueCallback();
+                        return new IntPtr(1);
+                    }
                 }
             }
 
             return NativeMethods.CallNextHookEx(_hookHandle, nCode, wParam, lParam);
+        }
+
+        private static uint ReadNativeModifiers()
+        {
+            uint modifiers = 0;
+            if ((NativeMethods.GetAsyncKeyState(NativeMethods.VK_MENU) & 0x8000) != 0) modifiers |= 0x0001;
+            if ((NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0) modifiers |= 0x0002;
+            if ((NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0) modifiers |= 0x0004;
+            if (((NativeMethods.GetAsyncKeyState(0x5B) | NativeMethods.GetAsyncKeyState(0x5C)) & 0x8000) != 0) modifiers |= 0x0008;
+            return modifiers;
         }
 
         public void Dispose()

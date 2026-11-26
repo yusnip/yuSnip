@@ -58,10 +58,10 @@ public static class RecordingSessionFactory
             if (_inner!.Start(out error)) return true;
             string nativeError = error ?? "Windows 录制不可用";
             _inner.Dispose(); _inner = null;
-            // 只在自动档、录制尚未开始时回退已安装的 FFmpeg；不在中途换引擎或偷偷下载。
+            // 只在自动档、录制尚未开始时使用当前选定的 FFmpeg 兜底。
             if (options.Engine != RecordEngine.Auto || FfmpegLocator.TryFind(options.ManualFfmpegPath) == null)
             {
-                error = nativeError + (options.Engine == RecordEngine.Auto ? "\n可在设置中选择 FFmpeg 并安装运行组件。" : "");
+                error = nativeError + (options.Engine == RecordEngine.Auto ? "\n" + FfmpegLocator.UnavailableMessage(options.ManualFfmpegPath) : "");
                 return false;
             }
             Bind(new RecordingSession(options));

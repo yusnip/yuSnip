@@ -39,15 +39,18 @@ internal sealed class ActionWorkflowContext : IDisposable
     public async Task<bool> RunAsync(string method, string[] args)
     {
         var call = new ScriptCommand(method, args);
+        if (call.IsWait) return await WaitAsync(call.WaitMilliseconds);
         string output = call.ResultName ?? "#result" + ++_sequence;
         var input = call.NeedsInput ? GetResult(call.InputName ?? _current) : null;
         switch (method)
         {
             case "captureimage":
+                var capture = call.CaptureOptions;
+                if (capture.DelayMilliseconds > 0 && !await WaitAsync(capture.DelayMilliseconds)) return false;
                 var gesture = _gestureConsumed ? null : _gesture;
                 _gestureConsumed = true;
                 bool completed = await _app.RunCaptureAsync("Workflow", gesture, (image, region) =>
-                    AddResult(output, new(Image: image, Region: region)));
+                    AddResult(output, new(Image: image, Region: region)), suppressCaptureStroke: capture.WithoutStroke);
                 return completed && _results.ContainsKey(output);
             case "readclipboard":
                 if (args[0].Equals("Image", StringComparison.OrdinalIgnoreCase))
@@ -152,6 +155,14 @@ internal sealed class ActionWorkflowContext : IDisposable
                 return true;
             default: throw new InvalidOperationException("无法识别这一步操作。");
         }
+    }
+
+    private async Task<bool> WaitAsync(int milliseconds)
+    {
+        bool CanContinue() => !App.IsShuttingDown && (_gestureConsumed || _gesture?.Read().Cancelled != true);
+        if (!CanContinue()) return false;
+        if (milliseconds > 0) await Task.Delay(milliseconds);
+        return CanContinue();
     }
 
     private async Task<bool> TranslateAsync(string format, WorkflowResult input, string outputName)

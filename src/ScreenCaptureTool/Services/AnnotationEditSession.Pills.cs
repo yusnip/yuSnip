@@ -74,12 +74,16 @@ internal sealed partial class AnnotationEditSession
         Size size = LayoutMetrics.MeasureNow(pill);
 
         Rect clamp = _host.PillClampBounds;
-        double x = left + w / 2.0 - size.Width / 2.0;
+        // 夹取可见黑条的左右边缘。控件两侧还留有透明的微调区，窄贴图也能把黑条对准图元。
+        Rect bar = pill.PillBounds;
+        double x = Math.Clamp(left + w / 2.0 - size.Width / 2.0,
+            -bar.Left, Math.Max(-bar.Left, clamp.Width - bar.Right));
         double y = top - size.Height - PillGap;
         if (y < 0) y = top + h + PillGap;   // 贴到画板顶边时翻到元素下方
-        x = Math.Max(0, Math.Min(x, Math.Max(0, clamp.Width - size.Width)));
         y = Math.Max(0, Math.Min(y, Math.Max(0, clamp.Height - size.Height)));
-        pill.Margin = new Thickness(x, y, 0, 0);
+        // Canvas 坐标与 DesiredSize 独立，改填充等不改变几何的操作会得出同一个位置。
+        Canvas.SetLeft(pill, x);
+        Canvas.SetTop(pill, y);
     }
 
     /// <summary>

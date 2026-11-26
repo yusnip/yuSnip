@@ -2,17 +2,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="ScreenCaptureTool.Controls.StrokeThicknessControl">
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <Border Classes="toolOptionHost" Width="78" PointerWheelChanged="OnWheel">
-            <Grid Width="62" Height="24" ColumnDefinitions="22,6,24" VerticalAlignment="Center" HorizontalAlignment="Center">
-                <Grid Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Ellipse x:Name="SizePreview" Width="8" Height="8" Fill="{DynamicResource SctIconBrush}"
-                             HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Grid>
-                <TextBlock x:Name="SizeText" Grid.Column="2" Text="15" Width="24" Height="24" LineHeight="24"
-                           TextAlignment="Center" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Border Classes="toolOptionHost" Padding="0" PointerWheelChanged="OnWheel">
+            <Grid ColumnDefinitions="26,Auto,26" VerticalAlignment="Center">
+                <Button x:Name="DecreaseButton" Classes="tool" Content="−" FontSize="15"
+                        Margin="0" Padding="0" Height="26" MinHeight="26" HorizontalAlignment="Stretch"
+                        ToolTip.Tip="减小标注粗细" AutomationProperties.Name="减小标注粗细"
+                        Click="OnDecreaseClick" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="3,0"
+                            VerticalAlignment="Center" ToolTip.Tip="滚动滚轮调整标注粗细">
+                    <TextBlock Text="粗细" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock x:Name="SizeText" Text="15" Width="20" FontSize="12" FontWeight="SemiBold"
+                               TextAlignment="Center" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button x:Name="IncreaseButton" Grid.Column="2" Classes="tool" Content="+" FontSize="15"
+                        Margin="0" Padding="0" Height="26" MinHeight="26" HorizontalAlignment="Stretch"
+                        ToolTip.Tip="增大标注粗细" AutomationProperties.Name="增大标注粗细"
+                        Click="OnIncreaseClick" />
             </Grid>
         </Border>
         <Slider x:Name="SizeSlider" Width="0" Height="0" Opacity="0" Minimum="1" Maximum="45" Value="15"
-                TickFrequency="1" IsSnapToTickEnabled="True" />
+                Focusable="False" IsHitTestVisible="False" TickFrequency="1" IsSnapToTickEnabled="True" />
     </StackPanel>
 </UserControl>

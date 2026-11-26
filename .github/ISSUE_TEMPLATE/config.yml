@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: 用户手册和常见问题 / User guide and FAQ
-    url: https://github.com/yusnip/yuSnip/blob/main/USER_GUIDE.md#sec-15
+    url: https://github.com/yusnip/yuSnip/blob/main/docs/USER_GUIDE.md#sec-15
     about: 查看使用说明和常见问题排查。 / Find instructions and troubleshooting.
   - name: 安全漏洞 / Security vulnerability
     url: https://github.com/yusnip/yuSnip/security/advisories/new

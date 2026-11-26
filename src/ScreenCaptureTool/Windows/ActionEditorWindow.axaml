@@ -27,11 +27,31 @@
           全局样式，禁止在本文件重复定义，详见 docs/设计规范.md。此处仅保留窗口专属样式。
         -->
 
-        <!-- 预设动作名称只读样式（灰掉 + 斜体提示） -->
+        <!-- 预设动作名称只读状态沿用表单表面和辅助文字色。 -->
         <Style Selector="TextBox.locked">
-            <Setter Property="Background" Value="{DynamicResource SctButtonHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SctBorderBrush}" />
-            <Setter Property="Opacity" Value="0.65" />
+            <Setter Property="Foreground" Value="{DynamicResource SctTextMutedBrush}" />
+        </Style>
+
+        <Style Selector="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+            <Setter Property="PlaceholderForeground" Value="{DynamicResource SctTextMutedBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="ComboBox:disabled">
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+        <Style Selector="ComboBox:focus-visible /template/ Border#Background">
+            <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
+        </Style>
+        <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctTextPrimaryBrush}" />
+        </Style>
+        <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ComboBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SctWorkspaceSelectedBrush}" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource SctWorkspaceBrandTextBrush}" />
         </Style>
 
         <!-- 预设下拉分类分组标题（不可选、不可聚焦、带顶部分隔线与副标题字色） -->
@@ -61,13 +81,19 @@
 
         <!-- 模块行只展示类型与摘要；拖拽提示独立覆盖，不改变行的位置。 -->
         <Style Selector="Border.actionModuleRow">
-            <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SctCardBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
-            <Setter Property="Background" Value="{DynamicResource SctSubtleBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
         </Style>
-        <Style Selector="Border.actionModuleRow:pointerover">
-            <Setter Property="Background" Value="{DynamicResource SctRowHoverBrush}" />
+        <Style Selector="Border.actionModuleHandle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="8,0,0,0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusSegmentInner}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.actionModuleHandle:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SctRowHoverBgBrush}" />
         </Style>
         <Style Selector="Border.actionModuleRow.expanded">
             <Setter Property="BorderBrush" Value="{DynamicResource SctAccentBrush}" />
@@ -169,7 +195,7 @@
                             </Button>
                         </Grid>
                     </StackPanel>
-                    <TextBlock x:Name="TxtStepError" Classes="fieldHint" LineHeight="NaN" IsVisible="False" />
+                    <TextBlock x:Name="TxtStepError" Classes="fieldHint" Foreground="{DynamicResource SctDangerBrush}" LineHeight="NaN" IsVisible="False" />
                     <StackPanel x:Name="AdvancedScriptPanel" Spacing="6">
                         <TextBlock Text="脚本指令" Classes="fieldLabel" FontSize="13.5" FontWeight="Normal" />
                         <TextBox x:Name="TxtScript" FontFamily="Consolas, 'Cascadia Code', monospace" FontSize="13"
@@ -178,11 +204,11 @@
                                  TextChanged="OnScriptTextChanged" />
                         <TextBlock x:Name="TxtScriptInsertHint" Classes="fieldHint" LineHeight="NaN"
                                    Text="输入 @ 选择操作；处理或输出时，可继续选择前面的结果。" />
-                        <round:ContinuousBorder x:Name="CommandPreviewBorder" Background="{DynamicResource SctSubtleBrush}"
+                        <round:ContinuousBorder x:Name="CommandPreviewBorder" Background="{DynamicResource SctInputBgBrush}"
                                 BorderBrush="{DynamicResource SctSoftBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource SctRadiusControl}"
                                 Padding="10,6" Cursor="Hand" PointerPressed="OnCommandPreviewClick" ToolTip.Tip="点击复制完整命令行">
                             <TextBlock x:Name="TxtCommandPreview" FontFamily="Consolas, 'Cascadia Code', monospace"
-                                       FontSize="12" Foreground="{DynamicResource SctAccentBrush}" TextTrimming="CharacterEllipsis" />
+                                       FontSize="12" Foreground="{DynamicResource SctWorkspaceBrandTextBrush}" TextTrimming="CharacterEllipsis" />
                         </round:ContinuousBorder>
                         <Button x:Name="ScriptHelpBorder" Content="格式说明" Classes="secondary" IsVisible="False"
                                 HorizontalAlignment="Left" Click="OnScriptHelpClick" />
@@ -194,6 +220,7 @@
                                            Foreground="{DynamicResource SctTextPrimaryBrush}"
                                            Text="yuSnip.captureImage('原图');&#10;yuSnip.translateResult('Text', '原图', '译文');&#10;yuSnip.recognizeResult('原图', '识别文字');&#10;yuSnip.copyResult('原图');&#10;yuSnip.copyResult('译文');&#10;yuSnip.showResult('识别文字');" />
                                 <TextBlock Classes="fieldHint" LineHeight="NaN" Text="获取：captureImage('结果名')；readClipboard('Image/Text', '结果名')。处理：recognizeResult('输入名', '结果名')；translateResult('Text/Image', '输入名', '结果名')；mattingResult('Default/General/Portrait', '输入名', '结果名')。" />
+                                <TextBlock Classes="fieldHint" LineHeight="NaN" Text="等待：yuSnip.wait(1500) 等待 1500 毫秒后执行下一步。无描边截图：yuSnip.captureImage('原图', 'NoStroke')。" />
                                 <TextBlock Classes="fieldHint" LineHeight="NaN" Text="输出：copyResult、pinResult、saveResult、showResult('输入名')，可放在任何位置。多次复制按顺序覆盖。AI：visionResult('Default/Prompt', '图片名')，回复暂不能引用。// 开头是备注；一行一个调用，不支持通用 JavaScript。录屏使用独立动作。" />
                             </StackPanel>
                         </Border>

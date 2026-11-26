@@ -845,9 +845,17 @@ public partial class VideoStickerWindow : Window
                      : "正在添加进度条…";
         EnterEncodingMode(label);
         // Windows 母带的 GIF（含烙条）走系统编码；WebP 等转换按需下载 FFmpeg。
+        string? manualFfmpegPath = AppSettings.Current.RecFfmpegPath;
         if (ExportService.RequiresFfmpeg(_format, ChkBurn.IsChecked == true, UseSystemPlayback)
-            && FfmpegLocator.TryFind(AppSettings.Current.RecFfmpegPath) == null)
+            && await Task.Run(() => FfmpegLocator.TryFind(manualFfmpegPath) == null))
         {
+            if (_closed) return;
+            if (!string.IsNullOrWhiteSpace(manualFfmpegPath))
+            {
+                ExitEncodingMode();
+                ShowEncodingFailure(FfmpegLocator.UnavailableMessage(manualFfmpegPath));
+                return;
+            }
             bool ready;
             try
             {
@@ -860,6 +868,7 @@ public partial class VideoStickerWindow : Window
             }
             if (!ready || _closed) { if (!_closed) ExitEncodingMode(); return; }
         }
+        if (_closed) return;
         var progress = new Progress<double>(r =>
         {
             if (_closed) return;
@@ -874,7 +883,7 @@ public partial class VideoStickerWindow : Window
         try
         {
             err = await ExportService.ExportAsync(_masterPath, dest, _format,
-                ChkBurn.IsChecked == true, _presetId, progress, AppSettings.Current.RecFfmpegPath,
+                ChkBurn.IsChecked == true, _presetId, progress, manualFfmpegPath,
                 cancellation.Token, useWindowsGif: UseSystemPlayback);
         }
         finally { _exportCancellation = null; }

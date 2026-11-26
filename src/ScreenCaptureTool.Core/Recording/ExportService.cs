@@ -61,7 +61,7 @@ namespace ScreenCaptureTool.Core.Recording
                     Math.Min(QualityProfiles.Get(presetId).Fps, 24), progress, ct);
 
             string? ffmpeg = FfmpegLocator.TryFind(manualFfmpegPath);
-            if (ffmpeg == null) return "未检测到 FFmpeg，无法转码（可在「设置 → 录屏」手动指定路径）";
+            if (ffmpeg == null) return "无法转码。" + FfmpegLocator.UnavailableMessage(manualFfmpegPath);
 
             double dur = FfmpegProcess.ProbeDurationSeconds(ffmpeg, masterPath);
             string args = "-hide_banner -nostats -progress pipe:1 -y -i \"" + masterPath + "\" "

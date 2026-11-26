@@ -774,8 +774,7 @@ public partial class CaptureWindow : Window
         // 圆角如今只从**元素上方的圆角浮条**进来（见下方 SyncPill 那一段：直接写记忆字段再发 ShapeRadiusChanged），
         // 此处不再挂滑杆事件。
         SliderBrushOpacity.ValueChanged += (_, _) => RebuildBrushProfile();
-        // 粗细滑杆：此前只有滚轮那一路（WheelAdjusted）有报点，拖滑块压根不落到选中图元上——
-        // 挂 ValueChanged 后两条来路共用一个出口；回灌选中图元时由 _suppressCommonSettingsEvent 挡住反手一笔。
+        // 粗细按钮与滚轮共用一个事件出口。回显选中图元时抑制样式事件。
         SliderStrokeThickness.ValueChanged += (_, _) => RaiseAnnotationThicknessChanged();
         // 形状填充（勾选 + 浓淡）：记忆值就住在共享控件 ShapeFillOptions 里，这里只把用户的改动转发给
         // CaptureSession 落到选中矩形——与圆角浮条那一路（ShapeRadiusChanged）同一套路。
@@ -1294,8 +1293,6 @@ public partial class CaptureWindow : Window
     internal Slider SliderMosaicBlockSize => BlurIntensityOptions.Slider;
     private TextBlock TxtMosaicBlockSize => BlurIntensityOptions.ValueText;
     internal Slider SliderStrokeThickness => StrokeThicknessOptions.Slider;
-    private TextBlock TxtStrokeThickness => StrokeThicknessOptions.ValueText;
-    private Avalonia.Controls.Shapes.Ellipse StrokeThicknessPreview => StrokeThicknessOptions.Preview;
 
     /// <summary>设置截图选择界面的冻结背景，避免透明全屏窗口显示到 DWM 的过期桌面缓存。</summary>
     public void SetFrozenScreenBitmap(System.Drawing.Bitmap bitmap)
@@ -1602,7 +1599,7 @@ public partial class CaptureWindow : Window
     /// <summary>取色落位口（<c>ApplyColorToCurrentTarget</c>）专用：颜色是字段直赋、不会自己反手发事件，故无需抑制位。</summary>
     private void RaiseAnnotationColorChanged() => AnnotationColorChanged?.Invoke(this, EventArgs.Empty);
 
-    /// <summary>粗细报点：拖滑块与在滑块上滚滚轮两条来路都汇到这里（滚轮那条先写值、随即由 ValueChanged 进来）。</summary>
+    /// <summary>将粗细参数的用户改动转发给截图会话。</summary>
     private void RaiseAnnotationThicknessChanged()
     {
         if (_suppressCommonSettingsEvent) return;
@@ -1678,13 +1675,15 @@ public partial class CaptureWindow : Window
     public int CaptureStrokeColorArgb => _captureStrokeColorArgb;
 
     /// <summary>用记忆值铺一次参数条，不触发 <see cref="CaptureEffectChanged"/>。</summary>
-    public void SyncCaptureEffectState(int radiusParam, bool shadow, int strokePx, int strokeArgb)
+    public void SyncCaptureEffectState(int radiusParam, bool shadow, int strokePx, int strokeArgb, bool suppressStroke = false)
     {
         _suppressCaptureEffectEvent = true;
         try
         {
             _captureRadiusParam = Math.Clamp(radiusParam, CaptureRadiusMin, CaptureRadiusMax);
             _captureStrokeParam = Math.Clamp(strokePx, CaptureStrokeMin, CaptureStrokeMax);
+            GroupStroke.IsEnabled = !suppressStroke;
+            GroupStroke.Opacity = suppressStroke ? 0.55 : 1;
             ChkCaptureShadow.IsChecked = shadow;
             RefreshCaptureEffectLabels();
             _captureStrokeColorArgb = strokeArgb;
@@ -1705,6 +1704,13 @@ public partial class CaptureWindow : Window
         TxtCaptureRadius.Text = _captureRadiusParam.ToString();
         TxtCaptureStroke.Text = _captureStrokeParam.ToString();
         ChkCaptureShadow.Content = CaptureShadowChecked ? "阴影 开" : "阴影 关";
+    }
+
+    internal void CaptureStrokeDefaults(AppSettings settings)
+    {
+        if (!GroupStroke.IsEnabled) return;
+        settings.CaptureStrokeWidth = CaptureStrokeParam;
+        settings.CaptureStrokeColor = CaptureStrokeColorArgb;
     }
 
     /// <summary>改圆角档位：夹量程 → 刷数值 → 上报。拖动、滚轮、记忆值三条路都汇到这里。</summary>
@@ -2506,13 +2512,6 @@ public partial class CaptureWindow : Window
         ClearCurrentToolRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnStrokeThicknessAdjusted(object? sender, EventArgs e)
-    {
-        // 报点不在这儿：Adjust() 先写滑杆值，SliderStrokeThickness.ValueChanged 那个出口随即发一次
-        // AnnotationThicknessChanged，这里再发就是把同一档发两遍。本方法只负责刷数值与圆点预览。
-        UpdateToolOptionLabels();
-    }
-
     private void ForceTopmostSafely(string reason)
     {
         try
@@ -2775,9 +2774,8 @@ public partial class CaptureWindow : Window
 
     public void UpdateToolOptionLabels()
     {
-        if (SliderStrokeThickness == null || SliderMosaicBlockSize == null || SliderSpotlightDarkness == null
+        if (SliderMosaicBlockSize == null || SliderSpotlightDarkness == null
             || SliderBrushOpacity == null) return;
-        TxtStrokeThickness.Text = Math.Round(SliderStrokeThickness.Value).ToString();
         TxtMosaicBlockSize.Text = SelectedBlurUiLevel.ToString();
         TxtSpotlightDarkness.Text = Math.Round(SliderSpotlightDarkness.Value).ToString();
         if (_counterOptions != null) _counterOptions.ValueText.Text = Math.Round(_counterOptions.Slider.Value).ToString();
@@ -2787,11 +2785,7 @@ public partial class CaptureWindow : Window
         TxtBrushMinWidth.Text = Math.Round(SliderBrushMinWidth.Value).ToString();
         if (TextSpotlightStrokeValue != null) TextSpotlightStrokeValue.Text = Math.Round(SliderSpotlightStrokeThickness.Value).ToString();
 
-        double previewSize = Math.Clamp(SliderStrokeThickness.Value, 2.0, 18.0);
-        StrokeThicknessPreview.Width = previewSize;
-        StrokeThicknessPreview.Height = previewSize;
         var c = SelectedAnnotationColor;
-        StrokeThicknessPreview.Fill = new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B));
         // 序号那排小样画的就是这颗色：不在这里回灌，改了标注色后条上仍是旧色，"样式"按钮就白做了
         _counterOptions?.SetAnnotationColor(Color.FromArgb(c.A, c.R, c.G, c.B));
         if (SpotlightStrokeCircle != null) SpotlightStrokeCircle.Fill = new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B));
@@ -3693,8 +3687,7 @@ public partial class CaptureWindow : Window
         _counterOptions?.CaptureDefaults(s);   // 起始值刻意不落盘，见 CounterOptionsControl
         _watermarkOptions?.CaptureDefaults(s); // 开关不落盘
         s.CaptureCornerRadius = CaptureRadiusParam;
-        s.CaptureStrokeWidth = CaptureStrokeParam;
-        s.CaptureStrokeColor = CaptureStrokeColorArgb;
+        CaptureStrokeDefaults(s);
         s.CaptureShadow = CaptureShadowChecked;
         Text.CaptureDefaults(s);   // 12 个 Text* 键
 

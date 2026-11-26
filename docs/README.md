@@ -1,4 +1,4 @@
-<img src="assets/yusnip-logo.png" alt="yuSnip 标志" width="72" height="72">
+<img src="../assets/yusnip-logo.png" alt="yuSnip 标志" width="72" height="72">
 
 # yuSnip
 
@@ -8,7 +8,7 @@
 
 yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图与录屏工具。它适合经常用截图写教程、记录问题或对照设计稿的人。框选之后，你可以直接标注、取字、录屏，也可以把结果钉在屏幕上接着用。开发者可以从源码构建，或把截图、OCR 和贴图接进自己的自动化流程。
 
-[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [官方网站](https://yusnip.top/) · **[用户文档](USER_GUIDE.md)** · [更新记录](更新记录.txt) · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
+[下载 yuSnip](https://github.com/yusnip/yuSnip/releases/latest) · [官方网站](https://yusnip.top/) · **[用户文档](USER_GUIDE.md)** · [更新记录](../更新记录.txt) · [源码构建](#从源码构建) · [问题反馈](https://github.com/yusnip/yuSnip/issues)
 
 支持 Windows 10 版本 2004（内部版本 19041）及以上和 Windows 11 x64。
 
@@ -23,7 +23,7 @@ yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图�
 <details>
 <summary>展开截图操作演示（GIF，约 22 MB）</summary>
 
-![yuSnip 截图界面演示，展示放大镜、框选和选区旁的工具栏](assets/showcase/capture-interface.gif)
+![yuSnip 截图界面演示，展示放大镜、框选和选区旁的工具栏](../assets/showcase/capture-interface.gif)
 
 </details>
 
@@ -33,7 +33,7 @@ yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图�
 
 | 概览 | 工具栏与样式 |
 | --- | --- |
-| [![yuSnip 设置概览，含天气、使用趋势和组件状态](assets/showcase/settings-overview.png)](assets/showcase/settings-overview.png) | [![yuSnip 工具栏与样式设置，含工具栏预览、分组和工具池](assets/showcase/settings-toolbar.png)](assets/showcase/settings-toolbar.png) |
+| [![yuSnip 设置概览，含天气、使用趋势和组件状态](../assets/showcase/settings-overview.png)](../assets/showcase/settings-overview.png) | [![yuSnip 工具栏与样式设置，含工具栏预览、分组和工具池](../assets/showcase/settings-toolbar.png)](../assets/showcase/settings-toolbar.png) |
 | 使用趋势和组件状态集中在一页，打开设置就能看到。 | 预览、分组和工具池分开排列，拖动调整时能对照当前布局。 |
 
 [查看设置说明](USER_GUIDE.md#sec-13)
@@ -50,7 +50,7 @@ yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图�
 | `Ctrl+Alt+F` | 截图翻译并贴到屏幕上 |
 | `Shift+F3` | 显示或隐藏全部贴图 |
 
-快捷键可在「设置 → 快捷键与动作」修改。第一次用 OCR、抠图或部分录屏功能时，可在「设置 → 依赖运行」安装所需组件。 [快速入门](USER_GUIDE.md#sec-01) · [常见问题](USER_GUIDE.md#sec-15)
+快捷键可在「设置 → 快捷键与动作」修改，也可以单独用 `PrtSc` 触发截图。第一次用 OCR、抠图或部分录屏功能时，可在「设置 → 依赖运行」安装所需组件，或选择本机已有的 FFmpeg 目录。 [快速入门](USER_GUIDE.md#sec-01) · [常见问题](USER_GUIDE.md#sec-15)
 
 ## 使用场景
 
@@ -78,13 +78,13 @@ yuSnip 是一款从设计师视角打磨的免费开源 Windows 截图、贴图�
 
 ### 把高频操作做成一个快捷动作
 
-可以分别调整截图、贴图、长截图和录屏的工具栏。经常摘录资料时，可以设一个动作，框选一次就把原图贴到屏幕上，同时把识别的文字复制到剪贴板。开了截图历史后，还可以按时间或图里的文字找回旧截图。
+可以分别调整截图、贴图、长截图和录屏的工具栏。自定义动作可以先等待再截图，也可以为单次截图关闭描边。经常摘录资料时，可以设一个动作，框选一次就把原图贴到屏幕上，同时把识别的文字复制到剪贴板。开了截图历史后，还可以按时间或图里的文字找回旧截图。
 
 截图可输出文字译文或译文图片。也可以配置 AI 服务，对截图里的错误提示、图表或界面继续提问。翻译、AI 和云同步属于按需使用的联网功能，相关内容会按你的配置发送给所选服务。 [快捷键与动作](USER_GUIDE.md#sec-11) · [截图历史](USER_GUIDE.md#sec-10) · [翻译](USER_GUIDE.md#sec-07)
 
 ## 从源码构建
 
-项目使用 .NET 10 与 Avalonia。下载或克隆仓库后，在 Windows x64 安装 .NET 10 SDK，从仓库根目录执行。 [build.ps1](build.ps1) · [SDK 版本](src/global.json)
+项目使用 .NET 10 与 Avalonia。下载或克隆仓库后，在 Windows x64 安装 .NET 10 SDK，从仓库根目录执行。 [build.ps1](../build.ps1) · [SDK 版本](../src/global.json)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
@@ -96,13 +96,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 | 项目 | 从这里找什么 |
 | --- | --- |
-| [ScreenCaptureTool](src/ScreenCaptureTool/) | 桌面应用、窗口与交互 |
-| [ScreenCaptureTool.Core](src/ScreenCaptureTool.Core/) | 截图处理、OCR、抠图、录屏和其他核心功能 |
-| [ScreenCaptureTool.LongScroll](src/ScreenCaptureTool.LongScroll/) | 长截图采集、拼接和预览 |
-| [ScreenCaptureTool.Platform](src/ScreenCaptureTool.Platform/) | Windows API 与平台互操作 |
-| [ScreenCaptureTool.Ocr](src/ScreenCaptureTool.Ocr/) | 可选的 Windows OCR 验证入口 |
+| [ScreenCaptureTool](../src/ScreenCaptureTool/) | 桌面应用、窗口与交互 |
+| [ScreenCaptureTool.Core](../src/ScreenCaptureTool.Core/) | 截图处理、OCR、抠图、录屏和其他核心功能 |
+| [ScreenCaptureTool.LongScroll](../src/ScreenCaptureTool.LongScroll/) | 长截图采集、拼接和预览 |
+| [ScreenCaptureTool.Platform](../src/ScreenCaptureTool.Platform/) | Windows API 与平台互操作 |
+| [ScreenCaptureTool.Ocr](../src/ScreenCaptureTool.Ocr/) | 可选的 Windows OCR 验证入口 |
 
-完整解决方案位于 [ScreenCaptureTool.sln](src/ScreenCaptureTool.sln)。
+完整解决方案位于 [ScreenCaptureTool.sln](../src/ScreenCaptureTool.sln)。
 
 ### 在脚本中调用
 
@@ -130,7 +130,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 ## 开源许可
 
-yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](LICENSE) · [第三方许可](src/ScreenCaptureTool/Assets/ThirdParty/)
+yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、修改、分发和商用，分发时须保留版权与许可声明。第三方库、模型和组件各自遵循其许可。 [MIT 许可证](../LICENSE) · [第三方许可](../src/ScreenCaptureTool/Assets/ThirdParty/)
 
 ## 支持 yuSnip
 
@@ -138,4 +138,4 @@ yuSnip 由北京林或西维护。自有源码采用 MIT 许可，可使用、�
 
 **微信赞赏** · 用微信「扫一扫」识别下方赞赏码。点击图片可查看原图。
 
-<a href="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="yuSnip 作者的微信赞赏码" width="220"></a>
+<a href="../src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg"><img src="../src/ScreenCaptureTool/Assets/WeChatAppreciation.jpg" alt="yuSnip 作者的微信赞赏码" width="220"></a>

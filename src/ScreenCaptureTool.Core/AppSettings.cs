@@ -554,7 +554,7 @@ namespace ScreenCaptureTool.Core
         /// <summary>导出时是否添加进度条（稿 3 D18，推荐<b>关</b>——成品默认干净）。设置页无此控件，预览窗是唯一入口，
         /// 故它不属于"默认／上次"分层的对象。</summary>
         public bool RecBurnProgressBar = false;
-        /// <summary>手动指定的 ffmpeg.exe 路径（空＝走探测链：程序目录 → PATH → 已下载目录，稿 4 卡 3）。</summary>
+        /// <summary>本机自定义的 ffmpeg.exe 路径，留空时使用应用下载的组件。</summary>
         public string RecFfmpegPath = "";
         /// <summary>画面采集方式，存 <c>RecordCaptureSource</c> 成员名。默认 Auto＝优先 ddagrab（桌面复制），
         /// 打不开再回落 gdigrab；GdiOnly 是留给"DDA 反而出不来"时的退路（2026-09-24 录屏冻结排查）。</summary>

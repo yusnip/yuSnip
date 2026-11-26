@@ -1030,7 +1030,11 @@ public partial class App : Application
         ActionKeyboardBinding.AddModifierNames(parts, modifiers);
 
         string keyText;
-        if (virtualKey >= 0x70 && virtualKey <= 0x7B)
+        if (virtualKey == NativeMethods.VK_SNAPSHOT)
+        {
+            keyText = "PrtSc";
+        }
+        else if (virtualKey >= 0x70 && virtualKey <= 0x7B)
         {
             keyText = "F" + (virtualKey - 0x70 + 1); // VK_F1..VK_F12
         }
@@ -1081,6 +1085,7 @@ public partial class App : Application
             0x26 => Key.Up,
             0x27 => Key.Right,
             0x28 => Key.Down,
+            NativeMethods.VK_SNAPSHOT => Key.Snapshot,
             0x2D => Key.Insert,
             0x2E => Key.Delete,
             0xBA => Key.OemSemicolon,
@@ -1836,7 +1841,7 @@ public partial class App : Application
     }
 
     public async Task<bool> RunCaptureAsync(string? scriptAction = null, MouseActionGesture? mouseGesture = null,
-        Action<System.Drawing.Bitmap, System.Drawing.Rectangle>? capturedImage = null)
+        Action<System.Drawing.Bitmap, System.Drawing.Rectangle>? capturedImage = null, bool suppressCaptureStroke = false)
     {
         if (_captureRunning)
         {
@@ -1857,10 +1862,13 @@ public partial class App : Application
             var settings = AppSettings.Current;
             if (AppLogger.DetailedLoggingEnabled) AppLogger.Debug("App.RunCaptureAsync: 设置就绪，AutoDetectMode=" + settings.AutoDetectMode + ", SaveDirectory=" + settings.SaveDirectory);
 
-            var session = new CaptureSession(settings);
-            session.ScriptAction = scriptAction;
-            session.MouseGesture = mouseGesture;
-            session.CapturedImageSink = capturedImage;
+            var session = new CaptureSession(settings)
+            {
+                ScriptAction = scriptAction,
+                MouseGesture = mouseGesture,
+                CapturedImageSink = capturedImage,
+                SuppressCaptureStroke = suppressCaptureStroke,
+            };
             _activeSession = session; // 暴露给 F3 注入用
             CaptureSessionResult? result = await session.RunAsync();
 
@@ -2126,7 +2134,7 @@ public partial class App : Application
         {
             AppLogger.Info("App.RunScript: 开始执行脚本");
             if (!ScriptExecutor.TryParse(script, out var calls, out string error)) throw new ArgumentException(error);
-            using var env = new AppScriptEnv(mouseGesture, calls.Count > 1);
+            using var env = new AppScriptEnv(mouseGesture, calls.Count(call => !call.IsWait) > 1);
             return await ScriptExecutor.ExecuteAsync(script, env);
         }
         catch (Exception ex)

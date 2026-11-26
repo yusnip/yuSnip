@@ -22,8 +22,10 @@ using ScreenCaptureTool.Core.Ai;
 using ScreenCaptureTool.Core.CloudSync;
 using ScreenCaptureTool.Core.Deps;
 using ScreenCaptureTool.Core.History;
+using ScreenCaptureTool.Core.Recording;
 using ScreenCaptureTool.Core.Translation;
 using ScreenCaptureTool.Controls;
+using NativeMethods = ScreenCaptureTool.Platform.NativeMethods;
 
 namespace ScreenCaptureTool.Windows;
 
@@ -704,6 +706,7 @@ public partial class SettingsWindow : Window
         {
             ActionsChanged?.Invoke(this, EventArgs.Empty);
         }
+        if (_depsSubscribed) _ = RefreshFfmpegSourceAsync();
     }
 
     // -------------------- 实时自动保存 --------------------
@@ -1101,7 +1104,6 @@ public partial class SettingsWindow : Window
             // 界面侧恒自动混音，本方法自此对该键零写入点
             if (NsdRecMicVol != null) _settings.RecMicVolume = (int)Math.Clamp(Math.Round(NsdRecMicVol.Value), 40, 100);
 
-            // RecFfmpegPath 键保留（老 ini 与 FfmpegLocator 探测链仍读它），但设置页已按用户口径撤掉「手动指定路径」控件
             if (TxtRecSaveDir != null) _settings.RecSaveDirectory = (TxtRecSaveDir.Text ?? "").Trim();
 
             // RecPreviewLoop / RecShowBadge 两项 2026-09-26 撤控件：恒为出厂默认"开"，键与消费点
@@ -3002,6 +3004,7 @@ public partial class SettingsWindow : Window
     /// <summary>各行进度轨最近一次的完成比例（轨道宽度变化时要按它重算填充）。</summary>
     private readonly Dictionary<string, double> _depRatio = new();
     private bool _depsSubscribed;
+    private bool _choosingFfmpegDirectory;
     /// <summary>确认浮层点头后要卸载的那一行（浮层摊开期间只有这一个待执行动作）。</summary>
     private string? _uninstallId;
     private Action? _confirmAction;
@@ -3028,7 +3031,90 @@ public partial class SettingsWindow : Window
             TrackDepFfmpeg.SizeChanged += (_, _) => ApplyTrackFill(DepIds.Ffmpeg);
         }
         RefreshDepsUi();
+        _ = RefreshFfmpegSourceAsync();
         _ = FetchDepsManifestAsync();
+    }
+
+    private async Task RefreshFfmpegSourceAsync()
+    {
+        string path = _settings.RecFfmpegPath;
+        PaintFfmpegSource(path);
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        string version = await Task.Run(() => FfmpegLocator.ResolveManualExecutable(path) is { } exe
+            ? FfmpegLocator.VersionOf(exe) : "");
+        if (_depsSubscribed && !_choosingFfmpegDirectory && _settings.RecFfmpegPath == path)
+            PaintFfmpegSource(path, version);
+    }
+
+    private void PaintFfmpegSource(string path, string? version = null)
+    {
+        bool selected = !string.IsNullOrWhiteSpace(path);
+        BtnResetFfmpegSource.IsVisible = selected;
+        TxtFfmpegSourcePath.IsVisible = selected;
+        TxtFfmpegSourcePath.Text = path;
+        ToolTip.SetTip(TxtFfmpegSourcePath, selected ? path : null);
+        TxtFfmpegSourceStatus.Text = !selected ? "使用默认组件" : version switch
+        {
+            null => "正在检查自定义 FFmpeg…",
+            "" => "自定义 FFmpeg 不可用，请重新选择或恢复默认",
+            _ => "使用自定义 FFmpeg · " + version,
+        };
+    }
+
+    private async void OnPickFfmpegDirectoryClick(object? sender, RoutedEventArgs e)
+    {
+        if (_choosingFfmpegDirectory) return;
+        _choosingFfmpegDirectory = true;
+        BtnPickFfmpegDirectory.IsEnabled = BtnResetFfmpegSource.IsEnabled = false;
+        try
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "选择 FFmpeg 目录",
+                AllowMultiple = false,
+            });
+            using var folder = folders.FirstOrDefault();
+            if (folder == null) return;
+            if (folder.TryGetLocalPath() is { } path) await UseFfmpegDirectoryAsync(path);
+            else ShowError("无法获取所选 FFmpeg 目录的本地路径。");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn("选择 FFmpeg 目录失败：" + ex.Message);
+            if (IsVisible) ShowError("无法选择 FFmpeg 目录，请重试。");
+        }
+        finally
+        {
+            _choosingFfmpegDirectory = false;
+            BtnPickFfmpegDirectory.IsEnabled = BtnResetFfmpegSource.IsEnabled = true;
+            if (_depsSubscribed) _ = RefreshFfmpegSourceAsync();
+        }
+    }
+
+    private async Task UseFfmpegDirectoryAsync(string path)
+    {
+        TxtFfmpegSourceStatus.Text = "正在检查所选目录…";
+        var (exe, version) = await Task.Run(() =>
+        {
+            string? executable = FfmpegLocator.ResolveManualExecutable(path);
+            return (executable, executable == null ? "" : FfmpegLocator.VersionOf(executable));
+        });
+        if (!_depsSubscribed) return;
+        if (exe == null) ShowError("所选目录及其 bin 子目录中没有找到 ffmpeg.exe。");
+        else if (version.Length == 0) ShowError("所选目录中的 ffmpeg.exe 未能通过版本检查，请选择其他目录。");
+        else SetFfmpegSource(exe, version);
+    }
+
+    private void OnResetFfmpegSourceClick(object? sender, RoutedEventArgs e) => SetFfmpegSource("");
+
+    private void SetFfmpegSource(string path, string? version = null)
+    {
+        _settings.RecFfmpegPath = path;
+        _settings.Save();
+        FfmpegProcess.InvalidateDdaCache();
+        FfmpegLocator.WarmUp(path);
+        PaintFfmpegSource(path, version);
     }
 
     /// <summary>只为把「未下载 X MB」那几个读数填准；拉不到清单就沿用磁盘缓存，界面上不催网络。</summary>
@@ -7177,7 +7263,7 @@ public partial class SettingsWindow : Window
         _searchIndex.Add(new SettingSearchItem
         {
             Id = "record.engine", Page = SettingsPage.Interact, Category = "录屏", Title = "录制引擎",
-            Description = "自动优先 Windows；FFmpeg 需要运行组件。",
+            Description = "自动优先 Windows；FFmpeg 可以使用默认组件或自定义目录。",
             Keywords = "luping luzhi yinqing windows ffmpeg 原生 系统 录制引擎 免安装",
             PrepareAction = () => SwitchTab(RadInteractTabRecord), GetTarget = () => RadRecEngineAuto
         });
@@ -7201,6 +7287,13 @@ public partial class SettingsWindow : Window
             Description = "OCR 识别引擎、抠图模型与 FFmpeg 录屏引擎的下载状态与存放位置。",
             Keywords = "ffmpeg huanjing download 环境 检测 下载 路径 转码 缺失 ocr moxing 模型 组件 依赖",
             GetTarget = () => PanelDeps
+        });
+        _searchIndex.Add(new SettingSearchItem
+        {
+            Id = "deps.ffmpeg.source", Page = SettingsPage.Deps, Category = "依赖运行", Title = "FFmpeg 来源",
+            Description = "选择本机 FFmpeg 目录，或恢复使用 yuSnip 下载的默认组件。",
+            Keywords = "ffmpeg.exe 安装路径 目录 录屏引擎 转码 自定义 bin",
+            GetTarget = () => BtnPickFfmpegDirectory,
         });
 
         // 8. 使用统计
@@ -7778,6 +7871,7 @@ public partial class SettingsWindow : Window
             0x0D => "Enter",
             0x09 => "Tab",
             0x14 => "CapsLock",
+            NativeMethods.VK_SNAPSHOT => "PrtSc",
             0xC0 => "`",
             0xBD => "-",
             0xBB => "=",

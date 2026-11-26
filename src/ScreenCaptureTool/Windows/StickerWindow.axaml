@@ -457,14 +457,13 @@
         <!-- 聚光灯圆角浮条（2026-09-18）：与截图侧**同一个控件、同一套交互**（按住数值左右拖动调圆角，
              滚轮 ±1）；圆角在画布上的四角手柄已同批摘除，这里是它的唯一入口。
              ⚠ 放在 RootGrid 里而**不是**图片那个 Panel 里：RootBorder 带 ClipToBounds="True"，
-             聚光灯贴着图片顶边时浮条会被裁掉一半。定位用 Margin（Panel 内那一族都是 Margin 定位），
+             聚光灯贴着图片顶边时浮条会被裁掉一半。与截图一样用 Canvas 定位，避免偏移计入浮条尺寸。
              坐标由 RefreshSpotlightRadiusPill 在选中几何变化时写入；拖动图元/缩放手柄这段手势期间主动收起，
              松手才按新位置贴回（2026-09-18）。
              声明在最后 ⇒ 压在缩略图描边与拖边尺寸提示之上。 -->
-        <controls:SpotlightRadiusPill x:Name="SpotlightRadiusPillHost"
-                                      IsVisible="False"
-                                      HorizontalAlignment="Left"
-                                      VerticalAlignment="Top" />
+        <Canvas>
+            <controls:SpotlightRadiusPill x:Name="SpotlightRadiusPillHost" IsVisible="False" />
+        </Canvas>
         <!-- 序号浮条（2026-09-18）：与截图侧**同一个控件**（Controls/CounterPill），− / + 改编号、
              中间那格写说明文字、× 删掉这一个。挂 RootGrid 而非图片那个 Panel 的理由与上面圆角浮条同一条
              （RootBorder 带 ClipToBounds，贴顶的图元会把浮条裁掉一半）；坐标由 RefreshCounterPill 在选中

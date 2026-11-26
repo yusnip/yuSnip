@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using ScreenCaptureTool.Platform;
 
 namespace ScreenCaptureTool.Core.Recording
@@ -139,10 +140,10 @@ namespace ScreenCaptureTool.Core.Recording
 
         // ================= 静态探测工具（无长生命周期进程） =================
 
-        /// <summary>跑一条一次性命令，true=在 timeoutMs 内退出。回填 stderr。</summary>
-        public static bool RunProbe(string exe, string args, out string stderr, int timeoutMs = 4000)
+        /// <summary>并行读取两条输出流，超时结束子进程。版本探测要求正常退出并优先读取 stdout。</summary>
+        public static bool RunProbe(string exe, string args, out string output, int timeoutMs = 4000, bool requireSuccess = false)
         {
-            stderr = "";
+            output = "";
             try
             {
                 var psi = new ProcessStartInfo(exe, args)
@@ -152,10 +153,18 @@ namespace ScreenCaptureTool.Core.Recording
                 };
                 using var p = Process.Start(psi);
                 if (p == null) return false;
-                string so = p.StandardOutput.ReadToEnd();
-                string se = p.StandardError.ReadToEnd();
-                if (!p.WaitForExit(timeoutMs)) { try { p.Kill(); } catch { } return false; }
-                stderr = string.IsNullOrEmpty(se) ? so : se;
+                var timer = Stopwatch.StartNew();
+                var stdout = p.StandardOutput.ReadToEndAsync();
+                var stderr = p.StandardError.ReadToEndAsync();
+                if (!p.WaitForExit(timeoutMs)
+                    || !Task.WaitAll([stdout, stderr], Math.Max(0, timeoutMs - (int)timer.ElapsedMilliseconds)))
+                {
+                    try { p.Kill(entireProcessTree: true); } catch { }
+                    return false;
+                }
+                if (requireSuccess && p.ExitCode != 0) return false;
+                string so = stdout.Result, se = stderr.Result;
+                output = (requireSuccess && so.Length > 0) || se.Length == 0 ? so : se;
                 return true;
             }
             catch { return false; }
@@ -192,8 +201,7 @@ namespace ScreenCaptureTool.Core.Recording
             {
                 string args = "-hide_banner -loglevel verbose -f lavfi -i \"ddagrab=output_idx=" + idx +
                               "\" -frames:v 1 -f null NUL";
-                // ⚠ 必须走带硬超时＋强杀的 RunCollectStderr：这条探测是在"开始录制"那一拍上同步跑的，
-                // RunProbe 那种 ReadToEnd 串读一旦碰上 ddagrab 不退出，就会把整次录制卡死在这里。
+                // 只读诊断输出，卡在某个 ddagrab 输出时仍按单次探测时限结束。
                 if (!RunCollectStderr(exe, args, 3000, out string stderr)) break;   // 打不开＝枚举到头
                 var m = Regex.Match(stderr ?? "", @"Opened dxgi output \d+ with dimensions (\d+)x(\d+)");
                 if (!m.Success) break;
@@ -234,8 +242,7 @@ namespace ScreenCaptureTool.Core.Recording
         }
 
         /// <summary>
-        /// 跑一条一次性命令并全量收集 stderr，超时即强杀。与 <see cref="RunProbe"/> 的区别是
-        /// 这里两条输出流都异步排空，所以长时间运行的解码/自检命令也不会把管道堵死。
+        /// 跑一条一次性命令并收集 stderr，超时即强杀。适合无需保留 stdout 的解码和自检命令。
         /// </summary>
         public static bool RunCollectStderr(string exe, string args, int timeoutMs, out string stderr)
         {

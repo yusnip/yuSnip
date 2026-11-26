@@ -126,7 +126,7 @@ public static class RecordFlow
             IsBusy = true;
         }
 
-        if (opt.Engine == RecordEngine.Ffmpeg) EnsureFfmpegGuidance();
+        if (opt.Engine == RecordEngine.Ffmpeg && string.IsNullOrWhiteSpace(opt.ManualFfmpegPath)) EnsureFfmpegGuidance();
 
         _pendingOpt = opt;
         // 🟠 涟漪必须带光标：设置页那条三档分段（关 / 光标 / 光标+涟漪）已保证不会出现"涟漪开、光标关"，
@@ -267,10 +267,6 @@ public static class RecordFlow
                 IsBusy = false;
                 string error = err ?? "录制引擎启动失败";
                 AppLogger.Warn("RecordFlow: 启动失败：" + error);
-                if (error.Contains("ffmpeg", StringComparison.OrdinalIgnoreCase))
-                {
-                    error += "\n未检测到 FFmpeg，可在「设置 → 运行组件」中下载安装。";
-                }
                 _finishTcs?.TrySetResult(RecordFlowOutcome.Failed);
                 FailOut(error);
                 return;

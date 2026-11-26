@@ -58,7 +58,7 @@ internal sealed class KeyboardShortcutRecorder : IDisposable
         if (_testInputTag != 0 && (nuint)data.dwExtraInfo != _testInputTag
             || (data.flags & 0x10) != 0 && (_testInputTag == 0 || (nuint)data.dwExtraInfo != _testInputTag))
             return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
-        bool up = (int)wParam is 0x101 or 0x105;
+        bool up = (int)wParam is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP;
         if (_state.Active && NativeMethods.GetForegroundWindow() != _window) Cancel();
         var result = _state.Read(data.vkCode, up);
         ApplyResult(result);
@@ -112,7 +112,16 @@ internal sealed class KeyboardShortcutRecorder : IDisposable
                 }
                 return new(true);
             }
-            if (!Active || up || _initiallyHeld.Count != 0) return default;
+            if (!Active || _initiallyHeld.Count != 0) return default;
+            if (up)
+            {
+                // 兼容只收到 PrtSc 松开消息的输入。已有组合仍按原来的按下/松开配对处理。
+                if (key != NativeMethods.VK_SNAPSHOT || _owned.Count != 0 || _invalid || Key != 0)
+                    return default;
+                Key = key;
+                Modifiers = 0;
+                return new(true, Complete: true);
+            }
             _owned.Add(key);
             if (Key != 0 || _invalid) return new(true);
             if (key == 0x1B) { Active = false; return new(true, Cancelled: true); }
@@ -131,7 +140,7 @@ internal sealed class KeyboardShortcutRecorder : IDisposable
             }
             _nativeCandidate = 0;
             if (!ActionKeyboardBinding.IsValid(modifiers, key)
-                || modifiers == 0 && key is not (>= 0x70 and <= 0x7B))
+                || modifiers == 0 && key is not (NativeMethods.VK_SNAPSHOT or (>= 0x70 and <= 0x7B)))
             { _invalid = true; return new(true); }
             Modifiers = modifiers; Key = key;
             return new(true);

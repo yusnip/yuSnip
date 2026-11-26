@@ -134,7 +134,7 @@
 
         <!-- ⑥ 两枚元素级浮条：与截图遮罩、贴图<b>同一对控件</b>（Controls/SpotlightRadiusPill、Controls/CounterPill），
              贴位算式与改值通路全在共享会话 AnnotationEditSession.Pills 那一份里，本窗只提供容器。
-             定位用 Margin（Canvas 内未设 Left/Top 时按 Margin 摆），声明在最后 ⇒ 压在徽标与 toast 之上，
+             圆角浮条用 Canvas.Left/Top 定位，声明在最后 ⇒ 压在徽标与 toast 之上，
              与截图侧"必须声明在 InfoPill 之后"同一条规矩。 -->
         <controls:SpotlightRadiusPill x:Name="SpotlightRadiusPillHost" IsVisible="False" />
         <controls:CounterPill x:Name="CounterPillHost" IsVisible="False" />

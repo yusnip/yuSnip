@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace ScreenCaptureTool.Core.Scripting
@@ -33,6 +34,9 @@ namespace ScreenCaptureTool.Core.Scripting
 
     public sealed record ScriptCommand(string Method, string[] Arguments)
     {
+        public bool IsWait => Method == "wait";
+        public int WaitMilliseconds => IsWait && Arguments.Length == 1
+            && ScriptExecutor.TryReadWaitMilliseconds(Arguments[0], out int duration) ? duration : 0;
         // 每个模块独立产出命名结果，旧无名称写法仍默认读取最近一次处理结果。
         public bool UsesWorkflow => Method is "captureimage" or "readclipboard" or "recognizeresult" or "translateresult"
             or "mattingresult" or "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult";
@@ -51,14 +55,21 @@ namespace ScreenCaptureTool.Core.Scripting
             "recognizeresult" => Arguments.Length >= 2 ? Arguments[1] : null,
             _ => Arguments.Length >= 3 ? Arguments[2] : null
         };
+        public ActionCaptureOptions CaptureOptions => Method == "captureimage" && ActionCaptureOptions.TryRead(Arguments, out var options)
+            ? options : default;
         public string ResultKey(int position) => ResultName ?? $"#step{position + 1}";
-        public bool CanContinue => UsesWorkflow || Method is "pinfromclipboard" or "destroyallpin" or "toggleallstickers" or "restorelaststicker"
+        public bool CanContinue => IsWait || UsesWorkflow || Method is "pinfromclipboard" or "destroyallpin" or "toggleallstickers" or "restorelaststicker"
             || Method == "screenshot" && Arguments.Length == 1 && Arguments[0].ToLowerInvariant() is "copy" or "pin" or "save"
             || Method == "directscreenshot" && (Arguments.Length == 4 || Arguments[4].ToLowerInvariant() is "" or "copy" or "pin" or "save");
     }
 
     public static class ScriptExecutor
     {
+        public const int MaximumWaitMilliseconds = 60_000;
+
+        internal static bool TryReadWaitMilliseconds(string value, out int duration) =>
+            int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out duration) && duration <= MaximumWaitMilliseconds;
+
         /// <summary>先检查整段指令，再按完成顺序执行；取消或失败不继续下一步。</summary>
         public static async Task<bool> ExecuteAsync(string script, IAsyncScriptEnv env)
         {
@@ -67,7 +78,7 @@ namespace ScreenCaptureTool.Core.Scripting
             {
                 try
                 {
-                    if (calls[i].UsesWorkflow)
+                    if (calls[i].UsesWorkflow || calls[i].IsWait)
                     {
                         if (env is not IActionWorkflowEnv workflow) throw new InvalidOperationException("当前环境不支持组合动作。");
                         workflow.RunWorkflowStep(calls[i].Method, calls[i].Arguments);
@@ -108,13 +119,24 @@ namespace ScreenCaptureTool.Core.Scripting
                 };
                 if (quick && args.Length == 0) args = ["Quick"];
                 // 仅归一化传统动作参数，命名引用保持原字符串与大小写。
-                if (method is not ("captureimage" or "readclipboard" or "recognizeresult" or "translateresult"
+                if (method is not ("wait" or "captureimage" or "readclipboard" or "recognizeresult" or "translateresult"
                     or "mattingresult" or "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult"))
                     for (int i = 0; i < args.Length; i++) args[i] = ParseActionArg(args[i]);
                 string arg = args.Length == 0 ? "" : args[0].ToLowerInvariant();
+                if (method == "captureimage" && !ActionCaptureOptions.TryRead(args, out _))
+                {
+                    error = $"第 {lineNumber} 行的截图参数无效，描边模式可选 Default 或 NoStroke。等待请使用独立的 wait(毫秒) 指令。";
+                    return false;
+                }
+                if (method == "wait" && (args.Length != 1 || !TryReadWaitMilliseconds(args[0], out _)))
+                {
+                    error = $"第 {lineNumber} 行的等待时间须为 0～{MaximumWaitMilliseconds} 毫秒的整数。";
+                    return false;
+                }
                 bool valid = method switch
                 {
-                    "captureimage" or "copyresult" or "pinresult" or "saveresult" or "showresult" => args.Length <= 1,
+                    "captureimage" or "wait" => true,
+                    "copyresult" or "pinresult" or "saveresult" or "showresult" => args.Length <= 1,
                     "recognizeresult" => args.Length <= 2,
                     "readclipboard" => args.Length is 1 or 2 && arg is "image" or "text",
                     "translateresult" => args.Length is >= 1 and <= 3 && arg is "text" or "image",
@@ -145,7 +167,7 @@ namespace ScreenCaptureTool.Core.Scripting
                     else args[0] = arg switch { "" or "capture" => "Screen", "image" => "ImageToImage", "clipboardsilent" => "Silent", "text" => "Clipboard", "pin" => "Sticker", _ => args[0] };
                 }
                 var command = new ScriptCommand(method, args);
-                if (command.UsesWorkflow && ((command.InputName != null && !IsResultName(command.InputName))
+                if (command.UsesWorkflow && ((command.InputName is { Length: > 0 } && !IsResultName(command.InputName))
                     || (command.ResultName != null && !IsResultName(command.ResultName))))
                 {
                     error = $"第 {lineNumber} 行的结果名称不能为空，且不能包含引号、逗号、换行或 #。";
@@ -198,7 +220,7 @@ namespace ScreenCaptureTool.Core.Scripting
                 string? problem = null;
                 if (!call.UsesWorkflow)
                 {
-                    if (call.Method is not ("toggleallstickers" or "destroyallpin" or "restorelaststicker"))
+                    if (!call.IsWait && call.Method is not ("toggleallstickers" or "destroyallpin" or "restorelaststicker"))
                         problem = "此操作会单独启动一项功能，不能混入内容流程。请用步骤编辑选择处理或输出操作。";
                 }
                 else
@@ -207,8 +229,10 @@ namespace ScreenCaptureTool.Core.Scripting
                     if (call.NeedsInput)
                     {
                         string? input = call.InputName ?? current;
-                        if (input == null || !results.TryGetValue(input, out inputKind))
-                            problem = input == null ? "请先获取内容，再选择模块的输入。" : $"找不到结果「{input}」，请引用此前模块已产生的结果。";
+                        if (string.IsNullOrEmpty(input))
+                            problem = "请添加或上移一个能提供输入的模块，再选择它的结果。";
+                        else if (!results.TryGetValue(input, out inputKind))
+                            problem = $"找不到结果「{input}」，请引用此前模块已产生的结果。";
                         else if (!AcceptsInput(call, inputKind))
                             problem = $"输入「{input}」是{(inputKind == ActionContentKind.Image ? "图片" : "文字")}，与此模块所需类型不匹配。";
                     }

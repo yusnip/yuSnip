@@ -1,23 +1,24 @@
 using System;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 
 namespace ScreenCaptureTool.Controls;
 
-/// <summary>共用粗细参数的取值与滚轮步进，宿主负责将颜色和工具状态反馈到预览。</summary>
+/// <summary>截图和贴图共用的标注粗细步进器。</summary>
 public partial class StrokeThicknessControl : UserControl
 {
     public Slider Slider => SizeSlider;
-    public TextBlock ValueText => SizeText;
-    public Ellipse Preview => SizePreview;
-    public event EventHandler? WheelAdjusted;
 
     public StrokeThicknessControl()
     {
         InitializeComponent();
-        SizeSlider.ValueChanged += (_, _) => SizeText.Text = Math.Round(SizeSlider.Value).ToString();
+        SizeSlider.ValueChanged += (_, _) => UpdateValue();
+        UpdateValue();
     }
+
+    private void OnDecreaseClick(object? sender, RoutedEventArgs e) => Adjust(-1);
+    private void OnIncreaseClick(object? sender, RoutedEventArgs e) => Adjust(1);
 
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
@@ -30,6 +31,13 @@ public partial class StrokeThicknessControl : UserControl
     {
         if (delta == 0) return;
         SizeSlider.Value = Math.Clamp(Math.Round(SizeSlider.Value + Math.Sign(delta)), SizeSlider.Minimum, SizeSlider.Maximum);
-        WheelAdjusted?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void UpdateValue()
+    {
+        double value = SizeSlider.Value;
+        SizeText.Text = Math.Round(value).ToString();
+        DecreaseButton.IsEnabled = value > SizeSlider.Minimum;
+        IncreaseButton.IsEnabled = value < SizeSlider.Maximum;
     }
 }

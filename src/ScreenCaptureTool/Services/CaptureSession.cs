@@ -288,8 +288,10 @@ public sealed class CaptureSession
     /// <summary>选区已交给识别或翻译等后台处理；此时空返回值不代表用户取消。</summary>
     public bool OutputHandedOff { get; private set; }
 
-    /// <summary>组合动作接收本次选区图片的所有权，不通过系统剪贴板传递。</summary>
+    /// <summary>组合动作接收本次截图图片的所有权和含描边的屏幕位置，不通过系统剪贴板传递。</summary>
     public Action<Bitmap, Rectangle>? CapturedImageSink { get; set; }
+
+    internal bool SuppressCaptureStroke { get; init; }
 
     /// <summary>全局鼠标入口传入的原始拖动，使用屏幕物理坐标。</summary>
     public MouseActionGesture? MouseGesture { get; set; }
@@ -732,9 +734,13 @@ public sealed class CaptureSession
             {
                 if (ScriptAction == "Workflow" && CapturedImageSink != null)
                 {
-                    Bitmap? image = CreateCroppedResultBitmap(frame, completion.Region, annotations, window?.TextLayers, "组合动作");
+                    int strokePx = CaptureStrokePx;
+                    Bitmap? image = CreateCroppedResultBitmap(frame, completion.Region, annotations, window?.TextLayers, "组合动作",
+                        strokePx: strokePx, strokeArgb: CaptureStrokeArgb);
                     if (image == null) return null;
-                    try { CapturedImageSink(image, completion.Region); }
+                    int padding = SelectionEffects.StrokeMarginOf(strokePx);
+                    var imageRegion = Rectangle.Inflate(completion.Region, padding, padding);
+                    try { CapturedImageSink(image, imageRegion); }
                     catch { image.Dispose(); throw; }
                     OutputHandedOff = true;
                     UsageStatistics.RecordScreenshot();
@@ -2061,15 +2067,26 @@ public sealed class CaptureSession
                 return;
             }
 
-            // 前置拦截：FFmpeg 录屏组件缺失时在选区界面就地弹窗下载，下载完成后自动继续起跑，取消则保留选区
-            if (Core.Recording.RecordEngines.Normalize(AppSettings.Current.RecEngine) == Core.Recording.RecordEngine.Ffmpeg
-                && !Core.Deps.DependencyManager.IsReady(Core.Deps.DepIds.Ffmpeg))
+            var opt = window.BuildRecordOptions();
+            bool useCustomFfmpeg = !string.IsNullOrWhiteSpace(opt.ManualFfmpegPath);
+            if (opt.Engine == Core.Recording.RecordEngine.Ffmpeg
+                && (useCustomFfmpeg || !Core.Deps.DependencyManager.IsReady(Core.Deps.DepIds.Ffmpeg)))
             {
                 bool ready;
                 _recordPreparing = true;
-                try { ready = await EnsureDependencyOnCaptureWindowAsync(window, Core.Deps.DepIds.Ffmpeg, "FFmpeg 录屏引擎未就绪，录制已取消"); }
+                try
+                {
+                    ready = useCustomFfmpeg
+                        ? await Task.Run(() => Core.Recording.FfmpegLocator.TryFind(opt.ManualFfmpegPath) != null)
+                        : await EnsureDependencyOnCaptureWindowAsync(window, Core.Deps.DepIds.Ffmpeg, "FFmpeg 录屏引擎未就绪，录制已取消");
+                }
                 finally { _recordPreparing = false; }
-                if (!ready || !window.IsVisible || _recordStarting || RecordFlow.IsBusy) return;
+                if (!window.IsVisible || _recordStarting || RecordFlow.IsBusy) return;
+                if (!ready)
+                {
+                    if (useCustomFfmpeg) ShowRecordMessage(Core.Recording.FfmpegLocator.UnavailableMessage(opt.ManualFfmpegPath));
+                    return;
+                }
                 final = (hasManualSelection && selection.HasSelection) ? selection.Region : final;
                 if (!final.HasValue || final.Value.Width <= 1 || final.Value.Height <= 1) return;
                 if (!MonitorHelper.IsRegionOnSingleMonitor(final.Value))
@@ -2079,7 +2096,6 @@ public sealed class CaptureSession
                 }
             }
 
-            var opt = window.BuildRecordOptions();
             opt.Region = final.Value;
 
             _recordStarting = true;
@@ -5216,9 +5232,15 @@ public sealed class CaptureSession
                 if (e.KeyModifiers.HasFlag(KeyModifiers.Shift)) step = 5;
                 float nextThickness = Math.Clamp(rect.StrokeThickness + (e.Delta.Y > 0 ? step : -step),
                     (float)window.SliderStrokeThickness.Minimum, (float)window.SliderStrokeThickness.Maximum);
+                if (nextThickness == rect.StrokeThickness)
+                {
+                    e.Handled = true;
+                    return;
+                }
                 captureHistory.CommitSnapshot();
                 var updatedRect = rect.WithThickness(nextThickness);
                 annotations.ReplaceShape(updatedRect);
+                window.SyncShapeToolState(updatedRect);
                 window.Annotation.InvalidateVisual();
                 if (AppLogger.DetailedLoggingEnabled) AppLogger.Debug($"CaptureSession.RectangleWheel: 调整矩形粗细={nextThickness}, id={rect.Id}");
                 e.Handled = true;
@@ -5720,12 +5742,12 @@ public sealed class CaptureSession
         // (g2) 参数条：圆角滑杆 + 描边色块与滑杆 + 阴影勾选。改一下即刻写进 _settings（成品出口读的就是这四项），
         // 落盘沿用会话收尾处既有的 _settings.Save()，与标注工具参数的记忆口径完全一致。
         long bindingsCompleted = Stopwatch.GetTimestamp();
-        window.SyncCaptureEffectState(CaptureCornerRadiusParam, _settings.CaptureShadow, CaptureStrokePx, CaptureStrokeArgb);
+        window.SyncCaptureEffectState(CaptureCornerRadiusParam, _settings.CaptureShadow, CaptureStrokePx, CaptureStrokeArgb,
+            SuppressCaptureStroke);
         window.CaptureEffectChanged += (_, _) =>
         {
             _settings.CaptureCornerRadius = window.CaptureRadiusParam;
-            _settings.CaptureStrokeWidth = window.CaptureStrokeParam;
-            _settings.CaptureStrokeColor = window.CaptureStrokeColorArgb;
+            window.CaptureStrokeDefaults(_settings);
             _settings.CaptureShadow = window.CaptureShadowChecked;
             ApplyCaptureEffectPreview();
         };
@@ -6092,7 +6114,8 @@ public sealed class CaptureSession
     private int CaptureCornerRadiusPx => _selectionPath == null ? SelectionEffects.ParamToRadiusPx(CaptureCornerRadiusParam) : 0;
 
     /// <summary>记忆中的成品描边宽度（物理像素 0-20，档位与像素 1:1）。钳位只在 SelectionEffects 做一次。</summary>
-    private int CaptureStrokePx => _selectionPath == null ? SelectionEffects.ParamToStrokePx(_settings.CaptureStrokeWidth) : 0;
+    private int CaptureStrokePx => !SuppressCaptureStroke && _selectionPath == null
+        ? SelectionEffects.ParamToStrokePx(_settings.CaptureStrokeWidth) : 0;
 
     private bool UseCaptureShadow => _selectionPath == null && _settings.CaptureShadow;
 

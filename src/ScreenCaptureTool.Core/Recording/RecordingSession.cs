@@ -79,7 +79,7 @@ namespace ScreenCaptureTool.Core.Recording
         {
             error = null;
             string? exe = FfmpegLocator.TryFind(_opt.ManualFfmpegPath);
-            if (exe == null) { error = "未找到可用的 FFmpeg。"; return false; }
+            if (exe == null) { error = FfmpegLocator.UnavailableMessage(_opt.ManualFfmpegPath); return false; }
             _ffmpegExe = exe;
 
             _sessionDir = TempSpace.CreateSessionDir();

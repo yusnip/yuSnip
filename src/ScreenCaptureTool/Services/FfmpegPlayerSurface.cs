@@ -105,6 +105,7 @@ internal sealed class FfmpegPlayerSurface : IPlayerSurface
         _loop = loop;
         string? ffmpeg = null;
         ClipInfo? info = null;
+        string? manualFfmpegPath = _useSystemDecoder ? null : AppSettings.Current.RecFfmpegPath;
         try
         {
             // 定位与探测都要起子进程，绝不上 UI 线程
@@ -115,7 +116,7 @@ internal sealed class FfmpegPlayerSurface : IPlayerSurface
                     using var reader = new WindowsMediaReader(mediaPath);
                     return ((string?)"Windows", reader.Info);
                 }
-                string? exe = FfmpegLocator.TryFind(AppSettings.Current.RecFfmpegPath);
+                string? exe = FfmpegLocator.TryFind(manualFfmpegPath);
                 return (exe, exe == null ? null : ClipProbe.Probe(exe, mediaPath));
             });
         }
@@ -126,7 +127,7 @@ internal sealed class FfmpegPlayerSurface : IPlayerSurface
             return false;
         }
         if (_closed) return false; // 探测期间关窗时不再创建位图、解码线程或音频设备。
-        if (ffmpeg == null) { LastError = "找不到 ffmpeg.exe"; return false; }
+        if (ffmpeg == null) { LastError = FfmpegLocator.UnavailableMessage(manualFfmpegPath); return false; }
         if (info == null) { LastError = "这条录屏文件读不出画面信息"; return false; }
 
         _info = info;

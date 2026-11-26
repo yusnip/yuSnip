@@ -243,7 +243,7 @@
                     <Border x:Name="SepAfterStyle" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />
 
                     <StackPanel x:Name="CommonThicknessPanel" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="False">
-                        <controls:StrokeThicknessControl x:Name="ThicknessOptions" WheelAdjusted="OnStrokeThicknessAdjusted" />
+                        <controls:StrokeThicknessControl x:Name="ThicknessOptions" />
                     </StackPanel>
 
                     <Border x:Name="SepAfterSize" Width="1" Height="20" Background="{DynamicResource SctSeparatorBrush}" Margin="4,0" />

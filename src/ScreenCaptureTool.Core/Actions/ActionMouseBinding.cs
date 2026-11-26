@@ -47,6 +47,8 @@ public static class ActionMouseBinding
     public static bool SupportsDrag(string script)
     {
         if (!ScriptExecutor.TryParse(script, out var calls, out _)) return false;
+        calls.RemoveAll(call => call.IsWait);
+        if (calls.Count == 0) return false;
         if (calls[0].Method == "captureimage") return true;
         if (calls.Count != 1) return false;
         string method = calls[0].Method;

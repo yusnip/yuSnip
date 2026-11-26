@@ -82,9 +82,12 @@ public partial class AnnotationToolbar : UserControl
         ColorOptions.ColorSelected += c => ApplyColorToCurrentTarget(c);
         ColorOptions.CustomColorRequested += anchor => CustomColorRequested?.Invoke(anchor);
         BrushOptions.Slider.ValueChanged += (_, _) => { ParametersChanged?.Invoke(); UpdateStyleOptionVisuals(); };
-        // 粗细：拖滑块与在滑块上滚滚轮是同一个档的两条来路，都落到滑杆值上，故报点只挂 ValueChanged 这一处
-        // （共享控件的 Adjust 先写值再发 WheelAdjusted，两处都报＝一次滚轮报两遍；截图侧 CaptureWindow 同一口径）。
-        ThicknessOptions.Slider.ValueChanged += (_, _) => { ParametersChanged?.Invoke(); UpdateColorVisuals(); RaiseStylePart(AnnotationStylePart.Thickness); };
+        // 按钮与滚轮共用 ValueChanged，每次数值变化只发一次样式事件。
+        ThicknessOptions.Slider.ValueChanged += (_, _) =>
+        {
+            ParametersChanged?.Invoke();
+            RaiseStylePart(AnnotationStylePart.Thickness);
+        };
         BlurOptions.Slider.ValueChanged += (_, _) => { ParametersChanged?.Invoke(); RaiseStylePart(AnnotationStylePart.BlurSettings); };
         CounterOptions.Slider.ValueChanged += (_, _) => { ParametersChanged?.Invoke(); RaiseStylePart(AnnotationStylePart.CounterRadius); };
         // 类型档会回头改已经画在图上的那些序号（与截图侧同一口径），故单独转一笔给宿主；
@@ -412,13 +415,9 @@ public partial class AnnotationToolbar : UserControl
     /// 直接走 <see cref="SetColor"/> 会让"给描边取色"变成"改全局标注色"。</summary>
     public void ApplyCustomColor(Color color) => ApplyColorToCurrentTarget(color);
 
-    /// <summary>粗细胶囊圆点与聚光灯描边圆点跟随当前标注色（与截图 UpdateToolOptionLabels 同一口径）。</summary>
+    /// <summary>聚光灯描边与序号小样跟随当前标注色。</summary>
     private void UpdateColorVisuals()
     {
-        double previewSize = Math.Clamp(ThicknessOptions.Slider.Value, 2.0, 18.0);
-        ThicknessOptions.Preview.Width = previewSize;
-        ThicknessOptions.Preview.Height = previewSize;
-        ThicknessOptions.Preview.Fill = new SolidColorBrush(SelectedColor);
         SpotlightOptions.StrokePreview.Fill = new SolidColorBrush(SelectedColor);
         // 序号那排小样画的就是这颗色（截图侧同一笔）
         CounterOptions.SetAnnotationColor(SelectedColor);
@@ -718,7 +717,6 @@ public partial class AnnotationToolbar : UserControl
 
     private void OnSpotlightStrokeAdjusted(object? sender, EventArgs e) => ParametersChanged?.Invoke();
 
-    private void OnStrokeThicknessAdjusted(object? sender, EventArgs e) => ParametersChanged?.Invoke();
 
     private void OnBrushLineStyleClick(object? sender, RoutedEventArgs e)
     {
