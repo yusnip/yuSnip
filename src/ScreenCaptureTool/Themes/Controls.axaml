@@ -342,7 +342,7 @@
         <Setter Property="Foreground" Value="{DynamicResource SctDangerBrush}" />
         <Setter Property="FontSize" Value="13.5" />
         <Setter Property="FontWeight" Value="Normal" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
         <Setter Property="MinHeight" Value="32" />
     </Style>
     <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.danger:pointerover /template/ ContentPresenter#PART_ContinuousPresenter">
@@ -1263,7 +1263,7 @@
             <ControlTemplate>
                 <seg:ContinuousBorder x:Name="PART_SegmentBorder"
                         Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"
-                        Padding="15,0"
+                        Padding="{TemplateBinding Padding}"
                         CornerRadius="{DynamicResource SctRadiusSegmentInner}"
                         Height="28"
                         MinHeight="28"
@@ -1277,6 +1277,7 @@
                 </seg:ContinuousBorder>
             </ControlTemplate>
         </Setter>
+        <Setter Property="Padding" Value="15,0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
         <Setter Property="FontSize" Value="13.5" />
@@ -1305,7 +1306,7 @@
             <ControlTemplate>
                 <seg:ContinuousBorder x:Name="PART_SegmentBorder"
                         Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"
-                        Padding="13,0"
+                        Padding="{TemplateBinding Padding}"
                         CornerRadius="{DynamicResource SctRadiusSegmentInner}"
                         Height="28"
                         MinHeight="28"
@@ -1319,6 +1320,7 @@
                 </seg:ContinuousBorder>
             </ControlTemplate>
         </Setter>
+        <Setter Property="Padding" Value="13,0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource SctChoiceMutedBrush}" />
         <Setter Property="FontSize" Value="13.5" />
@@ -1375,12 +1377,12 @@
         <Setter Property="Margin" Value="0,3" />
     </Style>
 
-    <!-- ════════ 键帽按钮（Keycap）：快捷键录制胶囊，统一高度 32px，圆角 6px ════════ -->
+    <!-- ════════ 键帽按钮（Keycap）：快捷键录制胶囊，统一高度 32px，连续曲率 R 角 ════════ -->
     <Style Selector="Button.keycap">
         <Setter Property="Background" Value="{DynamicResource SctCardFillBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
         <Setter Property="Padding" Value="12,0" />
         <Setter Property="Height" Value="32" />
         <Setter Property="MinHeight" Value="32" />

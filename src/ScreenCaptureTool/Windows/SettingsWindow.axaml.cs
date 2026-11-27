@@ -2173,6 +2173,8 @@ public partial class SettingsWindow : Window
                 Margin = new Thickness(0, 16),
             });
         }
+
+        RefreshExternalGuideActions();
     }
 
     /// <summary>找出草稿中被两个及以上动作重复绑定的热键组合。</summary>
@@ -2477,6 +2479,121 @@ public partial class SettingsWindow : Window
         {
             ShowError("脚本测试运行失败: " + ex.Message);
         }
+    }
+
+    // -------------------- 外部调用指引 · 命令生成器 --------------------
+
+    private static string GetCurrentExecutablePath() =>
+        Environment.ProcessPath is { Length: > 0 } p
+            ? p
+            : System.IO.Path.Combine(AppContext.BaseDirectory, "yuSnip.exe");
+
+    private void RefreshExternalGuideActions()
+    {
+        if (CmbGuideAction == null) return;
+        if (TxtGuideExePath != null) TxtGuideExePath.Text = GetCurrentExecutablePath();
+
+        string? prevId = (CmbGuideAction.SelectedItem as ComboBoxItem)?.Tag is ScreenCaptureTool.Core.Actions.ActionDefinition prev
+            ? prev.Id : null;
+
+        CmbGuideAction.Items.Clear();
+        int restoreIdx = 0;
+        for (int i = 0; i < _actionsDraft.Count; i++)
+        {
+            var act = _actionsDraft[i];
+            CmbGuideAction.Items.Add(new ComboBoxItem { Content = act.Name, Tag = act });
+            if (prevId != null && string.Equals(act.Id, prevId, StringComparison.OrdinalIgnoreCase))
+                restoreIdx = i;
+        }
+        if (CmbGuideAction.Items.Count > 0)
+            CmbGuideAction.SelectedIndex = restoreIdx;
+
+        UpdateGuideGeneratedPreview();
+    }
+
+    private (string Args, string FullCommand, ScreenCaptureTool.Core.Actions.ActionDefinition? Action) BuildGuideCommand()
+    {
+        string exe = GetCurrentExecutablePath();
+        var action = (CmbGuideAction?.SelectedItem as ComboBoxItem)?.Tag as ScreenCaptureTool.Core.Actions.ActionDefinition
+            ?? _actionsDraft.FirstOrDefault();
+        if (action == null)
+        {
+            string fallbackArgs = "-a \"区域截图\"";
+            return (fallbackArgs, $"\"{exe}\" {fallbackArgs}", null);
+        }
+
+        bool useScript = RadGuideModeScript?.IsChecked == true;
+        string args = useScript
+            ? "-r \"" + ScreenCaptureTool.Core.Actions.ActionStepCatalog.ExecutionScript(action).Trim()
+                .Replace("\"", "'").Replace("\r", " ").Replace("\n", " ") + "\""
+            : "-a \"" + action.Name.Replace("\"", "'") + "\"";
+        return (args, $"\"{exe}\" {args}", action);
+    }
+
+    private void UpdateGuideGeneratedPreview()
+    {
+        if (TxtGuideGeneratedCmd == null) return;
+        var (args, full, _) = BuildGuideCommand();
+        TxtGuideGeneratedCmd.Text = full;
+        if (TxtGuideAhkSnippet != null)
+        {
+            string exe = GetCurrentExecutablePath().Replace("`", "``");
+            string ahkArgs = args.Replace("`", "``");
+            TxtGuideAhkSnippet.Text = $"Run('\"{exe}\" {ahkArgs}')";
+        }
+    }
+
+    private void OnGuideActionSelectionChanged(object? sender, SelectionChangedEventArgs e) => UpdateGuideGeneratedPreview();
+
+    private void OnGuideModeCheckedChanged(object? sender, RoutedEventArgs e) => UpdateGuideGeneratedPreview();
+
+    private async void CopyGuideTextAsync(string? text, string statusMessage)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        try
+        {
+            await (TopLevel.GetTopLevel(this)?.Clipboard?.SetTextAsync(text) ?? Task.CompletedTask);
+            ShowStatus(statusMessage);
+        }
+        catch (Exception ex)
+        {
+            ShowError("复制失败: " + ex.Message);
+        }
+    }
+
+    private void OnCopyGuideExePathClick(object? sender, RoutedEventArgs e) =>
+        CopyGuideTextAsync(GetCurrentExecutablePath(), "已复制程序路径。");
+
+    private void OnCopyGuideArgsClick(object? sender, RoutedEventArgs e)
+    {
+        var (args, _, _) = BuildGuideCommand();
+        CopyGuideTextAsync(args, "已复制调用参数：" + args);
+    }
+
+    private void OnCopyGuideFullCmdClick(object? sender, RoutedEventArgs e)
+    {
+        var (_, full, _) = BuildGuideCommand();
+        CopyGuideTextAsync(full, "已复制完整调用命令。");
+    }
+
+    private void OnCopyGuideExampleClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.Tag is string cmd)
+            CopyGuideTextAsync(cmd, "已复制示例命令：" + cmd);
+    }
+
+    private void OnCopyGuideAhkClick(object? sender, RoutedEventArgs e) =>
+        CopyGuideTextAsync(TxtGuideAhkSnippet?.Text, "已复制 AutoHotkey v2 调用代码。");
+
+    private void OnTestGuideActionClick(object? sender, RoutedEventArgs e)
+    {
+        var (_, _, action) = BuildGuideCommand();
+        if (action == null)
+        {
+            ShowError("当前没有可测试的动作。");
+            return;
+        }
+        TestRunScript(ScreenCaptureTool.Core.Actions.ActionStepCatalog.ExecutionScript(action));
     }
 
     // -------------------- 内置快捷键（截图 / 贴图窗口内按键） --------------------

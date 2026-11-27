@@ -56,7 +56,7 @@ public static class ActionMouseBinding
         string arg = args.Length > 0 ? args[0].ToLowerInvariant() : "";
         return method switch
         {
-            "screenshot" or "screenshotandedit" or "screenrecord" or "quickrecord" => true,
+            "screenshot" or "screenshotandedit" or "screenrecord" or "quickrecord" or "longscroll" => true,
             "translate" => arg is "" or "screen" or "capture" or "imagetoimage" or "image"
                 or "imagetotext" or "silent" or "clipboardsilent",
             "matting" => arg is not ("sticker" or "pin"),

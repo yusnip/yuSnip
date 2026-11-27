@@ -3658,7 +3658,7 @@ public partial class CaptureWindow : Window
     }
 
     /// <summary>将当前标注工具参数写入 AppSettings，供下次会话恢复。</summary>
-    public void CaptureAnnotationDefaults(AppSettings s)
+    public void CaptureAnnotationDefaults(AppSettings s, bool includeCaptureEffects = true)
     {
         if (s == null) return;
 
@@ -3686,9 +3686,12 @@ public partial class CaptureWindow : Window
         // 未使用的面板没有用户修改，不为收尾创建控件或覆盖其记忆值。
         _counterOptions?.CaptureDefaults(s);   // 起始值刻意不落盘，见 CounterOptionsControl
         _watermarkOptions?.CaptureDefaults(s); // 开关不落盘
-        s.CaptureCornerRadius = CaptureRadiusParam;
-        CaptureStrokeDefaults(s);
-        s.CaptureShadow = CaptureShadowChecked;
+        if (includeCaptureEffects)
+        {
+            s.CaptureCornerRadius = CaptureRadiusParam;
+            CaptureStrokeDefaults(s);
+            s.CaptureShadow = CaptureShadowChecked;
+        }
         Text.CaptureDefaults(s);   // 12 个 Text* 键
 
         if (!string.IsNullOrEmpty(_activeToolKey) && _activeToolKey is "Brush" or "Arrow" or "Rectangle" or "Text" or "Mosaic" or "Spotlight" or "Counter")

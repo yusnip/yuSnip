@@ -35,6 +35,7 @@ namespace ScreenCaptureTool.Core.Actions
             ("builtin.captureCopy",         "截图并复制",              "yuSnip.screenShot('Copy');"),
             ("builtin.captureSave",         "截图并保存",              "yuSnip.screenShot('Save');"),
             ("builtin.capturePin",          "截图并贴图",              "yuSnip.screenShot('Pin');"),
+            ("builtin.longScroll",          "长截图",                  "yuSnip.longScroll();"),
             ("builtin.captureOcr",          "截图并OCR（弹窗）",       "yuSnip.screenShot('Ocr');"),
             ("builtin.captureOcrToast",     "截图并OCR（仅提示）",     "yuSnip.screenShot('OcrToast');"),
             ("builtin.captureVision",       "截图并识图（默认）",      "yuSnip.screenShot('Vision');"),
@@ -66,6 +67,7 @@ namespace ScreenCaptureTool.Core.Actions
                 ("builtin.captureCopy",         "截图并复制",              "yuSnip.screenShot('Copy');"),
                 ("builtin.captureSave",         "截图并保存",              "yuSnip.screenShot('Save');"),
                 ("builtin.capturePin",          "截图并贴图",              "yuSnip.screenShot('Pin');"),
+                ("builtin.longScroll",          "长截图",                  "yuSnip.longScroll();"),
             }),
             ("录屏", new[]
             {

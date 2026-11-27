@@ -1841,7 +1841,8 @@ public partial class App : Application
     }
 
     public async Task<bool> RunCaptureAsync(string? scriptAction = null, MouseActionGesture? mouseGesture = null,
-        Action<System.Drawing.Bitmap, System.Drawing.Rectangle>? capturedImage = null, bool suppressCaptureStroke = false)
+        Action<System.Drawing.Bitmap, System.Drawing.Rectangle>? capturedImage = null, bool suppressCaptureStroke = false,
+        ScreenCaptureTool.Core.Scripting.ActionCaptureOptions captureOverrides = default)
     {
         if (_captureRunning)
         {
@@ -1868,6 +1869,7 @@ public partial class App : Application
                 MouseGesture = mouseGesture,
                 CapturedImageSink = capturedImage,
                 SuppressCaptureStroke = suppressCaptureStroke,
+                CaptureOverrides = captureOverrides,
             };
             _activeSession = session; // 暴露给 F3 注入用
             CaptureSessionResult? result = await session.RunAsync();
@@ -2423,6 +2425,22 @@ public partial class App : Application
                                string.Equals(action, "QuickRecord", StringComparison.OrdinalIgnoreCase);
                 return await ((App)Application.Current!).RunCaptureAsync(isQuick ? "RecordQuick" : "Record", _mouseGesture);
             });
+        }
+
+        public void ScreenShotWithOptions(ScreenCaptureTool.Core.Scripting.ActionCaptureOptions options)
+        {
+            Queue(async () => await ((App)Application.Current!).RunCaptureAsync(
+                scriptAction: null,
+                mouseGesture: _mouseGesture,
+                suppressCaptureStroke: options.WithoutStroke,
+                captureOverrides: options));
+        }
+
+        public void LongScroll(string? axis = null)
+        {
+            string action = string.Equals(axis, "Horizontal", StringComparison.OrdinalIgnoreCase)
+                ? "LongScrollHorizontal" : "LongScroll";
+            Queue(async () => await ((App)Application.Current!).RunCaptureAsync(action, _mouseGesture));
         }
 
         public void Translate(string? action)

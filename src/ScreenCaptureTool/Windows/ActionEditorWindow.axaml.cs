@@ -1,64 +1,60 @@
 using System;
-using System.Text;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using Avalonia.Layout;
-using Avalonia.Media;
-using ScreenCaptureTool.Core.Scripting;
+using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Controls.Presenters;
-using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using ScreenCaptureTool.Core;
-using ScreenCaptureTool.Core.Actions;
-using NativeMethods = ScreenCaptureTool.Platform.NativeMethods;
 using ScreenCaptureTool.Controls;
+using ScreenCaptureTool.Controls.ActionEditor;
+using ScreenCaptureTool.Core.Actions;
+using ScreenCaptureTool.Core.Scripting;
+using NativeMethods = ScreenCaptureTool.Platform.NativeMethods;
 
 namespace ScreenCaptureTool.Windows;
 
 public partial class ActionEditorWindow : Window
 {
-    // 键盘辅助键身份与名称由 ActionKeyboardBinding 共用；原生录制避免控件抢先处理 Tab／Space。
+    private const double PresetWindowWidth = 560;
+    private const double PresetWindowHeight = 496;
+    private const double CustomWindowWidth = 860;
+    private const double CustomWindowHeight = 660;
 
     private readonly bool _isNew;
     private readonly ActionDefinition _originalAction;
+    private readonly IReadOnlyList<ActionDefinition>? _otherActions;
+    private readonly IReadOnlyList<Services.BuiltinShortcutsStore.BuiltinShortcut> _otherShortcuts;
+
+    private string _actionId;
+    private bool _isBuiltin;
+    private string _currentScript;
+    private string _customName = "我的动作";
+    private string _customScript = ActionModuleRegistry.DefaultScript;
+    private bool _customScriptView;
+
+    private bool _isUpdatingUi = true;
+    private bool _updatingMouseUi;
+    private bool _hasOpened;
+
     private uint _modifiers;
     private uint _virtualKey;
     private bool _isRecording;
-    private string _actionId;
-    private bool _isBuiltin;
-    private bool _isUpdatingPresetUi = true;
-    private bool _updatingSteps;
-    private List<ActionStepChoice> _steps = [];
-    private readonly List<(ComboBox Picker, int Position)> _inputPickers = [];
-    private readonly List<(TextBlock Title, TextBlock Summary, int Position)> _moduleHeaders = [];
-    private int _expandedStep = -1;
-    private readonly ListReorderBehavior _moduleDrag = new();
-    private ContinuousBorder? _draggedModuleRow;
-    private Control? _draggedModuleParameters;
-    private ContinuousBorder? _moduleDropPlaceholder;
-    private SizeToContent? _moduleDragSizeToContent;
-    private double _moduleDragWindowHeight;
-    private int _moduleInsertIndex = -1;
-    private string _customName = "我的动作";
-    private string _customScript = ActionStepCatalog.DefaultScript;
-    private bool _customAdvanced;
-    private ContextMenu? _scriptInsertMenu;
-    private readonly System.Collections.Generic.IReadOnlyList<ActionDefinition>? _otherActions;
-    private readonly System.Collections.Generic.IReadOnlyList<Services.BuiltinShortcutsStore.BuiltinShortcut> _otherShortcuts;
-    private bool _updatingMouseUi;
     private bool _ownsHotkeySuspension;
     private ActionMouseKey _mousePrefixKey;
     private Services.MousePrefixRecorder? _prefixRecorder;
     private int _prefixRecordingGeneration;
     private Services.KeyboardShortcutRecorder? _keyboardRecorder;
     private int _keyboardRecordingGeneration;
+
+    private double _savedCustomWidth = CustomWindowWidth;
+    private double _savedCustomHeight = CustomWindowHeight;
+    private Control? _paletteDragGhost;
+    private bool _triggerDrawerExpanded;
 
     /// <summary>保存成功的动作对象</summary>
     public ActionDefinition? ResultAction { get; private set; }
@@ -67,12 +63,12 @@ public partial class ActionEditorWindow : Window
     {
     }
 
-    public ActionEditorWindow(ActionDefinition? actionToEdit, System.Collections.Generic.IReadOnlyList<ActionDefinition>? otherActions = null,
-        System.Collections.Generic.IReadOnlyList<Services.BuiltinShortcutsStore.BuiltinShortcut>? otherShortcuts = null)
+    public ActionEditorWindow(
+        ActionDefinition? actionToEdit,
+        IReadOnlyList<ActionDefinition>? otherActions = null,
+        IReadOnlyList<Services.BuiltinShortcutsStore.BuiltinShortcut>? otherShortcuts = null)
     {
         InitializeComponent();
-        _moduleDrag.Canceled += ClearModuleDragVisuals;
-        TxtScript.AddHandler(TextInputEvent, OnScriptTextInput, RoutingStrategies.Tunnel);
 
         _isNew = actionToEdit == null;
         _otherActions = otherActions;
@@ -81,53 +77,166 @@ public partial class ActionEditorWindow : Window
         {
             Id = ActionDefinition.NewCustomId(),
             Name = "我的动作",
-            Script = ActionStepCatalog.DefaultScript,
+            Script = ActionModuleRegistry.DefaultScript,
             IsBuiltin = false,
             Enabled = true,
         };
 
         _actionId = _originalAction.Id;
         _isBuiltin = _originalAction.IsBuiltin;
-        if (!_isBuiltin) { _customName = _originalAction.Name; _customScript = _originalAction.Script; }
+        _currentScript = _originalAction.Script;
+        if (!_isBuiltin)
+        {
+            _customName = _originalAction.Name;
+            _customScript = _originalAction.Script;
+        }
         _modifiers = _originalAction.HotKeyModifiers;
         _virtualKey = _originalAction.HotKeyVirtualKey;
         _mousePrefixKey = _originalAction.MousePrefixKey;
 
-        TxtWindowTitle.Text = _isNew ? "新增动作" : (_isBuiltin ? $"编辑动作 - {_originalAction.Name}（内置）" : $"编辑动作 - {_originalAction.Name}");
+        TxtWindowTitle.Text = _isNew ? "新增动作" : $"编辑动作 · {_originalAction.Name}";
         BtnSave.Content = _isNew ? "添加" : "保存";
 
+        PalettePanel.AttachHostWindow(this);
+        PipelineView.AttachHostWindow(this);
+        WireWorkbenchEvents();
         PopulatePresets();
-        LoadActionData();
-        _updatingMouseUi = true;
-        ChkMouseShift.IsChecked = (_originalAction.MouseModifiers & 4) != 0;
-        ChkMouseCtrl.IsChecked = (_originalAction.MouseModifiers & 2) != 0;
-        ChkMouseAlt.IsChecked = (_originalAction.MouseModifiers & 1) != 0;
-        ChkMouseWin.IsChecked = (_originalAction.MouseModifiers & 8) != 0;
-        foreach (var control in MouseButtonOptions.Children)
-            if (control is RadioButton radio)
-                radio.IsChecked = int.TryParse(radio.Tag?.ToString(), out int button)
-                    && button == (_originalAction.HasMouseBinding ? (int)_originalAction.MouseButton : 1);
-        _updatingMouseUi = false;
-        RefreshMouseCapabilities(_originalAction.HasMouseBinding ? _originalAction.MouseTrigger : null);
-        // 新增默认走预设入口，同时同步选中预设的 ID、名称、指令与推荐快捷键。
-        if (_isNew) OnActionTypeChanged(RadPresetType, new RoutedEventArgs());
+        PopulateTemplatesMenu();
+        LoadInitialState();
+
+        // 新增动作默认进入预设入口，可一键绑键或转为自定义工作台
+        if (_isNew)
+        {
+            SwitchToPresetMode(selectCurrentPreset: true, resizeCentered: false);
+        }
+
+        // 在 Opened 之前先设好初始尺寸，让 WindowStartupLocation="CenterOwner" 按真实初始尺寸居中显示
+        Width = _isBuiltin ? PresetWindowWidth : CustomWindowWidth;
+        Height = _isBuiltin ? PresetWindowHeight : CustomWindowHeight;
+        MinWidth = _isBuiltin ? 520 : 720;
+        MinHeight = _isBuiltin ? 430 : 520;
+
         Opened += (_, _) =>
         {
-            var screen = Screens.ScreenFromWindow(this);
-            if (screen != null) MouseFormScroll.MaxHeight = Math.Max(220, Math.Min(620, screen.WorkingArea.Height / screen.Scaling - 160));
+            _hasOpened = true;
+            ApplyWindowSizingForMode(_isBuiltin, recenterOnCurrentCenter: false);
+        };
+        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressedTunnel, RoutingStrategies.Tunnel);
+        Closed += (_, _) =>
+        {
+            if (_isRecording) StopRecording(false);
+            StopMousePrefixRecording();
+            ScriptEditorPanel.CloseMenus();
+            PalettePanel.CancelActiveDrag();
+            PipelineView.CancelActiveDrag();
+            ClearDragGhost();
+            RestoreEditorHotkeys();
+        };
+        Deactivated += (_, _) =>
+        {
+            if (_isRecording) StopRecording(false);
+            StopMousePrefixRecording();
+            PalettePanel.CancelActiveDrag();
+            PipelineView.CancelActiveDrag();
+            ClearDragGhost();
+        };
+        MousePickPopup.Closed += (_, _) => StopMousePrefixRecording();
+    }
+
+    private void WireWorkbenchEvents()
+    {
+        PalettePanel.ModuleSelected += module =>
+        {
+            PipelineView.AddModule(module.Id);
+            ClearRunStatus();
         };
 
-        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
-        Closed += (_, _) => { if (_isRecording) StopRecording(false); StopMousePrefixRecording(); _scriptInsertMenu?.Close(); _moduleDrag.Reset(); ClearModuleDragVisuals(); RestoreEditorHotkeys(); };
-        Deactivated += (_, _) => { if (_isRecording) StopRecording(false); StopMousePrefixRecording(); };
-        MousePickPopup.Closed += (_, _) => StopMousePrefixRecording();
+        PalettePanel.ModuleDragStarted += (module, winPt) =>
+        {
+            ShowDragGhost(module, winPt);
+            PipelineView.UpdateExternalDrop(winPt, module.Name);
+        };
+
+        PalettePanel.ModuleDragMoved += (module, winPt) =>
+        {
+            MoveDragGhost(winPt);
+            PipelineView.UpdateExternalDrop(winPt, module.Name);
+        };
+
+        PalettePanel.ModuleDragDropped += (module, winPt) =>
+        {
+            ClearDragGhost();
+            if (PipelineView.CommitExternalDrop(module.Id, winPt, module.Name))
+                ClearRunStatus();
+        };
+
+        PalettePanel.ModuleDragCanceled += () =>
+        {
+            ClearDragGhost();
+            PipelineView.ClearExternalDrop();
+        };
+
+        PipelineView.StepsChanged += steps =>
+        {
+            _currentScript = ActionModuleRegistry.BuildScript(steps);
+            _customScript = _currentScript;
+            ScriptEditorPanel.ScriptText = _currentScript;
+            RefreshCliTooltip();
+            RefreshMouseCapabilities();
+        };
+
+        PipelineView.QuickAddModuleRequested += moduleId => PipelineView.AddModule(moduleId);
+        PipelineView.OpenTemplatesRequested += () => BtnTemplates.Flyout?.ShowAt(BtnTemplates);
+
+        ScriptEditorPanel.ScriptChanged += script =>
+        {
+            _currentScript = script;
+            _customScript = script;
+            RefreshCliTooltip();
+            RefreshMouseCapabilities();
+        };
+    }
+
+    private void ShowDragGhost(ActionModuleDescriptor module, Point windowPoint) =>
+        ShowDragGhostText(module.Name, windowPoint);
+
+    private void ShowDragGhostText(string text, Point windowPoint)
+    {
+        ClearDragGhost();
+        _paletteDragGhost = new ContinuousBorder
+        {
+            Classes = { "actionDragGhost" },
+            Padding = new Thickness(12, 7),
+            Child = new TextBlock
+            {
+                Text = text,
+                FontSize = 12.5,
+                FontWeight = FontWeight.Medium,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        };
+        DragOverlayCanvas.Children.Add(_paletteDragGhost);
+        MoveDragGhost(windowPoint);
+    }
+
+    private void MoveDragGhost(Point windowPoint)
+    {
+        if (_paletteDragGhost == null) return;
+        Canvas.SetLeft(_paletteDragGhost, windowPoint.X + 12);
+        Canvas.SetTop(_paletteDragGhost, windowPoint.Y - 16);
+    }
+
+    private void ClearDragGhost()
+    {
+        if (_paletteDragGhost == null) return;
+        DragOverlayCanvas.Children.Remove(_paletteDragGhost);
+        _paletteDragGhost = null;
     }
 
     private void PopulatePresets()
     {
         CmbPreset.Items.Clear();
-
-        // 按功能分类加载全部预设目录（截图 / 录屏 / 贴图 / OCR 与识图 / 翻译）
         foreach (var (category, items) in ActionsStore.CategorizedBuiltins)
         {
             var header = new ComboBoxItem
@@ -140,7 +249,7 @@ public partial class ActionEditorWindow : Window
             header.Classes.Add("groupHeader");
             CmbPreset.Items.Add(header);
 
-            foreach (var (id, name, script) in items)
+            foreach (var (id, name, _) in items)
             {
                 var actionItem = new ComboBoxItem
                 {
@@ -153,16 +262,45 @@ public partial class ActionEditorWindow : Window
         }
     }
 
-    private void LoadActionData()
+    private void PopulateTemplatesMenu()
     {
-        _isUpdatingPresetUi = true;
+        var menu = new MenuFlyout();
+        foreach (var tpl in ActionModuleRegistry.Templates)
+        {
+            var item = new MenuItem { Header = tpl.Name };
+            ToolTip.SetTip(item, tpl.Description);
+            var captured = tpl;
+            item.Click += (_, _) => ApplyTemplate(captured);
+            menu.Items.Add(item);
+        }
+        BtnTemplates.Flyout = menu;
+    }
+
+    private void ApplyTemplate(ActionTemplateItem tpl)
+    {
+        TxtName.Text = tpl.Name;
+        _customName = tpl.Name;
+        _currentScript = tpl.Script;
+        _customScript = tpl.Script;
+        ScriptEditorPanel.ScriptText = tpl.Script;
+        if (ActionModuleRegistry.TryParseSteps(tpl.Script, out var steps))
+        {
+            PipelineView.SetSteps(steps);
+            SetCustomViewMode(scriptMode: false);
+        }
+        RefreshCliTooltip();
+        RefreshMouseCapabilities();
+        SetRunStatus($"已套用模板「{tpl.Name}」，可继续增删或调整步骤。", isError: false);
+    }
+
+    private void LoadInitialState()
+    {
+        _isUpdatingUi = true;
         try
         {
             TxtName.Text = _originalAction.Name;
-            TxtScript.Text = _originalAction.Script;
-            UpdateCommandPreview();
+            ScriptEditorPanel.ScriptText = _originalAction.Script;
 
-            // 匹配预设下拉（跳过 groupHeader 分类标题项）
             int selectedIndex = 1;
             if (_originalAction.IsBuiltin && !string.IsNullOrEmpty(_originalAction.Id))
             {
@@ -178,770 +316,651 @@ public partial class ActionEditorWindow : Window
                 }
             }
             CmbPreset.SelectedIndex = selectedIndex;
+
+            _updatingMouseUi = true;
+            ChkMouseShift.IsChecked = (_originalAction.MouseModifiers & 4) != 0;
+            ChkMouseCtrl.IsChecked = (_originalAction.MouseModifiers & 2) != 0;
+            ChkMouseAlt.IsChecked = (_originalAction.MouseModifiers & 1) != 0;
+            ChkMouseWin.IsChecked = (_originalAction.MouseModifiers & 8) != 0;
+            foreach (var control in MouseButtonOptions.Children)
+                if (control is RadioButton radio)
+                    radio.IsChecked = int.TryParse(radio.Tag?.ToString(), out int button)
+                        && button == (_originalAction.HasMouseBinding ? (int)_originalAction.MouseButton : 1);
+            _updatingMouseUi = false;
+
             UpdateHotKeyDisplay();
 
             RadPresetType.IsChecked = _isBuiltin;
             RadCustomType.IsChecked = !_isBuiltin;
-            UpdateActionFields(_isBuiltin);
-            ReadStepsFromScript();
+            PresetWorkspace.IsVisible = _isBuiltin;
+            CustomWorkspace.IsVisible = !_isBuiltin;
+            CustomHeaderTools.IsVisible = !_isBuiltin;
+            MountTriggerPanel(_isBuiltin);
+
+            if (_isBuiltin)
+            {
+                UpdatePresetInfoCard(_actionId);
+            }
+            else
+            {
+                SyncStepsFromCurrentScript();
+            }
+
+            RefreshMouseCapabilities(_originalAction.HasMouseBinding ? _originalAction.MouseTrigger : null);
+            UpdateTriggerSummary();
+            RefreshCliTooltip();
         }
         finally
         {
-            _isUpdatingPresetUi = false;
+            _isUpdatingUi = false;
         }
     }
 
-    /// <summary>脚本内容变化时刷新完整命令行预览。</summary>
-    private void OnScriptTextChanged(object? sender, TextChangedEventArgs e)
+    private void SyncStepsFromCurrentScript()
     {
-        _scriptInsertMenu?.Close();
-        UpdateCommandPreview();
-        if (!_isUpdatingPresetUi) RefreshMouseCapabilities();
-    }
-
-    /// <summary>@ 是菜单入口，不写进脚本；取消选择也不会留下无效字符。</summary>
-    private void OnScriptTextInput(object? sender, TextInputEventArgs e)
-    {
-        if (e.Text != "@" || TxtScript.IsReadOnly || !AdvancedScriptPanel.IsVisible || _isRecording) return;
-        string text = TxtScript.Text ?? "";
-        int start = Math.Clamp(Math.Min(TxtScript.SelectionStart, TxtScript.SelectionEnd), 0, text.Length);
-        int end = Math.Clamp(Math.Max(TxtScript.SelectionStart, TxtScript.SelectionEnd), start, text.Length);
-        if (start == end) start = end = Math.Clamp(TxtScript.CaretIndex, 0, text.Length);
-        // 引号中的邮箱、提示词和 // 备注仍可正常输入 @。
-        int lineStart = start;
-        while (lineStart > 0 && text[lineStart - 1] is not ('\r' or '\n')) lineStart--;
-        char quote = '\0';
-        for (int i = lineStart; i < start; i++)
+        if (string.IsNullOrWhiteSpace(_currentScript))
         {
-            if (quote != '\0') { if (text[i] == quote) quote = '\0'; }
-            else if (text[i] is '\'' or '"') quote = text[i];
-            else if (text[i] == '/' && i + 1 < start && text[i + 1] == '/') return;
-        }
-        if (quote != '\0') return;
-        // 光标在已有调用内部时，新操作放到该行之前，避免将原调用切成两半。
-        if (start == end && !string.IsNullOrWhiteSpace(text[lineStart..start])
-            && !ScriptExecutor.TryParse(text[lineStart..start], out _, out _, validateOrder: false)) start = end = lineStart;
-        e.Handled = true;
-        _scriptInsertMenu?.Close();
-        var originalContextMenu = TxtScript.ContextMenu;
-        var menu = BuildScriptInsertMenu(text, start, end);
-        _scriptInsertMenu = menu;
-        TxtScript.ContextMenu = menu;
-        menu.Placement = PlacementMode.BottomEdgeAlignedLeft;
-        menu.VerticalOffset = 4;
-        // 使用文本布局的真实光标矩形，换行、滚动和 DPI 均由输入框处理。
-        var presenter = TxtScript.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault();
-        if (presenter != null)
-        {
-            var caret = presenter.TextLayout.HitTestTextPosition(Math.Clamp(TxtScript.CaretIndex, 0, text.Length));
-            if (presenter.TranslatePoint(caret.TopLeft, TxtScript) is { } point)
-                menu.PlacementRect = new Rect(point, new Size(1, caret.Height));
-        }
-        menu.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_scriptInsertMenu, menu))
-            {
-                _scriptInsertMenu = null;
-                TxtScript.ContextMenu = originalContextMenu;
-            }
-        };
-        menu.Open(TxtScript);
-    }
-
-    private ContextMenu BuildScriptInsertMenu(string text, int start, int end)
-    {
-        var menu = new ContextMenu();
-        var results = new List<ActionResultReference>();
-        // 只给出光标之前确实存在的命名结果；不把回读旧指令时自动生成的名字当成真实结果。
-        if (ScriptExecutor.TryParse(text[..start], out var earlier, out _))
-        {
-            var kinds = new Dictionary<string, ActionContentKind>(StringComparer.Ordinal);
-            var currentKind = ActionContentKind.None;
-            for (int i = 0; i < earlier.Count; i++)
-            {
-                var call = earlier[i];
-                var inputKind = call.InputName != null && kinds.TryGetValue(call.InputName, out var kind) ? kind : currentKind;
-                if (!call.ProducesResult) continue;
-                currentKind = ScriptExecutor.ContentAfter(call, inputKind);
-                if (call.ResultName == null) continue;
-                kinds[call.ResultName] = currentKind;
-                results.Add(new(call.ResultName, currentKind, i));
-            }
-        }
-        // 即使后面的指令尚未写完，也要避开其中已经使用的结果名。
-        var reserved = new List<ActionStepChoice>();
-        var remaining = text.Remove(start, end - start);
-        var existing = new List<ScriptCommand>();
-        foreach (string line in remaining.ReplaceLineEndings("\n").Split('\n'))
-            if (ScriptExecutor.TryParse(line, out var calls, out _, validateOrder: false)) existing.AddRange(calls);
-        foreach (var call in existing)
-            if (call.ResultName != null) reserved.Add(ActionStepCatalog.Default with { ResultName = call.ResultName });
-
-        MenuItem InsertItem(string label, string script, string description)
-        {
-            var item = new MenuItem { Header = label };
-            ToolTip.SetTip(item, description);
-            item.Click += (_, _) => InsertScriptCommand(menu, text, start, end, script);
-            return item;
+            PipelineView.SetSteps([]);
+            SetCustomViewMode(scriptMode: false);
+            return;
         }
 
-        bool hasIndependent = existing.Any(c => !c.IsWait && !c.UsesWorkflow
-            && c.Method is not ("toggleallstickers" or "destroyallpin" or "restorelaststicker"));
-        foreach (var operation in ActionStepCatalog.Operations)
+        if (ActionModuleRegistry.TryParseSteps(_currentScript, out var steps))
         {
-            var group = new MenuItem { Header = operation.Name };
-            foreach (var option in operation.Options)
-            {
-                var command = ActionStepCatalog.Command(option);
-                var step = ActionStepCatalog.Create(operation, option, reserved, 0);
-                var compatible = ActionStepCatalog.InputsFor(option, results);
-                MenuItem item;
-                if (command.NeedsInput)
-                {
-                    item = new MenuItem { Header = option.Label, IsEnabled = compatible.Count > 0 && !hasIndependent };
-                    foreach (var input in compatible)
-                        item.Items.Add(InsertItem(input.Label, ActionStepCatalog.BuildScript([step with { InputName = input.Name }]), option.Description));
-                    ToolTip.SetTip(item, hasIndependent ? "独立动作不能与内容模块混用。" : compatible.Count == 0
-                        ? "请先在前面获取兼容内容，并填写结果名。" : option.Description);
-                }
-                else
-                {
-                    item = InsertItem(option.Label, ActionStepCatalog.BuildScript([step]), option.Description);
-                    if (command.UsesWorkflow && hasIndependent)
-                    {
-                        item.IsEnabled = false;
-                        ToolTip.SetTip(item, "独立动作不能与内容模块混用。");
-                    }
-                }
-                group.Items.Add(item);
-            }
-            // 单一操作省去一层菜单，直接选择其输入结果。
-            if (operation.Options.Length == 1)
-            {
-                var only = (MenuItem)group.Items[0]!;
-                only.Header = operation.Name;
-                group.Items.Clear();
-                menu.Items.Add(only);
-            }
-            else menu.Items.Add(group);
-        }
-        menu.Items.Add(new Separator());
-        var independent = new MenuItem { Header = "独立动作", IsEnabled = !existing.Any(c => c.UsesWorkflow) };
-        ToolTip.SetTip(independent, "截图、录屏等预设指令；不能与内容模块混用。复用截图结果请使用上面的模块。");
-        foreach (var (category, actions) in ActionsStore.CategorizedBuiltins)
-        {
-            var group = new MenuItem { Header = category };
-            foreach (var (_, name, script) in actions) group.Items.Add(InsertItem(name, script, "插入独立预设指令"));
-            independent.Items.Add(group);
-        }
-        menu.Items.Add(independent);
-        return menu;
-    }
-
-    private void InsertScriptCommand(ContextMenu menu, string original, int start, int end, string command)
-    {
-        // 菜单打开后若脚本已被其他入口改动，不再按旧光标位置覆盖新内容。
-        if ((TxtScript.Text ?? "") != original || TxtScript.IsReadOnly) { menu.Close(); return; }
-        menu.Close();
-        string before = original[..start], after = original[end..];
-        string prefix = before.Length > 0 && before[^1] is not ('\r' or '\n') && !string.IsNullOrWhiteSpace(before[(before.LastIndexOf('\n') + 1)..])
-            ? Environment.NewLine : "";
-        string suffix = after.Length > 0 && after[0] is not ('\r' or '\n') ? Environment.NewLine : "";
-        TxtScript.Focus();
-        TxtScript.SelectionStart = start;
-        TxtScript.SelectionEnd = end;
-        // 走 TextBox 编辑通路，保留撤销／重做历史。
-        TxtScript.SelectedText = prefix + command + suffix;
-        int caret = start + prefix.Length + command.Length + suffix.Length;
-        TxtScript.CaretIndex = TxtScript.SelectionStart = TxtScript.SelectionEnd = caret;
-    }
-
-    private void UpdateActionFields(bool preset)
-    {
-        PresetField.IsVisible = preset;
-        NameField.IsVisible = !preset;
-        StepModeRow.IsVisible = !preset;
-        StepEditorPanel.IsVisible = !preset && RadStepMode.IsChecked == true;
-        AdvancedScriptPanel.IsVisible = preset || RadScriptMode.IsChecked == true;
-        TxtName.IsReadOnly = TxtScript.IsReadOnly = preset;
-        TxtScript.MinHeight = preset ? 60 : 120;
-        TxtName.Classes.Set("locked", preset);
-        TxtScript.Classes.Set("locked", preset);
-        ScriptHelpBorder.IsVisible = CommandPreviewBorder.IsVisible = !preset;
-        TxtScriptInsertHint.IsVisible = !preset;
-        ScriptHelpContent.IsVisible = false;
-        ScriptHelpBorder.Content = "格式说明";
-    }
-
-    private void OnActionTypeChanged(object? sender, RoutedEventArgs e)
-    {
-        if (_isUpdatingPresetUi || sender is not RadioButton) return;
-        bool presetSelected = ReferenceEquals(sender, RadPresetType);
-        RadPresetType.IsChecked = presetSelected;
-        RadCustomType.IsChecked = !presetSelected;
-        if (presetSelected == _isBuiltin) return;
-        if (ReferenceEquals(sender, RadPresetType))
-        {
-            _customAdvanced = RadScriptMode.IsChecked == true;
-            _customName = TxtName.Text ?? "我的动作";
-            _customScript = TxtScript.Text ?? "";
-            OnPresetSelectionChanged(null, null);
+            _currentScript = ActionModuleRegistry.BuildScript(steps);
+            _customScript = _currentScript;
+            ScriptEditorPanel.ScriptText = _currentScript;
+            PipelineView.SetSteps(steps);
+            SetCustomViewMode(scriptMode: false);
         }
         else
         {
-            _isBuiltin = false;
-            TxtName.Text = _customName;
-            TxtScript.Text = _customScript;
-            if (_customAdvanced) { RadScriptMode.IsChecked = true; RadStepMode.IsChecked = false; }
-            else ReadStepsFromScript();
-            UpdateActionFields(false);
+            ScriptEditorPanel.ScriptText = _currentScript;
+            SetCustomViewMode(scriptMode: true);
         }
     }
 
-    private void ReadStepsFromScript()
+    private void SetCustomViewMode(bool scriptMode)
     {
-        _expandedStep = -1;
-        _updatingSteps = true;
-        bool readable;
-        if (string.IsNullOrWhiteSpace(TxtScript.Text)) { _steps = []; readable = true; }
-        else readable = ActionStepCatalog.TryRead(TxtScript.Text, out _steps);
-        RadStepMode.IsChecked = readable;
-        RadScriptMode.IsChecked = !readable;
-        _updatingSteps = false;
-        if (!_isBuiltin && readable && _steps.Count > 0) TxtScript.Text = ActionStepCatalog.BuildScript(_steps);
-        RenderSteps();
-        if (!_isBuiltin) UpdateActionFields(false);
+        _customScriptView = scriptMode;
+        RadStepMode.IsChecked = !scriptMode;
+        RadScriptMode.IsChecked = scriptMode;
+        PalettePanel.IsVisible = !scriptMode;
+        PipelineView.IsVisible = !scriptMode;
+        ScriptEditorPanel.IsVisible = scriptMode;
+    }
+
+    /// <summary>
+    /// 切换模式时以当前窗口中心点为锚点平滑缩放并限制在屏幕工作区内，不再从左上角向外弹开。
+    /// </summary>
+    private void ApplyWindowSizingForMode(bool presetMode, bool recenterOnCurrentCenter)
+    {
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        double scale = screen?.Scaling ?? RenderScaling;
+        if (scale <= 0) scale = 1.0;
+
+        double prevDipW = Bounds.Width > 0 ? Bounds.Width : Width;
+        double prevDipH = Bounds.Height > 0 ? Bounds.Height : Height;
+        double centerX = Position.X + prevDipW * scale / 2.0;
+        double centerY = Position.Y + prevDipH * scale / 2.0;
+
+        double targetW = presetMode ? PresetWindowWidth : _savedCustomWidth;
+        double targetH = presetMode ? PresetWindowHeight : _savedCustomHeight;
+
+        if (screen != null)
+        {
+            double maxW = Math.Max(540, screen.WorkingArea.Width / scale - 60);
+            double maxH = Math.Max(440, screen.WorkingArea.Height / scale - 60);
+            targetW = Math.Min(targetW, maxW);
+            targetH = Math.Min(targetH, maxH);
+        }
+
+        MinWidth = presetMode ? 520 : 720;
+        MinHeight = presetMode ? 430 : 520;
+        Width = targetW;
+        Height = targetH;
+
+        if (recenterOnCurrentCenter && _hasOpened)
+        {
+            double newPhysW = targetW * scale;
+            double newPhysH = targetH * scale;
+            int newX = (int)Math.Round(centerX - newPhysW / 2.0);
+            int newY = (int)Math.Round(centerY - newPhysH / 2.0);
+
+            if (screen != null)
+            {
+                var work = screen.WorkingArea;
+                int maxX = Math.Max(work.X, work.Right - (int)Math.Round(newPhysW));
+                int maxY = Math.Max(work.Y, work.Bottom - (int)Math.Round(newPhysH));
+                newX = Math.Clamp(newX, work.X, maxX);
+                newY = Math.Clamp(newY, work.Y, maxY);
+            }
+            Position = new PixelPoint(newX, newY);
+        }
+    }
+
+    // ════════════════ 预设 / 自定义模式切换 ════════════════
+
+    private void OnActionTypeChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingUi || sender is not RadioButton) return;
+        bool wantPreset = ReferenceEquals(sender, RadPresetType);
+        if (wantPreset == _isBuiltin) return;
+
+        if (wantPreset)
+        {
+            if (!_isBuiltin && !double.IsNaN(Width) && Width >= 700)
+            {
+                _savedCustomWidth = Bounds.Width > 0 ? Bounds.Width : Width;
+                _savedCustomHeight = Bounds.Height > 0 ? Bounds.Height : Height;
+            }
+            _customName = string.IsNullOrWhiteSpace(TxtName.Text) ? "我的动作" : TxtName.Text.Trim();
+            _customScript = _currentScript;
+            SwitchToPresetMode(selectCurrentPreset: true, resizeCentered: true);
+        }
+        else
+        {
+            SwitchToCustomMode(_customName, _customScript, preferScriptView: _customScriptView);
+        }
+    }
+
+    private void SwitchToPresetMode(bool selectCurrentPreset, bool resizeCentered)
+    {
+        _isUpdatingUi = true;
+        try
+        {
+            _isBuiltin = true;
+            RadPresetType.IsChecked = true;
+            RadCustomType.IsChecked = false;
+            PresetWorkspace.IsVisible = true;
+            CustomWorkspace.IsVisible = false;
+            CustomHeaderTools.IsVisible = false;
+            MountTriggerPanel(presetMode: true);
+            ClearRunStatus();
+        }
+        finally
+        {
+            _isUpdatingUi = false;
+        }
+
+        if (selectCurrentPreset) OnPresetSelectionChanged(null, null);
+        if (resizeCentered) ApplyWindowSizingForMode(presetMode: true, recenterOnCurrentCenter: true);
+    }
+
+    private void SwitchToCustomMode(string name, string script, bool preferScriptView)
+    {
+        _isUpdatingUi = true;
+        try
+        {
+            _isBuiltin = false;
+            if (_isNew || _actionId.StartsWith("builtin.", StringComparison.OrdinalIgnoreCase))
+                _actionId = ActionDefinition.NewCustomId();
+            RadPresetType.IsChecked = false;
+            RadCustomType.IsChecked = true;
+            PresetWorkspace.IsVisible = false;
+            CustomWorkspace.IsVisible = true;
+            CustomHeaderTools.IsVisible = true;
+            MountTriggerPanel(presetMode: false);
+
+            TxtName.Text = name;
+            _currentScript = script;
+            _customScript = script;
+            ScriptEditorPanel.ScriptText = script;
+
+            if (preferScriptView) SetCustomViewMode(scriptMode: true);
+            else SyncStepsFromCurrentScript();
+
+            RefreshMouseCapabilities();
+            UpdateTriggerSummary();
+            RefreshCliTooltip();
+            ClearRunStatus();
+        }
+        finally
+        {
+            _isUpdatingUi = false;
+        }
+        ApplyWindowSizingForMode(presetMode: false, recenterOnCurrentCenter: true);
+    }
+
+    private void OnPresetSelectionChanged(object? sender, SelectionChangedEventArgs? e)
+    {
+        if (_isUpdatingUi) return;
+        if (CmbPreset.SelectedItem is not ComboBoxItem item) return;
+        if (item.Classes.Contains("groupHeader") || !item.IsEnabled) return;
+
+        string? presetId = item.Tag?.ToString();
+        if (string.IsNullOrEmpty(presetId)) return;
+
+        var preset = ActionsStore.FindPresetById(presetId);
+        if (preset == null) return;
+
+        var (id, name, script) = preset.Value;
+        _actionId = id;
+        _isBuiltin = true;
+        _currentScript = script;
+        TxtName.Text = name;
+        UpdatePresetInfoCard(id);
+        RefreshMouseCapabilities();
+        RefreshCliTooltip();
+
+        if (_modifiers == 0 && _virtualKey == 0 && ActionsStore.TryGetBuiltinDefaultHotKey(id, out uint defMods, out uint defVk))
+        {
+            _modifiers = defMods;
+            _virtualKey = defVk;
+            UpdateHotKeyDisplay();
+            SetHotKeyTip("已自动填入推荐快捷键。");
+        }
+    }
+
+    private void UpdatePresetInfoCard(string presetId)
+    {
+        var preset = ActionsStore.FindPresetById(presetId);
+        string title = preset?.Name ?? _originalAction.Name;
+        string category = "内置预设";
+        foreach (var (cat, items) in ActionsStore.CategorizedBuiltins)
+        {
+            if (items.Any(it => string.Equals(it.Id, presetId, StringComparison.OrdinalIgnoreCase)))
+            {
+                category = "内置预设 · " + cat;
+                break;
+            }
+        }
+
+        TxtPresetTitle.Text = title;
+        TxtPresetCategory.Text = category;
+        TxtPresetDesc.Text = ActionModuleRegistry.DescribePreset(presetId);
+
+        var (iconKey, catEnum) = presetId switch
+        {
+            "builtin.capture" => ("brush", ActionModuleCategory.Control),
+            "builtin.longScroll" => ("longscroll", ActionModuleCategory.Control),
+            "builtin.record" or "builtin.recordQuick" => ("record", ActionModuleCategory.Control),
+            "builtin.captureOcr" or "builtin.captureOcrToast" => ("ocr", ActionModuleCategory.Process),
+            "builtin.captureVision" or "builtin.captureVisionPrompt" => ("aivision", ActionModuleCategory.Output),
+            "builtin.captureMattingGeneral" or "builtin.captureMattingPortrait" => ("matting", ActionModuleCategory.Process),
+            var id when id.StartsWith("builtin.translate", StringComparison.OrdinalIgnoreCase) => ("translate", ActionModuleCategory.Process),
+            var id when id.Contains("Sticker", StringComparison.OrdinalIgnoreCase) || id.Contains("pin", StringComparison.OrdinalIgnoreCase) => ("sticker", ActionModuleCategory.Control),
+            _ => ("image", ActionModuleCategory.Input)
+        };
+        PresetIconHost.Background = ActionModuleIconHelper.CategorySoftFillBrush(catEnum);
+        PresetIconHost.Child = ActionModuleIconHelper.CreateIcon(iconKey, ActionModuleIconHelper.CategoryAccentBrush(catEnum), 17);
+    }
+
+    private void OnConvertPresetToCustomClick(object? sender, RoutedEventArgs e)
+    {
+        var preset = ActionsStore.FindPresetById(_actionId);
+        string baseName = preset?.Name ?? (TxtName.Text ?? "自定义动作");
+        string convertedScript = _currentScript;
+        if (ActionModuleRegistry.TryParseSteps(_currentScript, out var steps) && steps.Count > 0)
+        {
+            convertedScript = ActionModuleRegistry.BuildScript(steps);
+        }
+        SwitchToCustomMode($"{baseName}（自定义）", convertedScript, preferScriptView: false);
+        SetRunStatus("已将预设拆解为自定义流程，可继续添加或调整模块。", isError: false);
     }
 
     private void OnStepModeChanged(object? sender, RoutedEventArgs e)
     {
-        if (_isUpdatingPresetUi || _updatingSteps || sender is not RadioButton) return;
-        bool wantSteps = ReferenceEquals(sender, RadStepMode);
-        if (StepEditorPanel.IsVisible == wantSteps) return;
-        _updatingSteps = true;
-        RadStepMode.IsChecked = wantSteps;
-        RadScriptMode.IsChecked = !wantSteps;
-        _updatingSteps = false;
-        if (wantSteps && string.IsNullOrWhiteSpace(TxtScript.Text))
+        if (_isUpdatingUi || sender is not RadioButton) return;
+        bool wantScript = ReferenceEquals(sender, RadScriptMode);
+        if (wantScript == _customScriptView) return;
+
+        if (wantScript)
         {
-            _steps = [];
-            SetStepError("");
-            RenderSteps();
-            UpdateActionFields(_isBuiltin);
+            ScriptEditorPanel.ScriptText = _currentScript;
+            SetCustomViewMode(scriptMode: true);
+            ClearRunStatus();
             return;
         }
-        if (wantSteps && !ActionStepCatalog.TryRead(TxtScript.Text ?? "", out _steps))
+
+        string text = ScriptEditorPanel.ScriptText;
+        if (string.IsNullOrWhiteSpace(text))
         {
-            _updatingSteps = true;
+            _currentScript = "";
+            PipelineView.SetSteps([]);
+            SetCustomViewMode(scriptMode: false);
+            ClearRunStatus();
+            return;
+        }
+
+        if (!ActionModuleRegistry.TryParseSteps(text, out var steps))
+        {
+            _isUpdatingUi = true;
             RadScriptMode.IsChecked = true;
             RadStepMode.IsChecked = false;
-            _updatingSteps = false;
-            SetStepError("这段指令暂不能转换为步骤，原指令已保留。请继续使用高级指令编辑。");
-        }
-        else
-        {
-            SetStepError("");
-            if (wantSteps)
-            {
-                _expandedStep = -1;
-                TxtScript.Text = ActionStepCatalog.BuildScript(_steps);
-                RenderSteps();
-            }
-        }
-        UpdateActionFields(_isBuiltin);
-    }
-
-    private void SetStepError(string error)
-    {
-        TxtStepError.Text = error;
-        TxtStepError.IsVisible = !string.IsNullOrEmpty(error);
-    }
-
-    private void RenderSteps(bool preserveRows = false)
-    {
-        if (StepListPanel == null) return;
-        _updatingSteps = true;
-        if (!preserveRows) StepListPanel.Children.Clear();
-        _inputPickers.Clear();
-        _moduleHeaders.Clear();
-        for (int index = 0; index < _steps.Count; index++)
-        {
-            int position = index;
-            var step = _steps[index];
-            var rowContent = new StackPanel();
-            var row = preserveRows ? (ContinuousBorder)StepListPanel.Children[index] : new ContinuousBorder { Classes = { "actionModuleRow" } };
-            row.Child = rowContent;
-            rowContent.Children.Add(BuildModuleHeader(position, row));
-            row.Classes.Set("expanded", _expandedStep == position);
-            if (!preserveRows) StepListPanel.Children.Add(row);
-            if (_expandedStep != position) continue;
-            var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(8, 4, 8, 10) };
-            rowContent.Children.Add(panel);
-            var head = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
-            var operationLabel = new TextBlock { Text = "模块", Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal, Margin = new Thickness(0, 0, 8, 0) };
-            head.Children.Add(operationLabel);
-            var operationPicker = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, MaxDropDownHeight = 400 };
-            AutomationProperties.SetName(operationPicker, "模块");
-            var operations = ActionStepCatalog.Operations.AsEnumerable();
-            if (!operations.Contains(step.Operation)) operations = operations.Append(step.Operation);
-            foreach (var operation in operations)
-                foreach (var option in operation.Options)
-                    operationPicker.Items.Add(new ComboBoxItem
-                    {
-                        Content = operation.Name == option.Label ? operation.Name : operation.Name + " · " + option.Label,
-                        Tag = new ActionStepChoice(operation, option),
-                    });
-            operationPicker.SelectedItem = operationPicker.Items.OfType<ComboBoxItem>().First(item =>
-                item.Tag is ActionStepChoice choice && choice.Operation == step.Operation && choice.Option == step.Option);
-            operationPicker.SelectionChanged += (_, _) =>
-            {
-                if (_updatingSteps || operationPicker.SelectedItem is not ComboBoxItem { Tag: ActionStepChoice choice } selected) return;
-                // 让下拉框先处理本次选择并关闭弹层，再替换模块的参数控件。
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (operationPicker.GetVisualRoot() == null || operationPicker.SelectedItem != selected) return;
-                    ChangeStepOption(position, choice.Operation, choice.Option);
-                    CommitSteps();
-                }, DispatcherPriority.Background);
-            };
-            Grid.SetColumn(operationPicker, 1); head.Children.Add(operationPicker);
-            AddModuleParameter(panel, head);
-            var call = ActionStepCatalog.Command(step.Option);
-            if (call.NeedsInput)
-            {
-                var inputRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
-                var inputLabel = new TextBlock { Text = "输入", Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal, Margin = new Thickness(0, 0, 8, 0) };
-                inputRow.Children.Add(inputLabel);
-                var inputs = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, PlaceholderText = "选择此前模块的结果" };
-                AutomationProperties.SetName(inputs, "输入结果");
-                PopulateInputPicker(inputs, position);
-                inputs.SelectionChanged += (_, _) =>
-                {
-                    if (_updatingSteps || inputs.SelectedItem is not ComboBoxItem { Tag: string name }) return;
-                    _steps[position] = _steps[position] with { InputName = name };
-                    UpdateStepScript();
-                };
-                _inputPickers.Add((inputs, position));
-                Grid.SetColumn(inputs, 1); inputRow.Children.Add(inputs); AddModuleParameter(panel, inputRow);
-            }
-            if (call.ProducesResult)
-            {
-                var resultRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
-                var resultLabel = new TextBlock { Text = "结果名", Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal, Margin = new Thickness(0, 0, 8, 0) };
-                resultRow.Children.Add(resultLabel);
-                var resultName = new TextBox { Text = step.ResultName, Watermark = "结果名称，供后面的模块引用" };
-                string? referenceName = step.ResultName;
-                resultName.TextChanged += (_, _) =>
-                {
-                    if (_updatingSteps) return;
-                    string name = resultName.Text ?? "";
-                    _steps[position] = _steps[position] with { ResultName = name };
-                    // 合法且唯一的改名同步所有引用；重复名不会偷偷更改其他模块的输入。
-                    if (referenceName != null && ScriptExecutor.IsResultName(name) && !_steps.Where((_, i) => i != position).Any(s => s.ResultName == name))
-                    {
-                        for (int i = position + 1; i < _steps.Count; i++)
-                            if (_steps[i].InputName == referenceName) _steps[i] = _steps[i] with { InputName = name };
-                        referenceName = name;
-                    }
-                    _updatingSteps = true;
-                    foreach (var (picker, sourcePosition) in _inputPickers) PopulateInputPicker(picker, sourcePosition);
-                    _updatingSteps = false;
-                    UpdateStepScript();
-                };
-                Grid.SetColumn(resultName, 1); resultRow.Children.Add(resultName); AddModuleParameter(panel, resultRow);
-            }
-            if (call.Method == "captureimage") AddStrokeParameter(panel, position);
-            if (call.IsWait) AddWaitParameter(panel, position);
-            var description = new TextBlock { Text = step.Option.Description, Classes = { "fieldHint" }, LineHeight = double.NaN };
-            AddModuleParameter(panel, description);
-        }
-        if (_steps.Count == 0) StepListPanel.Children.Add(new TextBlock { Text = "还没有模块，点击「添加模块」开始。", Classes = { "fieldHint" }, LineHeight = double.NaN });
-        UpdateAddStepMenu();
-        _updatingSteps = false;
-    }
-
-    private void AddWaitParameter(Grid panel, int position)
-    {
-        var delay = new NumericUpDown
-        {
-            Minimum = 0,
-            Maximum = ScriptExecutor.MaximumWaitMilliseconds,
-            Value = _steps[position].WaitMilliseconds,
-            FormatString = "0",
-            ParsingNumberStyle = NumberStyles.None,
-            ClipValueToMinMax = true,
-            AllowSpin = false,
-            ShowButtonSpinner = false,
-            Width = 104,
-        };
-        AutomationProperties.SetName(delay, "等待时间，毫秒");
-        ToolTip.SetTip(delay, $"0 毫秒继续执行，最长等待 {ScriptExecutor.MaximumWaitMilliseconds / 1000} 秒。");
-        var delayField = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        delayField.Children.Add(delay);
-        delayField.Children.Add(new TextBlock { Text = "毫秒", Classes = { "fieldHint" }, VerticalAlignment = VerticalAlignment.Center });
-        delay.ValueChanged += (_, _) =>
-        {
-            if (_updatingSteps) return;
-            _steps[position] = _steps[position] with { WaitMilliseconds = decimal.ToInt32(delay.Value ?? 0) };
-            UpdateStepScript();
-        };
-        AddLabeledModuleParameter(panel, "等待时间", delayField);
-    }
-
-    private void AddStrokeParameter(Grid panel, int position)
-    {
-        var stroke = new ComboBox
-        {
-            ItemsSource = new[] { "默认描边", "无描边" },
-            SelectedIndex = _steps[position].WithoutStroke ? 1 : 0,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-        };
-        AutomationProperties.SetName(stroke, "截图描边");
-        ToolTip.SetTip(stroke, "默认描边沿用截图设置，无描边只作用于本次截图。");
-
-        stroke.SelectionChanged += (_, _) =>
-        {
-            if (_updatingSteps) return;
-            _steps[position] = _steps[position] with { WithoutStroke = stroke.SelectedIndex == 1 };
-            UpdateStepScript();
-        };
-        AddLabeledModuleParameter(panel, "截图描边", stroke);
-    }
-
-    private static void AddLabeledModuleParameter(Grid panel, string label, Control editor)
-    {
-        var row = new Grid();
-        row.Children.Add(new TextBlock
-        {
-            Text = label, Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.Normal,
-            Margin = new Thickness(0, 0, 8, 0),
-        });
-        Grid.SetColumn(editor, 1);
-        row.Children.Add(editor);
-        AddModuleParameter(panel, row);
-    }
-
-    /// <summary>所有字段共用一张 Auto 列表格，首次布局即对齐；说明跨两列。</summary>
-    private static void AddModuleParameter(Grid panel, Control field)
-    {
-        int row = panel.RowDefinitions.Count;
-        panel.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        if (field is Grid fields)
-        {
-            var children = fields.Children.ToArray();
-            fields.Children.Clear();
-            foreach (var child in children)
-            {
-                if (row > 0) child.Margin = new Thickness(child.Margin.Left, child.Margin.Top + 8, child.Margin.Right, child.Margin.Bottom);
-                Grid.SetRow(child, row);
-                panel.Children.Add(child);
-            }
-        }
-        else
-        {
-            if (row > 0) field.Margin = new Thickness(field.Margin.Left, field.Margin.Top + 8, field.Margin.Right, field.Margin.Bottom);
-            Grid.SetRow(field, row);
-            Grid.SetColumnSpan(field, 2);
-            panel.Children.Add(field);
-        }
-    }
-
-    private Control BuildModuleHeader(int position, ContinuousBorder row)
-    {
-        var content = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*") };
-        var icon = CreateModuleIcon(_steps[position]);
-        icon.Margin = new Thickness(0, 0, 8, 0);
-        content.Children.Add(icon);
-        var title = new TextBlock { Text = ModuleTitle(_steps[position]), Classes = { "fieldLabel" }, FontSize = 13.5, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, 8, 0) };
-        Grid.SetColumn(title, 1); content.Children.Add(title);
-        var summary = new TextBlock { Text = ModuleSummary(_steps[position]), Classes = { "fieldHint" }, LineHeight = double.NaN,
-            TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(summary, 2); content.Children.Add(summary);
-        _moduleHeaders.Add((title, summary, position));
-        var handle = new ContinuousBorder { Child = content, Classes = { "actionModuleHandle" } };
-        ToolTip.SetTip(summary, summary.Text);
-        handle.PointerPressed += (_, e) =>
-        {
-            if (_moduleDrag.Begin(handle, e, this)) _draggedModuleRow = row;
-        };
-        handle.PointerMoved += (_, e) =>
-        {
-            if (!_moduleDrag.Update(e)) return;
-            if (_moduleDragSizeToContent == null)
-            {
-                _moduleDragSizeToContent = SizeToContent;
-                _moduleDragWindowHeight = Height;
-                // 动态让位只改变列表布局，不让 SizeToContent 窗口在拖动期间增高跳动。
-                SizeToContent = SizeToContent.Manual;
-                Height = Bounds.Height;
-            }
-            row.Classes.Add("dragging");
-            if (_draggedModuleParameters == null && row.Child is StackPanel { Children.Count: > 1 } rowContent)
-            {
-                _draggedModuleParameters = rowContent.Children[1];
-                _draggedModuleParameters.IsVisible = false;
-            }
-            UpdateModuleInsertion(e.GetPosition(StepListPanel));
-        };
-        handle.PointerReleased += (_, e) =>
-        {
-            if (!_moduleDrag.IsActive) return;
-            bool dragging = _moduleDrag.IsDragging;
-            if (dragging) UpdateModuleInsertion(e.GetPosition(StepListPanel));
-            int insertion = _moduleInsertIndex;
-            // 捕获先释放，随后才改树；CaptureLost 不得清掉待提交的落位信息。
-            _moduleDrag.Reset();
-            ClearModuleDragVisuals();
-            e.Handled = true;
-            if (!dragging) ToggleModule(position);
-            else if (insertion >= 0) MoveModule(position, insertion);
-        };
-        var actions = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), Height = 30, Margin = new Thickness(0, 0, 4, 0) };
-        actions.Children.Add(handle);
-        var arrow = OcrIconGeometry.CreateIcon(OcrIconGeometry.CaretDown, "actionModuleStroke");
-        // 扁箭头先按真实宽高比居中，旋转方形槽位；不旋转含上方空白的 Path 盒。
-        arrow.Height = 14 * arrow.Data!.Bounds.Height / arrow.Data.Bounds.Width;
-        var arrowSlot = new Grid { Width = 14, Height = 14, RenderTransform = new RotateTransform(_expandedStep == position ? 0 : -90),
-            RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative) };
-        arrowSlot.Children.Add(arrow);
-        var toggle = new Button { Classes = { "sctIconBtn", "actionModuleButton" }, Content = arrowSlot, VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(toggle, _expandedStep == position ? "收起参数" : "展开参数");
-        toggle.Click += (_, _) => ToggleModule(position);
-        var menu = new ContextMenu();
-        var editItem = new MenuItem { Header = _expandedStep == position ? "收起参数" : "展开参数" };
-        editItem.Click += (_, _) => ToggleModule(position);
-        menu.Items.Add(editItem);
-        foreach (var (label, offset) in new[] { ("上移", -1), ("下移", 1) })
-        {
-            int move = offset;
-            var item = new MenuItem { Header = label, IsEnabled = position + move >= 0 && position + move < _steps.Count };
-            item.Click += (_, _) =>
-            {
-                MoveModule(position, move < 0 ? position - 1 : position + 2);
-            };
-            menu.Items.Add(item);
-        }
-        actions.ContextMenu = menu;
-        Grid.SetColumn(toggle, 1); actions.Children.Add(toggle);
-        var delete = new Button { Classes = { "sctIconBtn", "actionModuleButton" }, Content = OcrIconGeometry.CreateIcon(OcrIconGeometry.TrashStroke, "actionModuleStroke"), VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(delete, "删除模块");
-        delete.Click += (_, _) =>
-        {
-            _steps.RemoveAt(position);
-            if (_expandedStep == position) _expandedStep = -1;
-            else if (_expandedStep > position) _expandedStep--;
-            CommitSteps();
-        };
-        Grid.SetColumn(delete, 2); actions.Children.Add(delete);
-        return actions;
-    }
-
-    private void ToggleModule(int position)
-    {
-        _expandedStep = _expandedStep == position ? -1 : position;
-        RenderSteps();
-    }
-
-    private void UpdateModuleInsertion(Point point)
-    {
-        _moduleInsertIndex = -1;
-        if (StepListPanel.TranslatePoint(point, MouseFormScroll) is not Point visiblePoint
-            || !new Rect(MouseFormScroll.Bounds.Size).Contains(visiblePoint)
-            || point.X < 0 || point.X > StepListPanel.Bounds.Width || point.Y < -6 || point.Y > StepListPanel.Bounds.Height + 6)
-        {
-            ListReorderBehavior.RemovePlaceholder(_moduleDropPlaceholder);
+            _isUpdatingUi = false;
+            SetRunStatus("当前脚本包含无法转为可视化模块的语法，已保留在脚本源码视图。", isError: true);
             return;
         }
-        _moduleDropPlaceholder ??= new ContinuousBorder
-            { Classes = { "actionModuleDropPlaceholder" }, Height = 32 };
-        _moduleInsertIndex = ListReorderBehavior.GetInsertionIndex(StepListPanel, point, Orientation.Vertical, _moduleDropPlaceholder);
-        ListReorderBehavior.MovePlaceholder(StepListPanel, _moduleDropPlaceholder, _moduleInsertIndex);
+
+        _currentScript = ActionModuleRegistry.BuildScript(steps);
+        _customScript = _currentScript;
+        ScriptEditorPanel.ScriptText = _currentScript;
+        PipelineView.SetSteps(steps);
+        SetCustomViewMode(scriptMode: false);
+        ClearRunStatus();
     }
 
-    private void ClearModuleDragVisuals()
+    // ════════════════ 外部命令复制 ════════════════
+
+    private string BuildCommandString()
     {
-        _draggedModuleRow?.Classes.Remove("dragging");
-        if (_draggedModuleParameters != null) _draggedModuleParameters.IsVisible = true;
-        _draggedModuleParameters = null;
-        _draggedModuleRow = null;
-        _moduleInsertIndex = -1;
-        ListReorderBehavior.RemovePlaceholder(_moduleDropPlaceholder);
-        _moduleDropPlaceholder = null;
-        if (_moduleDragSizeToContent is { } originalSizeToContent)
+        string script = (_currentScript ?? "").Trim();
+        if (script.Length == 0) return "yuSnip.exe -r \"\"";
+        return "yuSnip.exe -r \"" + script.Replace("\"", "'").Replace("\r", " ").Replace("\n", " ") + "\"";
+    }
+
+    private void RefreshCliTooltip()
+    {
+        if (BtnCopyCli == null) return;
+        ToolTip.SetTip(BtnCopyCli, "点击复制外部调用命令：\n" + BuildCommandString());
+    }
+
+    private async void OnCopyCommandClick(object? sender, RoutedEventArgs e)
+    {
+        try
         {
-            Height = _moduleDragWindowHeight;
-            SizeToContent = originalSizeToContent;
-            _moduleDragSizeToContent = null;
-        }
-    }
-
-    private void MoveModule(int from, int insertion)
-    {
-        int destination = insertion > from ? insertion - 1 : insertion;
-        if (destination == from || destination < 0 || destination >= _steps.Count) return;
-        var step = _steps[from];
-        var expanded = _expandedStep >= 0 ? _steps[_expandedStep] : null;
-        _steps.RemoveAt(from);
-        _steps.Insert(destination, step);
-        _expandedStep = expanded == null ? -1 : _steps.FindIndex(item => ReferenceEquals(item, expanded));
-        var row = StepListPanel.Children[from];
-        StepListPanel.Children.RemoveAt(from);
-        StepListPanel.Children.Insert(destination, row);
-        // 保留各模块的行容器；只刷新参数引用与交互索引，不整表清空。
-        RenderSteps(preserveRows: true);
-        UpdateStepScript();
-    }
-
-    private static string ModuleTitle(ActionStepChoice step) => step.Operation.Name;
-
-    private static string ModuleSummary(ActionStepChoice step) => ActionStepCatalog.Command(step.Option).IsWait
-        ? $"{step.WaitMilliseconds} 毫秒"
-        : step.Option.Label
-        + (step.InputName != null ? " · 输入 " + step.InputName : "")
-        + (step.ResultName != null ? " → " + step.ResultName : "")
-        + (step.WithoutStroke ? " · 无描边" : "");
-
-    private static Avalonia.Controls.Shapes.Path CreateModuleIcon(ActionStepChoice step)
-    {
-        if (ActionStepCatalog.Command(step.Option).IsWait)
-            return OcrIconGeometry.CreateIcon(OcrIconGeometry.TrayHistory);
-        string? toolId = step.Operation.Name switch
-        {
-            "识别文字" => "ocr",
-            "翻译" => "translate",
-            "抠图" => "matting",
-            "AI 识图" => "aivision",
-            "贴图管理" or "贴图" => "sticker",
-            "输出结果" => ActionStepCatalog.Command(step.Option).Method switch
+            string cmd = BuildCommandString();
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard != null)
             {
-                "pinresult" => "sticker",
-                "saveresult" => "saveas",
-                "showresult" => "ocr",
-                _ => null,
-            },
-            _ => null,
-        };
-        // 直接引用截图工具栏注册表，沿用填充/描边与尺寸比例，禁止抄路径造变体。
-        if (toolId != null && ToolbarRegistry.Buttons.FirstOrDefault(tool => tool.Id == toolId) is { } tool)
-        {
-            var icon = OcrIconGeometry.CreateIcon(tool.IconPath, tool.IsFill ? "sctIcon" : "actionModuleStroke");
-            icon.Width = icon.Height = 14 * tool.IconScale;
-            return icon;
+                await clipboard.SetTextAsync(cmd);
+                BtnCopyCli.Content = "已复制";
+                SetRunStatus("已复制命令行到剪贴板，可用于 Quicker / 脚本调用。", isError: false);
+                await Task.Delay(1200);
+                BtnCopyCli.Content = "复制命令";
+            }
         }
-        return step.Operation.Name == "输出结果"
-            ? OcrIconGeometry.CreateIcon(OcrIconGeometry.CopyOutline, "actionModuleStroke")
-            : OcrIconGeometry.CreateIcon(OcrIconGeometry.Image);
-    }
-
-    private void CommitSteps()
-    {
-        RenderSteps();
-        UpdateStepScript();
-    }
-
-    private void UpdateStepScript()
-    {
-        // 改名期间只更新一行摘要，不重建输入框，以免打断输入焦点。
-        foreach (var (title, summary, position) in _moduleHeaders)
+        catch (Exception ex)
         {
-            title.Text = ModuleTitle(_steps[position]);
-            summary.Text = ModuleSummary(_steps[position]);
-            ToolTip.SetTip(summary, summary.Text);
+            SetRunStatus("复制命令失败：" + ex.Message, isError: true);
         }
-        TxtScript.Text = ActionStepCatalog.BuildScript(_steps);
-        ScriptExecutor.TryParse(TxtScript.Text ?? "", out _, out string error);
-        SetStepError(error);
     }
 
-    private void ChangeStepOption(int position, ActionStepOperation operation, ActionStepOption option)
+    // ════════════════ 底部运行状态反馈 ════════════════
+
+    private void SetRunStatus(string text, bool isError)
     {
-        var previous = _steps[position];
-        var replacement = ActionStepCatalog.Create(operation, option, _steps, position, previous.InputName);
-        if (previous.ResultName != null && replacement.ResultName != null) replacement = replacement with { ResultName = previous.ResultName };
-        _steps[position] = replacement;
+        TxtRunStatus.Text = text;
+        TxtRunStatus.IsVisible = !string.IsNullOrEmpty(text);
+        TxtRunStatus.Bind(TextBlock.ForegroundProperty,
+            new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(isError ? "SctDangerBrush" : "SctTextMutedBrush"));
     }
 
-    private void PopulateInputPicker(ComboBox picker, int position)
+    private void ClearRunStatus()
     {
-        picker.Items.Clear();
-        var step = _steps[position];
-        foreach (var result in ActionStepCatalog.InputsFor(step.Option, ActionStepCatalog.ResultsBefore(_steps, position)))
-            picker.Items.Add(new ComboBoxItem { Content = result.Label, Tag = result.Name });
-        picker.IsEnabled = picker.Items.Count > 0;
-        picker.PlaceholderText = picker.IsEnabled ? "选择此前模块的结果" : "请先添加或上移能提供输入的模块";
-        var selected = picker.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, step.InputName));
-        if (selected == null && !string.IsNullOrEmpty(step.InputName))
+        TxtRunStatus.Text = "";
+        TxtRunStatus.IsVisible = false;
+    }
+
+    // ════════════════ 试运行与保存 ════════════════
+
+    private async void OnTestClick(object? sender, RoutedEventArgs e)
+    {
+        string script = (_currentScript ?? "").Trim();
+        if (string.IsNullOrEmpty(script))
         {
-            selected = new ComboBoxItem { Content = step.InputName + " · 引用不可用", Tag = step.InputName, IsEnabled = false };
-            picker.Items.Add(selected);
+            SetRunStatus("请先在流程中添加至少一个模块。", isError: true);
+            return;
         }
-        picker.SelectedItem = selected;
-    }
 
-    private void UpdateAddStepMenu()
-    {
-        var menu = new MenuFlyout();
-        foreach (var operation in ActionStepCatalog.Operations)
+        if (!ScriptExecutor.TryParse(script, out _, out string error))
         {
-            var item = new MenuItem { Header = operation.Name };
-            item.Click += (_, _) => Dispatcher.UIThread.Post(() =>
+            SetRunStatus(error, isError: true);
+            return;
+        }
+
+        try
+        {
+            if (Application.Current is App app)
             {
-                if (!IsVisible) return;
-                int position = _steps.Count;
-                var inputs = ActionStepCatalog.ResultsBefore(_steps, position);
-                var option = operation.Options.FirstOrDefault(choice => !ActionStepCatalog.Command(choice).NeedsInput
-                    || ActionStepCatalog.InputsFor(choice, inputs).Count > 0) ?? operation.Options[0];
-                _steps.Add(ActionStepCatalog.Create(operation, option, _steps, position));
-                _expandedStep = position;
-                CommitSteps();
-            }, DispatcherPriority.Background);
-            menu.Items.Add(item);
+                BtnTest.IsEnabled = false;
+                SetRunStatus("正在试运行，请在屏幕上完成对应操作…", isError: false);
+                bool completed = await app.RunScriptAsync(script);
+                SetRunStatus(completed ? "试运行完成，所有步骤已按顺序执行。" : "试运行已中止，后续步骤未执行。", isError: !completed);
+            }
         }
-        BtnAddStep.Flyout = menu;
-    }
-
-    private void OnUseExampleClick(object? sender, RoutedEventArgs e)
-    {
-        string? key = (sender as MenuItem)?.Tag?.ToString();
-        string script = key switch
+        catch (Exception ex)
         {
-            "hide-shot" => "yuSnip.toggleAllStickers();\nyuSnip.captureImage('原图');\nyuSnip.copyResult('原图');",
-            "translate" => "yuSnip.captureImage('原图');\nyuSnip.translateResult('Text', '原图', '译文');\nyuSnip.copyResult('译文');",
-            "ocr-translate" => "yuSnip.captureImage('原图');\nyuSnip.recognizeResult('原图', '识别文字');\nyuSnip.translateResult('Text', '识别文字', '译文');\nyuSnip.copyResult('译文');",
-            "matting" => "yuSnip.captureImage('原图');\nyuSnip.mattingResult('Default', '原图', '抠图结果');\nyuSnip.pinResult('抠图结果');",
-            "branch" => "yuSnip.captureImage('原图');\nyuSnip.translateResult('Text', '原图', '译文');\nyuSnip.recognizeResult('原图', '识别文字');\nyuSnip.copyResult('原图');\nyuSnip.copyResult('译文');\nyuSnip.showResult('识别文字');",
-            _ => "yuSnip.captureImage('原图');\nyuSnip.copyResult('原图');\nyuSnip.pinResult('原图');"
-        };
-        TxtName.Text = key switch
+            SetRunStatus("试运行失败：" + ex.Message, isError: true);
+        }
+        finally
         {
-            "hide-shot" => "切换贴图显示后截图",
-            "translate" => "截图翻译并复制译文",
-            "ocr-translate" => "识别后翻译并复制",
-            "matting" => "截图抠图并贴图",
-            "branch" => "截图、翻译与 OCR 分别输出",
-            _ => "截图复制并贴图"
-        };
-        ActionStepCatalog.TryRead(script, out _steps);
-        _expandedStep = -1;
-        CommitSteps();
+            BtnTest.IsEnabled = true;
+        }
     }
 
-    private void OnScriptHelpClick(object? sender, RoutedEventArgs e)
+    private void OnSaveClick(object? sender, RoutedEventArgs e)
     {
-        ScriptHelpContent.IsVisible = !ScriptHelpContent.IsVisible;
-        ScriptHelpBorder.Content = ScriptHelpContent.IsVisible ? "收起说明" : "格式说明";
+        StopMousePrefixRecording();
+        if (_isRecording) StopRecording(false);
+
+        string name = (TxtName.Text ?? "").Trim();
+        string script = (_currentScript ?? "").Trim();
+
+        if (string.IsNullOrEmpty(name))
+        {
+            SetRunStatus("请输入动作名称。", isError: true);
+            TxtName.Focus();
+            return;
+        }
+
+        string? keyboardConflict = Services.BuiltinShortcutsStore.FindActionConflict(_modifiers, _virtualKey,
+            _otherActions ?? Array.Empty<ActionDefinition>(), _originalAction, _otherShortcuts);
+        if (keyboardConflict != null)
+        {
+            if (!_isBuiltin) SetTriggerDrawerExpanded(true);
+            SetHotKeyTip("已被" + keyboardConflict + "占用，请重录。", true);
+            SetRunStatus("键盘快捷键存在冲突，请重新录制。", isError: true);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(script))
+        {
+            SetRunStatus("请至少添加一个操作模块。", isError: true);
+            return;
+        }
+
+        if (!ScriptExecutor.TryParse(script, out _, out string scriptError))
+        {
+            SetRunStatus(scriptError, isError: true);
+            return;
+        }
+
+        var mouse = ReadMouseBinding();
+        string mouseConflict = MouseBindingConflict(mouse);
+        if (mouseConflict.Length != 0)
+        {
+            if (!_isBuiltin) SetTriggerDrawerExpanded(true);
+            SetMouseTip(mouseConflict, isConflict: true);
+            SetRunStatus(mouseConflict, isError: true);
+            return;
+        }
+
+        if (mouse.HasMouseBinding && !(mouse.MouseTrigger == ActionMouseTrigger.Drag
+            ? ActionMouseBinding.SupportsDrag(script) : ActionMouseBinding.SupportsClick(script)))
+        {
+            if (!_isBuiltin) SetTriggerDrawerExpanded(true);
+            SetMouseTip("此动作不支持该鼠标触发方式，请重选。");
+            SetRunStatus("当前动作不支持所选鼠标触发方式。", isError: true);
+            return;
+        }
+
+        if (!_isBuiltin && (_isNew || _actionId.StartsWith("builtin.", StringComparison.OrdinalIgnoreCase)))
+        {
+            _actionId = ActionDefinition.NewCustomId();
+            _isBuiltin = false;
+        }
+
+        ResultAction = new ActionDefinition
+        {
+            Id = _actionId,
+            Name = name,
+            Script = script,
+            IsBuiltin = _isBuiltin,
+            HotKeyModifiers = _modifiers,
+            HotKeyVirtualKey = _virtualKey,
+            MouseModifiers = mouse.MouseModifiers,
+            MouseButton = mouse.MouseButton,
+            MouseTrigger = mouse.MouseTrigger,
+            MousePrefixKey = mouse.MousePrefixKey,
+            Enabled = true,
+        };
+
+        if (_otherActions != null)
+            ActionsStore.EnsureUniqueIdentity(ResultAction, _otherActions, _originalAction);
+
+        Close(true);
     }
 
-    /// <summary>按脚本能力决定鼠标入口与触发方式选项；只有一种触发可用时不摆出触发方式那组（键帽文案已带该字段）。</summary>
+    private void OnWindowPointerPressedTunnel(object? sender, PointerPressedEventArgs e)
+    {
+        if (FocusManager?.GetFocusedElement() is not TextBox) return;
+        for (Visual? cur = e.Source as Visual; cur != null; cur = cur.GetVisualParent())
+        {
+            if (cur is TextBox or ActionNumberInput) return;
+        }
+        FocusManager?.ClearFocus();
+    }
+
+    // ════════════════ 键盘与全局鼠标录制（方案 B：预设竖排 / 自定义折叠抽屉）════════════════
+
+    private void MountTriggerPanel(bool presetMode)
+    {
+        if (TriggerFormPanel == null || PresetTriggerSlot == null || CustomTriggerDrawerSlot == null) return;
+        MousePickPopup.IsOpen = false;
+        StopMousePrefixRecording();
+        if (_isRecording) StopRecording(false);
+
+        if (TriggerFormPanel.Parent is Panel oldParent)
+            oldParent.Children.Remove(TriggerFormPanel);
+
+        ApplyTriggerFormLayout(presetMode);
+
+        if (presetMode)
+        {
+            PresetTriggerSlot.Children.Add(TriggerFormPanel);
+        }
+        else
+        {
+            CustomTriggerDrawerSlot.Children.Add(TriggerFormPanel);
+            SetTriggerDrawerExpanded(_triggerDrawerExpanded);
+        }
+    }
+
+    private void ApplyTriggerFormLayout(bool presetMode)
+    {
+        TriggerFormPanel.Spacing = presetMode ? 12 : 8;
+        MousePickPopup.Placement = presetMode ? PlacementMode.Top : PlacementMode.Bottom;
+        MousePickPopup.VerticalOffset = presetMode ? 10 : -10;
+
+        static void ConfigureRow(Grid grid, TextBlock label, string title, Grid host, TextBlock tip, bool vertical)
+        {
+            if (vertical)
+            {
+                grid.ColumnDefinitions = new ColumnDefinitions("*");
+                grid.RowDefinitions = new RowDefinitions("Auto,Auto,Auto");
+                label.Text = title;
+                label.Classes.Set("secondary", false);
+                label.FontWeight = FontWeight.Medium;
+                label.Margin = new Thickness(0, 0, 0, 5);
+                Grid.SetRow(label, 0);
+                Grid.SetColumn(label, 0);
+                Grid.SetRow(host, 1);
+                Grid.SetColumn(host, 0);
+                Grid.SetRow(tip, 2);
+                Grid.SetColumn(tip, 0);
+            }
+            else
+            {
+                grid.ColumnDefinitions = new ColumnDefinitions("64,*");
+                grid.RowDefinitions = new RowDefinitions("Auto,Auto");
+                label.Text = title;
+                label.Classes.Set("secondary", true);
+                label.FontWeight = FontWeight.Normal;
+                label.Margin = new Thickness(0);
+                Grid.SetRow(label, 0);
+                Grid.SetColumn(label, 0);
+                Grid.SetRow(host, 0);
+                Grid.SetColumn(host, 1);
+                Grid.SetRow(tip, 1);
+                Grid.SetColumn(tip, 1);
+            }
+        }
+
+        ConfigureRow(HotKeyRowGrid, LblHotKey, "键盘快捷键", HotKeyControlHost, TxtHotKeyTip, presetMode);
+        ConfigureRow(MouseRowGrid, LblMouse, "全局鼠标", MouseControlHost, TxtMouseTip, presetMode);
+    }
+
+    private void OnTriggerDrawerToggleClick(object? sender, RoutedEventArgs e) =>
+        SetTriggerDrawerExpanded(!_triggerDrawerExpanded);
+
+    private void SetTriggerDrawerExpanded(bool expanded)
+    {
+        _triggerDrawerExpanded = expanded;
+        if (CustomTriggerDrawer != null) CustomTriggerDrawer.IsVisible = expanded;
+        if (TxtTriggerToggleLabel != null) TxtTriggerToggleLabel.Text = expanded ? "收起" : "设置";
+        if (!expanded)
+        {
+            MousePickPopup.IsOpen = false;
+            StopMousePrefixRecording();
+            if (_isRecording) StopRecording(false);
+        }
+    }
+
+    private void UpdateTriggerSummary()
+    {
+        if (TxtTriggerSummary == null) return;
+        string? hkConflict = _virtualKey != 0
+            ? Services.BuiltinShortcutsStore.FindActionConflict(_modifiers, _virtualKey,
+                _otherActions ?? Array.Empty<ActionDefinition>(), _originalAction, _otherShortcuts)
+            : null;
+        ActionDefinition currentMouse = ReadMouseBinding();
+        string mouseConflict = MouseBindingConflict(currentMouse);
+
+        if (hkConflict != null)
+        {
+            TxtTriggerSummary.Text = FormatHotKey(_modifiers, _virtualKey) + "（与" + hkConflict + "冲突）";
+            TxtTriggerSummary.FontWeight = FontWeight.Medium;
+            TxtTriggerSummary.Bind(TextBlock.ForegroundProperty,
+                new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SctDangerBrush"));
+            return;
+        }
+        if (mouseConflict.Length != 0)
+        {
+            TxtTriggerSummary.Text = ActionMouseBinding.Format(currentMouse) + "（" + mouseConflict + "）";
+            TxtTriggerSummary.FontWeight = FontWeight.Medium;
+            TxtTriggerSummary.Bind(TextBlock.ForegroundProperty,
+                new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SctDangerBrush"));
+            return;
+        }
+
+        bool hasKey = _virtualKey != 0;
+        bool hasMouse = currentMouse.HasMouseBinding;
+        string hkText = hasKey ? FormatHotKey(_modifiers, _virtualKey) : "快捷键未绑定";
+        string mouseText = !BtnMouseBinding.IsEnabled
+            ? "全局鼠标不支持"
+            : (hasMouse ? ActionMouseBinding.Format(currentMouse) : "全局鼠标未绑定");
+
+        TxtTriggerSummary.Text = (hasKey || hasMouse)
+            ? $"{hkText}  ·  {mouseText}"
+            : "未绑定快捷键或全局鼠标";
+        TxtTriggerSummary.FontWeight = (hasKey || hasMouse) ? FontWeight.Medium : FontWeight.Normal;
+        TxtTriggerSummary.Bind(TextBlock.ForegroundProperty,
+            new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(
+                (hasKey || hasMouse) ? "SctTextPrimaryBrush" : "SctTextMutedBrush"));
+    }
+
     private void RefreshMouseCapabilities(ActionMouseTrigger? preferred = null)
     {
         if (RadMouseDrag == null || RadMouseClick == null || TxtMouseTip == null) return;
-        string script = TxtScript.Text ?? "";
+        string script = _currentScript ?? "";
         bool click = ActionMouseBinding.SupportsClick(script);
         bool drag = ActionMouseBinding.SupportsDrag(script);
         preferred ??= RadMouseDrag.IsChecked == true ? ActionMouseTrigger.Drag
             : RadMouseClick.IsChecked == true ? ActionMouseTrigger.Click
             : drag ? ActionMouseTrigger.Drag : ActionMouseTrigger.Click;
+
         _updatingMouseUi = true;
         RadMouseDrag.IsEnabled = drag;
         RadMouseDrag.IsVisible = drag;
@@ -951,12 +970,12 @@ public partial class ActionEditorWindow : Window
         RadMouseClick.IsChecked = click && RadMouseDrag.IsChecked != true;
         TriggerRow.IsVisible = click && drag;
         _updatingMouseUi = false;
+
         BtnMouseBinding.IsEnabled = click || drag;
-        SetMouseTip(click || drag ? "" : "此脚本不支持鼠标");
+        SetMouseTip(click || drag ? "" : "当前动作不支持全局鼠标");
         UpdateMouseDisplay();
     }
 
-    /// <summary>把当前浮层控件状态读成动作对象；未勾选辅助键即未绑定（判据只有 Core 的 HasMouseBinding 一份）。</summary>
     private ActionDefinition ReadMouseBinding()
     {
         ActionMouseButton button = ActionMouseButton.Left;
@@ -974,31 +993,90 @@ public partial class ActionEditorWindow : Window
         };
     }
 
-    /// <summary>键帽文案现算自 Core 的统一格式化出口，与设置列表那枚鼠标胶囊同一份文本。</summary>
     private void UpdateMouseDisplay()
     {
-        if (BtnMouseBinding == null || BtnClearMouse == null) return;
+        if (BtnMouseBinding == null || BtnClearMouse == null || TxtMouseBinding == null) return;
         ActionDefinition current = ReadMouseBinding();
-        BtnMouseBinding.Content = current.HasMouseBinding ? ActionMouseBinding.Format(current) : "未绑定 · 点击设置";
-        BtnClearMouse.IsEnabled = current.HasMouseBinding;
-        if (BtnMousePrefix != null && _prefixRecorder == null)
-            BtnMousePrefix.Content = _mousePrefixKey.IsValid ? _mousePrefixKey.ToString() : "点击录制任意键";
-        if (BtnClearMousePrefix != null) BtnClearMousePrefix.IsEnabled = _mousePrefixKey.IsValid;
+        bool hasMouse = current.HasMouseBinding;
         string conflict = MouseBindingConflict(current);
-        if (conflict.Length != 0) SetMouseTip(conflict);
-        else if (ActionMouseBinding.SupportsClick(TxtScript.Text ?? "")) SetMouseTip("");
+        bool hasConflict = conflict.Length != 0;
+
+        if (!BtnMouseBinding.IsEnabled)
+        {
+            TxtMouseBinding.Text = "当前动作不支持全局鼠标";
+            BtnMouseBinding.Classes.Set("unbound", true);
+            BtnMouseBinding.Classes.Set("conflict", false);
+        }
+        else
+        {
+            TxtMouseBinding.Text = hasMouse ? ActionMouseBinding.Format(current) : "未绑定 · 点击设置";
+            BtnMouseBinding.Classes.Set("unbound", !hasMouse);
+            BtnMouseBinding.Classes.Set("conflict", hasConflict);
+        }
+
+        BtnClearMouse.IsVisible = hasMouse;
+
+        if (BtnMousePrefix != null && TxtMousePrefix != null && _prefixRecorder == null)
+        {
+            bool prefixBound = _mousePrefixKey.IsValid;
+            TxtMousePrefix.Text = prefixBound ? _mousePrefixKey.ToString() : "可选 · 点击录制";
+            BtnMousePrefix.Classes.Set("unbound", !prefixBound);
+            BtnMousePrefix.Classes.Set("recording", false);
+        }
+        if (BtnClearMousePrefix != null)
+            BtnClearMousePrefix.IsVisible = _mousePrefixKey.IsValid && _prefixRecorder == null;
+
+        if (TxtMousePopupPreview != null)
+        {
+            if (hasConflict)
+            {
+                TxtMousePopupPreview.Text = conflict;
+                TxtMousePopupPreview.Bind(TextBlock.ForegroundProperty,
+                    new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SctDangerBrush"));
+            }
+            else if (hasMouse)
+            {
+                TxtMousePopupPreview.Text = ActionMouseBinding.Format(current);
+                TxtMousePopupPreview.Bind(TextBlock.ForegroundProperty,
+                    new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SctWorkspaceBrandTextBrush"));
+            }
+            else
+            {
+                TxtMousePopupPreview.Text = "请选辅助键或录制引导键";
+                TxtMousePopupPreview.Bind(TextBlock.ForegroundProperty,
+                    new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SctTextMutedBrush"));
+            }
+        }
+        if (BtnMousePopupClear != null)
+            BtnMousePopupClear.IsVisible = hasMouse || _mousePrefixKey.IsValid;
+
+        if (hasConflict) SetMouseTip(conflict, isConflict: true);
+        else if (ActionMouseBinding.SupportsClick(_currentScript ?? "")) SetMouseTip("");
+        UpdateTriggerSummary();
     }
 
-    private void SetMouseTip(string text)
+    private void SetMouseTip(string text, bool isConflict = false)
     {
         TxtMouseTip.Text = text;
         TxtMouseTip.IsVisible = !string.IsNullOrEmpty(text);
+        TxtMouseTip.Bind(TextBlock.ForegroundProperty,
+            new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(isConflict ? "SctDangerBrush" : "SctTextMutedBrush"));
     }
 
-    /// <summary>点键帽展开浮层；浮层开着时对键帽的点击被遮罩吃掉，不需要自己再判一次开合。</summary>
     private void OnMouseBindingClick(object? sender, RoutedEventArgs e)
     {
-        if (BtnMouseBinding.IsEnabled) MousePickPopup.IsOpen = true;
+        if (!BtnMouseBinding.IsEnabled) return;
+        if (_isRecording) StopRecording(false);
+        MousePickPopup.IsOpen = !MousePickPopup.IsOpen;
+    }
+
+    private void OnMouseBindingPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton == MouseButton.Right && ReadMouseBinding().HasMouseBinding)
+        {
+            OnClearMouseClick(sender, e);
+            e.Handled = true;
+        }
     }
 
     private void OnClearMouseClick(object? sender, RoutedEventArgs e)
@@ -1030,15 +1108,18 @@ public partial class ActionEditorWindow : Window
         {
             nint handle = this.TryGetPlatformHandle()?.Handle ?? 0;
             if (handle == 0) throw new InvalidOperationException("录制窗口尚未就绪");
-            _prefixRecorder = new Services.MousePrefixRecorder(handle, key => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            _prefixRecorder = new Services.MousePrefixRecorder(handle, key => Dispatcher.UIThread.Post(() =>
             {
                 if (generation != _prefixRecordingGeneration) return;
                 _prefixRecorder = null; RestoreEditorHotkeys();
                 if (key.IsValid) AcceptMousePrefixKey(key);
                 else { UpdateMouseDisplay(); SetMousePrefixTip("录制已取消，原绑定保留。"); }
             }));
-            BtnMousePrefix.Content = "取消录制";
-            SetMousePrefixTip("按下并松开一个键；Esc 也可录制，点击上方按钮取消。");
+            BtnMousePrefix.Classes.Set("unbound", false);
+            BtnMousePrefix.Classes.Set("recording", true);
+            BtnClearMousePrefix.IsVisible = false;
+            TxtMousePrefix.Text = "请按任意键…";
+            SetMousePrefixTip("按下并松开一个键；Esc 也可录制，再次点击按钮可取消。");
         }
         catch (Exception ex)
         { RestoreEditorHotkeys(); SetMousePrefixTip("无法开始录制：" + ex.Message); }
@@ -1068,10 +1149,10 @@ public partial class ActionEditorWindow : Window
                 if (ReferenceEquals(other, _originalAction)) continue;
                 if (ActionMouseBinding.Conflicts(other, mouse)) return "此组合已绑定「" + other.Name + "」";
                 if (mouse.MousePrefixKey.IsValid && other.HasHotKey && other.HotKeyVirtualKey == mouse.MousePrefixKey.VirtualKey
-                    && other.HotKeyModifiers == ActionMouseBinding.EffectiveModifiers(mouse)) return "引导键与「" + other.Name + "」的键盘快捷键冲突";
+                    && other.HotKeyModifiers == ActionMouseBinding.EffectiveModifiers(mouse)) return "引导键与「" + other.Name + "」的快捷键冲突";
             }
         if (mouse.MousePrefixKey.IsValid && _virtualKey == mouse.MousePrefixKey.VirtualKey
-            && _modifiers == ActionMouseBinding.EffectiveModifiers(mouse)) return "引导键与当前动作的键盘快捷键冲突";
+            && _modifiers == ActionMouseBinding.EffectiveModifiers(mouse)) return "引导键与当前动作快捷键冲突";
         return "";
     }
 
@@ -1089,96 +1170,18 @@ public partial class ActionEditorWindow : Window
     private void OnClearMousePrefixClick(object? sender, RoutedEventArgs e)
     { StopMousePrefixRecording(); _mousePrefixKey = default; SetMousePrefixTip(""); UpdateMouseDisplay(); }
 
-    /// <summary>生成当前脚本对应的完整命令行（内嵌双引号转单引号避免破坏命令行引号结构）。</summary>
-    private string BuildCommandString()
-    {
-        string script = TxtScript.Text?.Trim() ?? "";
-        if (script.Length == 0) return "yuSnip.exe -r \"\"";
-        return "yuSnip.exe -r \"" + script.Replace("\"", "'") + "\"";
-    }
-
-    /// <summary>刷新命令行预览文本（单行展示，超长省略）。</summary>
-    private void UpdateCommandPreview()
-    {
-        if (TxtCommandPreview == null) return;
-        string cmd = BuildCommandString().Replace("\r", " ").Replace("\n", " ");
-        TxtCommandPreview.Text = cmd;
-    }
-
-    /// <summary>点击命令行预览：复制完整命令到剪贴板。</summary>
-    private async void OnCommandPreviewClick(object? sender, Avalonia.Input.PointerPressedEventArgs e)
-    {
-        try
-        {
-            string cmd = BuildCommandString();
-            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-            if (clipboard != null)
-            {
-                await clipboard.SetTextAsync(cmd);
-                TxtCommandPreview.Text = "已复制：" + cmd;
-                await Task.Delay(1200);
-                UpdateCommandPreview();
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warn("ActionEditorWindow.OnCommandPreviewClick 复制失败: " + ex.Message);
-        }
-    }
-
-    private void OnPresetSelectionChanged(object? sender, SelectionChangedEventArgs? e)
-    {
-        if (_isUpdatingPresetUi) return;
-        if (CmbPreset.SelectedItem is not ComboBoxItem item) return;
-        if (item.Classes.Contains("groupHeader") || !item.IsEnabled) return;
-
-        string? presetId = item.Tag?.ToString();
-        if (string.IsNullOrEmpty(presetId)) return;
-
-        var preset = ActionsStore.FindPresetById(presetId);
-        if (preset == null) return;
-
-        var (id, name, script) = preset.Value;
-        TxtName.Text = name;
-        TxtScript.Text = script;
-        _actionId = id;
-        _isBuiltin = true;
-        UpdateActionFields(true);
-        SetStepError("");
-        // 如果尚未录制快捷键，且该预设存在推荐热键，则自动带出
-        if (_modifiers == 0 && _virtualKey == 0)
-        {
-            if (ActionsStore.TryGetBuiltinDefaultHotKey(id, out uint defMods, out uint defVk))
-            {
-                _modifiers = defMods;
-                _virtualKey = defVk;
-                UpdateHotKeyDisplay();
-                SetHotKeyTip("已填入推荐快捷键。");
-            }
-        }
-    }
-
     private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        {
-            BeginMoveDrag(e);
-        }
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
     }
 
-    private void OnCloseClick(object? sender, RoutedEventArgs e)
-    {
-        Close(false);
-    }
+    private void OnCloseClick(object? sender, RoutedEventArgs e) => Close(false);
 
     private void OnRecordHotKeyClick(object? sender, RoutedEventArgs e)
     {
         StopMousePrefixRecording();
-        if (_isRecording)
-        {
-            StopRecording(false);
-            return;
-        }
+        MousePickPopup.IsOpen = false;
+        if (_isRecording) { StopRecording(false); return; }
 
         _isRecording = true;
         if (Application.Current is App app && !app.GlobalHotkeysSuspended)
@@ -1186,10 +1189,12 @@ public partial class ActionEditorWindow : Window
             app.SuspendGlobalHotkeys();
             _ownsHotkeySuspension = true;
         }
-        TxtHotKey.Text = "请按下快捷键…";
-        SetHotKeyTip("请按下快捷键（Esc 取消）。");
-
-        HotKeyDisplayBorder.Classes.Add("recording");
+        TxtHotKey.Text = "按下组合键…";
+        SetHotKeyTip("支持 Ctrl/Alt/Shift/Win 组合，或单按 F1–F12、PrtSc（Esc 取消）。");
+        HotKeyDisplayBorder.Classes.Set("unbound", false);
+        HotKeyDisplayBorder.Classes.Set("conflict", false);
+        HotKeyDisplayBorder.Classes.Set("recording", true);
+        BtnClearHotKey.IsVisible = false;
 
         Focus();
         int generation = ++_keyboardRecordingGeneration;
@@ -1198,20 +1203,29 @@ public partial class ActionEditorWindow : Window
             nint handle = this.TryGetPlatformHandle()?.Handle ?? 0;
             if (handle == 0) throw new InvalidOperationException("录制窗口尚未就绪");
             _keyboardRecorder = new Services.KeyboardShortcutRecorder(handle,
-                (modifiers, key) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                (modifiers, key) => Dispatcher.UIThread.Post(() =>
                 {
                     if (generation != _keyboardRecordingGeneration) return;
                     _keyboardRecorder = null;
                     if (key == 0) StopRecording(false);
                     else AcceptKeyboardShortcut(modifiers, key);
                 }),
-                () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                () => Dispatcher.UIThread.Post(() =>
                 {
                     if (generation == _keyboardRecordingGeneration)
                         SetHotKeyTip("请使用带辅助键的组合，或单按 F1–F12、PrtSc。");
                 }));
         }
         catch (Exception ex) { StopRecording(false); SetHotKeyTip("无法开始录制：" + ex.Message); }
+    }
+
+    private void OnHotKeyPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton == MouseButton.Right && (_virtualKey != 0 || _isRecording))
+        {
+            OnClearHotKeyClick(sender, e);
+            e.Handled = true;
+        }
     }
 
     private void AcceptKeyboardShortcut(uint modifiers, uint key)
@@ -1222,7 +1236,7 @@ public partial class ActionEditorWindow : Window
         if (conflict != null)
         {
             StopRecording(false);
-            SetHotKeyTip(FormatHotKey(modifiers, key) + " 已被" + conflict + "占用，请重新录制。", true);
+            SetHotKeyTip(FormatHotKey(modifiers, key) + " 已被" + conflict + "占用，请重录。", true);
             return;
         }
         _modifiers = modifiers; _virtualKey = key;
@@ -1237,9 +1251,7 @@ public partial class ActionEditorWindow : Window
         var recorder = _keyboardRecorder; _keyboardRecorder = null; recorder?.Dispose();
         RestoreEditorHotkeys();
         UpdateHotKeyDisplay();
-
         HotKeyDisplayBorder.Classes.Remove("recording");
-
         if (!keepNew)
         {
             UpdateHotKeyDisplay();
@@ -1265,7 +1277,17 @@ public partial class ActionEditorWindow : Window
 
     private void UpdateHotKeyDisplay()
     {
-        TxtHotKey.Text = (_virtualKey != 0) ? FormatHotKey(_modifiers, _virtualKey) : "未绑定 · 点击录制";
+        bool bound = _virtualKey != 0;
+        TxtHotKey.Text = bound ? FormatHotKey(_modifiers, _virtualKey) : "未绑定 · 点击录制";
+        HotKeyDisplayBorder.Classes.Set("unbound", !bound && !_isRecording);
+        BtnClearHotKey.IsVisible = bound && !_isRecording;
+
+        string? conflict = bound
+            ? Services.BuiltinShortcutsStore.FindActionConflict(_modifiers, _virtualKey,
+                _otherActions ?? Array.Empty<ActionDefinition>(), _originalAction, _otherShortcuts)
+            : null;
+        HotKeyDisplayBorder.Classes.Set("conflict", conflict != null);
+        UpdateTriggerSummary();
     }
 
     private void SetHotKeyTip(string text, bool conflict = false)
@@ -1276,132 +1298,19 @@ public partial class ActionEditorWindow : Window
             new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(conflict ? "SctDangerBrush" : "SctTextMutedBrush"));
     }
 
-    private async void OnTestClick(object? sender, RoutedEventArgs e)
-    {
-        string script = (TxtScript.Text ?? "").Trim();
-        if (string.IsNullOrEmpty(script))
-        {
-            SetStepError("请先添加一个操作步骤。");
-            return;
-        }
-
-        try
-        {
-            if (Application.Current is App app)
-            {
-                if (!ScriptExecutor.TryParse(script, out _, out string error)) { SetStepError(error); return; }
-                BtnTest.IsEnabled = false;
-                SetStepError("");
-                SetHotKeyTip("已开始试运行，请完成屏幕上的操作。");
-                bool completed = await app.RunScriptAsync(script);
-                SetHotKeyTip(completed ? "动作已完成，所有模块已按顺序执行。" : "动作已停止，后续模块没有执行。");
-            }
-        }
-        catch (Exception ex)
-        {
-            SetStepError("试运行未完成：" + ex.Message);
-        }
-        finally { BtnTest.IsEnabled = true; }
-    }
-
-    private void OnSaveClick(object? sender, RoutedEventArgs e)
-    {
-        StopMousePrefixRecording();
-        if (_isRecording) StopRecording(false);
-
-        string name = (TxtName.Text ?? "").Trim();
-        string script = (TxtScript.Text ?? "").Trim();
-
-        if (string.IsNullOrEmpty(name))
-        {
-            SetHotKeyTip("请输入动作名称。");
-            TxtName.Focus();
-            return;
-        }
-
-        string? keyboardConflict = Services.BuiltinShortcutsStore.FindActionConflict(_modifiers, _virtualKey,
-            _otherActions ?? Array.Empty<ActionDefinition>(), _originalAction, _otherShortcuts);
-        if (keyboardConflict != null)
-        { SetHotKeyTip("此组合已被" + keyboardConflict + "占用，请重新录制。", true); return; }
-
-        if (string.IsNullOrEmpty(script))
-        {
-            SetStepError("请至少添加一个操作步骤。");
-            TxtScript.Focus();
-            return;
-        }
-
-        if (!ScriptExecutor.TryParse(script, out _, out string scriptError))
-        {
-            SetStepError(scriptError);
-            return;
-        }
-
-        var mouse = ReadMouseBinding();
-        string mouseConflict = MouseBindingConflict(mouse);
-        if (mouseConflict.Length != 0) { SetMouseTip(mouseConflict); return; }
-        if (mouse.HasMouseBinding && !(mouse.MouseTrigger == ActionMouseTrigger.Drag
-                ? ActionMouseBinding.SupportsDrag(script) : ActionMouseBinding.SupportsClick(script)))
-        {
-            SetMouseTip("此动作不支持该触发方式，请重选");
-            return;
-        }
-        if (mouse.HasMouseBinding && _otherActions != null)
-        {
-            foreach (var other in _otherActions)
-            {
-                if (ReferenceEquals(other, _originalAction) || !other.HasMouseBinding) continue;
-                if (ActionMouseBinding.Conflicts(other, mouse))
-                {
-                    SetMouseTip("此组合已绑定「" + other.Name + "」");
-                    return;
-                }
-            }
-        }
-
-        // 如果用户选择了“自定义”，且原来不是预设 ID，确保生成 custom. 前缀
-        if (!_isBuiltin && (_isNew || _actionId.StartsWith("builtin.")))
-        {
-            _actionId = ActionDefinition.NewCustomId();
-            _isBuiltin = false;
-            UpdateActionFields(false);
-        }
-
-        ResultAction = new ActionDefinition
-        {
-            Id = _actionId,
-            Name = name,
-            Script = script,
-            IsBuiltin = _isBuiltin,
-            HotKeyModifiers = _modifiers,
-            HotKeyVirtualKey = _virtualKey,
-            MouseModifiers = mouse.MouseModifiers,
-            MouseButton = mouse.MouseButton,
-            MouseTrigger = mouse.MouseTrigger,
-            MousePrefixKey = mouse.MousePrefixKey,
-            // 动作存在于列表即生效，删除即停用（docs/configuration.md 的 v2.1 口径），窗内不再放第二份启用状态
-            Enabled = true,
-        };
-
-        // 预设类型与实例身份分开：同一预设可以绑定多组键，但每条动作必须有唯一 ID。
-        if (ResultAction != null && _otherActions != null)
-            ActionsStore.EnsureUniqueIdentity(ResultAction, _otherActions, _originalAction);
-        Close(true);
-    }
-
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
         if (_prefixRecorder != null) { e.Handled = true; return; }
-        if (e.Key == Key.Escape && _moduleDrag.IsActive)
+        if (e.Key == Key.Escape && (PipelineView.IsDragging || PalettePanel.IsDragging))
         {
-            _moduleDrag.Reset();
-            ClearModuleDragVisuals();
+            PalettePanel.CancelActiveDrag();
+            PipelineView.CancelActiveDrag();
+            ClearDragGhost();
             e.Handled = true;
             return;
         }
         if (!_isRecording) return;
         e.Handled = true;
-        // 原生录制器配对拦截所有待录键，避免 Tab／Space 驱动窗口默认操作。
     }
 
     private static string FormatHotKey(uint modifiers, uint vk)

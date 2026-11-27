@@ -74,11 +74,18 @@
 
         <!-- 指南代码盒 -->
         <Style Selector="Border.guideBox">
-            <Setter Property="Background" Value="{DynamicResource SctTitleBarBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SctInputBgBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SctSoftBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusCard}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SctRadiusControl}" />
             <Setter Property="Padding" Value="14,10" />
+        </Style>
+
+        <Style Selector="Border.guideFlagBadge">
+            <Setter Property="Background" Value="{DynamicResource SctBadgeBgBrush}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         
         <!-- 文本链接按钮（Button.link）已上提到全局 Themes/Controls.axaml -->
@@ -1922,18 +1929,16 @@
 
                                 <!-- 顶部控制栏：五段式页签切换 + 辅助按钮 -->
                                 <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <!-- 五段式分段切换：截图 / 贴图 / 录屏 / 全局动作 / 外部调用指引
-                                         （"录屏"是 2026-09-29 补的一档：录制会话键此前散在三套机制里，
-                                          设置页连一栏都没有，只在全局动作视图下挂一张只读卡） -->
+                                    <!-- 五段式分段切换：全局动作 / 截图 / 贴图 / 录屏 / 外部调用指引 -->
                                     <controls:ContinuousBorder Grid.Column="0" Classes="segmentedGroup">
                                         <StackPanel Orientation="Horizontal">
-                                            <RadioButton x:Name="RadActionTabCapture" GroupName="GrpActionTabs" Classes="segmented" Content="截图" IsChecked="True" IsCheckedChanged="OnActionTabSelectionChanged" />
+                                            <RadioButton x:Name="RadActionTabGlobal" GroupName="GrpActionTabs" Classes="segmented" Content="全局动作" IsChecked="True" IsCheckedChanged="OnActionTabSelectionChanged" />
+                                            <Rectangle Classes="segmentedDivider" />
+                                            <RadioButton x:Name="RadActionTabCapture" GroupName="GrpActionTabs" Classes="segmented" Content="截图" IsCheckedChanged="OnActionTabSelectionChanged" />
                                             <Rectangle Classes="segmentedDivider" />
                                             <RadioButton x:Name="RadActionTabSticker" GroupName="GrpActionTabs" Classes="segmented" Content="贴图" IsCheckedChanged="OnActionTabSelectionChanged" />
                                             <Rectangle Classes="segmentedDivider" />
                                             <RadioButton x:Name="RadActionTabRecord" GroupName="GrpActionTabs" Classes="segmented" Content="录屏" IsCheckedChanged="OnActionTabSelectionChanged" />
-                                            <Rectangle Classes="segmentedDivider" />
-                                            <RadioButton x:Name="RadActionTabGlobal" GroupName="GrpActionTabs" Classes="segmented" Content="全局动作" IsCheckedChanged="OnActionTabSelectionChanged" />
                                             <Rectangle Classes="segmentedDivider" />
                                             <RadioButton x:Name="RadActionTabGuide" GroupName="GrpActionTabs" Classes="segmented" Content="外部调用指引" IsCheckedChanged="OnActionTabSelectionChanged" />
                                         </StackPanel>
@@ -1942,12 +1947,22 @@
                                     <!-- 右侧按钮组 -->
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <Button x:Name="BtnResetAllDefaults" Content="恢复默认" MinWidth="80" Click="OnResetAllShortcutDefaultsClick" ToolTip.Tip="恢复默认快捷键设置" />
-                                        <Button x:Name="BtnAddAction" Content="＋ 新增动作" Classes="primary" MinWidth="96" Click="OnAddActionClick" IsVisible="False" />
+                                        <Button x:Name="BtnAddAction" Content="＋ 新增动作" Classes="primary" MinWidth="96" Click="OnAddActionClick" IsVisible="True" />
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- 视图 1：截图会话快捷键 -->
-                                <StackPanel x:Name="PnlViewCapture" Spacing="10">
+                                <!-- 视图 1：全局动作快捷键 -->
+                                <StackPanel x:Name="PnlViewGlobalActions" Spacing="10">
+                                    <controls:ContinuousBorder Classes="card">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock Text="每个动作可同时绑定键盘快捷键与全局鼠标，也可清空后通过 CLI 调用。鼠标需含辅助键；支持选区的动作可直接拖动框选。" Classes="cardDesc" TextWrapping="Wrap" />
+                                            <StackPanel x:Name="ActionListPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+                                </StackPanel>
+
+                                <!-- 视图 2：截图会话快捷键 -->
+                                <StackPanel x:Name="PnlViewCapture" Spacing="10" IsVisible="False">
                                     <controls:ContinuousBorder Classes="card">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text="截图会话期间的窗口级快捷键，仅在截图窗口前台时生效。点击右侧键帽重新录制。" Classes="cardDesc" />
@@ -1958,7 +1973,7 @@
                                     <TextBlock x:Name="TxtCaptureHotKeyTip" Text="" Classes="fieldHint" Margin="4,0,0,0" Foreground="{DynamicResource SctAccentBrush}" />
                                 </StackPanel>
 
-                                <!-- 视图 2：贴图窗口快捷键 -->
+                                <!-- 视图 3：贴图窗口快捷键 -->
                                 <StackPanel x:Name="PnlViewSticker" Spacing="10" IsVisible="False">
                                     <controls:ContinuousBorder Classes="card">
                                         <StackPanel Spacing="8">
@@ -1970,7 +1985,7 @@
                                     <TextBlock x:Name="TxtStickerHotKeyTip" Text="" Classes="fieldHint" Margin="4,0,0,0" Foreground="{DynamicResource SctAccentBrush}" />
                                 </StackPanel>
 
-                                <!-- 视图 3：录屏会话快捷键 -->
+                                <!-- 视图 4：录屏会话快捷键 -->
                                 <StackPanel x:Name="PnlViewRecord" Spacing="10" IsVisible="False">
                                     <controls:ContinuousBorder Classes="card">
                                         <StackPanel Spacing="8">
@@ -1982,34 +1997,140 @@
                                     <TextBlock x:Name="TxtRecordHotKeyTip" Text="" Classes="fieldHint" Margin="4,0,0,0" Foreground="{DynamicResource SctAccentBrush}" />
                                 </StackPanel>
 
-                                <!-- 视图 4：全局动作快捷键 -->
-                                <StackPanel x:Name="PnlViewGlobalActions" Spacing="10" IsVisible="False">
-                                    <controls:ContinuousBorder Classes="card">
-                                        <StackPanel Spacing="10">
-                                            <TextBlock Text="每个动作可同时绑定键盘快捷键与全局鼠标，也可清空后通过 CLI 调用。鼠标需含辅助键；支持选区的动作可直接拖动框选。" Classes="cardDesc" TextWrapping="Wrap" />
-                                            <StackPanel x:Name="ActionListPanel" Spacing="6" />
-                                        </StackPanel>
-                                    </controls:ContinuousBorder>
-                                </StackPanel>
-
                                 <!-- 视图 5：外部调用指引 -->
                                 <StackPanel x:Name="PnlViewGuide" Spacing="14" IsVisible="False">
+                                    <!-- 卡片 1：交互式命令生成器 -->
                                     <controls:ContinuousBorder Classes="card">
-                                        <StackPanel Spacing="14">
+                                        <StackPanel Spacing="12">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="快速生成命令" Classes="cardTitle" Margin="0,0,0,4" />
+                                                <TextBlock Text="选择任意已保存的动作，自动带入当前程序路径并生成可直接粘贴到 Quicker、脚本或快捷方式的命令。" Classes="fieldHint" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <Grid ColumnDefinitions="68,*,Auto">
+                                                <TextBlock Text="程序路径" Classes="fieldLabel" VerticalAlignment="Center" />
+                                                <controls:ContinuousBorder Grid.Column="1" Classes="guideBox" Padding="10,7" Margin="0,0,8,0">
+                                                    <TextBlock x:Name="TxtGuideExePath" FontFamily="Consolas, 'Cascadia Code', monospace" FontSize="12"
+                                                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource SctTextSecondaryBrush}" VerticalAlignment="Center" />
+                                                </controls:ContinuousBorder>
+                                                <Button Grid.Column="2" Content="复制路径" MinWidth="84" Click="OnCopyGuideExePathClick" />
+                                            </Grid>
+
+                                            <Grid ColumnDefinitions="68,*,Auto">
+                                                <TextBlock Text="选择动作" Classes="fieldLabel" VerticalAlignment="Center" />
+                                                <ComboBox x:Name="CmbGuideAction" Grid.Column="1" HorizontalAlignment="Stretch" MaxDropDownHeight="320"
+                                                          Margin="0,0,8,0" SelectionChanged="OnGuideActionSelectionChanged" />
+                                                <controls:ContinuousBorder Grid.Column="2" Classes="segmentedGroup">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <RadioButton x:Name="RadGuideModeName" GroupName="GrpGuideMode" Classes="segmented" Content="按名称 (-a)" IsChecked="True" IsCheckedChanged="OnGuideModeCheckedChanged" />
+                                                        <Rectangle Classes="segmentedDivider" />
+                                                        <RadioButton x:Name="RadGuideModeScript" GroupName="GrpGuideMode" Classes="segmented" Content="内联脚本 (-r)" IsCheckedChanged="OnGuideModeCheckedChanged" />
+                                                    </StackPanel>
+                                                </controls:ContinuousBorder>
+                                            </Grid>
+
                                             <controls:ContinuousBorder Classes="guideBox">
-                                                <StackPanel Spacing="8">
-                                                    <TextBlock Text="# 1. 按名称调用已保存的动作：" Foreground="{DynamicResource SctTextMutedBrush}" FontFamily="Consolas, monospace" FontSize="12" />
-                                                    <TextBlock Text="yuSnip.exe -a &quot;截图并OCR（弹窗）&quot;" Foreground="{DynamicResource SctAccentBrush}" FontFamily="Consolas, monospace" FontSize="13" />
-                                                    <controls:ContinuousBorder Classes="softDivider" Margin="0,4" />
-                                                    <TextBlock Text="# 2. 直接执行单行 JavaScript 脚本指令：" Foreground="{DynamicResource SctTextMutedBrush}" FontFamily="Consolas, monospace" FontSize="12" />
-                                                    <TextBlock Text="yuSnip.exe -r &quot;yuSnip.translate('Silent');&quot;" Foreground="{DynamicResource SctAccentBrush}" FontFamily="Consolas, monospace" FontSize="13" />
-                                                    <controls:ContinuousBorder Classes="softDivider" Margin="0,4" />
-                                                    <TextBlock Text="# 3. 从外部 .js 脚本文件执行：" Foreground="{DynamicResource SctTextMutedBrush}" FontFamily="Consolas, monospace" FontSize="12" />
-                                                    <TextBlock Text="yuSnip.exe -f &quot;C:\Scripts\my_custom_action.js&quot;" Foreground="{DynamicResource SctAccentBrush}" FontFamily="Consolas, monospace" FontSize="13" />
-                                                </StackPanel>
+                                                <TextBlock x:Name="TxtGuideGeneratedCmd" FontFamily="Consolas, 'Cascadia Code', monospace" FontSize="12.5"
+                                                           Foreground="{DynamicResource SctAccentBrush}" TextWrapping="Wrap" />
                                             </controls:ContinuousBorder>
+
+                                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                                <Button Content="测试运行" MinWidth="84" Click="OnTestGuideActionClick" />
+                                                <Button Content="复制参数" MinWidth="84" Click="OnCopyGuideArgsClick" />
+                                                <Button Content="复制完整命令" Classes="primary" MinWidth="108" Click="OnCopyGuideFullCmdClick" />
+                                            </StackPanel>
                                         </StackPanel>
                                     </controls:ContinuousBorder>
+
+                                    <!-- 卡片 2：三种命令行参数说明 -->
+                                    <controls:ContinuousBorder Classes="card">
+                                        <StackPanel Spacing="12">
+                                            <TextBlock Text="命令行参数说明" Classes="cardTitle" Margin="0" />
+
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Spacing="6" Margin="0,0,12,0">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <controls:ContinuousBorder Classes="guideFlagBadge">
+                                                            <TextBlock Text="-a / --action" FontFamily="Consolas, monospace" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource SctBadgeTextBrush}" />
+                                                        </controls:ContinuousBorder>
+                                                        <TextBlock Text="按动作名称调用（推荐）" Classes="fieldLabel" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="触发「全局动作」中已保存的预设或自定义动作，后续修改动作步骤或参数时外部命令无需改动。" Classes="fieldHint" TextWrapping="Wrap" />
+                                                    <TextBlock Text="yuSnip.exe -a &quot;区域截图&quot;" FontFamily="Consolas, monospace" FontSize="12" Foreground="{DynamicResource SctAccentBrush}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="复制" MinWidth="64" VerticalAlignment="Center"
+                                                        Tag="yuSnip.exe -a &quot;区域截图&quot;" Click="OnCopyGuideExampleClick" />
+                                            </Grid>
+
+                                            <controls:ContinuousBorder Classes="softDivider" />
+
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Spacing="6" Margin="0,0,12,0">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <controls:ContinuousBorder Classes="guideFlagBadge">
+                                                            <TextBlock Text="-r" FontFamily="Consolas, monospace" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource SctBadgeTextBrush}" />
+                                                        </controls:ContinuousBorder>
+                                                        <TextBlock Text="直接执行单行脚本" Classes="fieldLabel" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="无需事先保存动作，可直接传入多步流程与单次圆角、描边、阴影覆写参数；脚本内引号请使用单引号。" Classes="fieldHint" TextWrapping="Wrap" />
+                                                    <TextBlock Text="yuSnip.exe -r &quot;yuSnip.captureImage('原图', 'shadow=on'); yuSnip.pinResult('原图');&quot;" FontFamily="Consolas, monospace" FontSize="12" Foreground="{DynamicResource SctAccentBrush}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="复制" MinWidth="64" VerticalAlignment="Center"
+                                                        Tag="yuSnip.exe -r &quot;yuSnip.captureImage('原图', 'shadow=on'); yuSnip.pinResult('原图');&quot;" Click="OnCopyGuideExampleClick" />
+                                            </Grid>
+
+                                            <controls:ContinuousBorder Classes="softDivider" />
+
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Spacing="6" Margin="0,0,12,0">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <controls:ContinuousBorder Classes="guideFlagBadge">
+                                                            <TextBlock Text="-f" FontFamily="Consolas, monospace" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource SctBadgeTextBrush}" />
+                                                        </controls:ContinuousBorder>
+                                                        <TextBlock Text="从外部脚本文件执行" Classes="fieldLabel" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="读取本地 .js 文件并执行，适合步骤较多、逻辑较长的自定义自动化脚本。" Classes="fieldHint" TextWrapping="Wrap" />
+                                                    <TextBlock Text="yuSnip.exe -f &quot;C:\Scripts\my_custom_action.js&quot;" FontFamily="Consolas, monospace" FontSize="12" Foreground="{DynamicResource SctAccentBrush}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="复制" MinWidth="64" VerticalAlignment="Center"
+                                                        Tag="yuSnip.exe -f &quot;C:\Scripts\my_custom_action.js&quot;" Click="OnCopyGuideExampleClick" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+
+                                    <!-- 卡片 3：常见工具接入参考 -->
+                                    <controls:ContinuousBorder Classes="card">
+                                        <StackPanel Spacing="12">
+                                            <TextBlock Text="常见工具接入参考" Classes="cardTitle" Margin="0" />
+
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="Quicker / 启动器（如 Listary、uTools）" Classes="fieldLabel" />
+                                                <TextBlock Text="添加「运行或打开」步骤，程序路径填入上方复制的路径，参数栏直接粘贴上方「复制参数」内容（例如 -a &quot;区域截图&quot;）即可。" Classes="fieldHint" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <controls:ContinuousBorder Classes="softDivider" />
+
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Spacing="6" Margin="0,0,12,0">
+                                                    <TextBlock Text="AutoHotkey v2" Classes="fieldLabel" />
+                                                    <controls:ContinuousBorder Classes="guideBox" Padding="10,7">
+                                                        <TextBlock x:Name="TxtGuideAhkSnippet" FontFamily="Consolas, 'Cascadia Code', monospace" FontSize="12"
+                                                                   Foreground="{DynamicResource SctTextSecondaryBrush}" TextWrapping="Wrap" />
+                                                    </controls:ContinuousBorder>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="复制" MinWidth="64" VerticalAlignment="Bottom" Click="OnCopyGuideAhkClick" />
+                                            </Grid>
+
+                                            <controls:ContinuousBorder Classes="softDivider" />
+
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="桌面快捷方式 / PowerShell / 批处理" Classes="fieldLabel" />
+                                                <TextBlock Text="在快捷方式「目标」末尾追加 -a &quot;动作名称&quot; 即可直接触发；无需在全局动作里绑定快捷键。" Classes="fieldHint" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </controls:ContinuousBorder>
+
+                                    <TextBlock Text="提示：yuSnip 支持单实例快速转发——软件已在后台运行时，外部命令会直接唤醒现有进程执行，不会重复启动。" Classes="hintRow" />
                                 </StackPanel>
                             </StackPanel>
 

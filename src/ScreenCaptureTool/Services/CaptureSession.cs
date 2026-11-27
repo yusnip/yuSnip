@@ -293,6 +293,16 @@ public sealed class CaptureSession
 
     internal bool SuppressCaptureStroke { get; init; }
 
+    /// <summary>单次自定义动作传入的外观与交互覆盖项（不写入全局 settings）。</summary>
+    internal ScreenCaptureTool.Core.Scripting.ActionCaptureOptions CaptureOverrides { get; init; }
+    private int? _liveRadiusOverride;
+    private int? _liveStrokeOverride;
+    private bool? _liveShadowOverride;
+    private bool ShouldPersistCaptureEffects => !(CaptureOverrides.HasAnyOverride || SuppressCaptureStroke);
+
+    private bool AutoConfirmOnSelection => !string.IsNullOrEmpty(ScriptAction)
+        && !(ScriptAction == "Workflow" && CaptureOverrides.ShowToolbar == true);
+
     /// <summary>全局鼠标入口传入的原始拖动，使用屏幕物理坐标。</summary>
     public MouseActionGesture? MouseGesture { get; set; }
     private Action? _refreshMouseGesture;
@@ -412,9 +422,13 @@ public sealed class CaptureSession
             // 0. 先建 autoDetect：它只是持有配置字段、成本可忽略；提前构造的唯一目的是让下面 1b 的
             //    prewarmTask 能在截屏和 CaptureWindow 构造期间并行推进。「预热必须完成于 Show 之前」
             //    的 QQ 塌缩不变量由第 4 步的 WhenAny await 原样守住，await 位置与旧写法等价。
+            _liveRadiusOverride = CaptureOverrides.CornerRadiusOverride;
+            _liveStrokeOverride = CaptureOverrides.StrokeWidthOverride;
+            _liveShadowOverride = CaptureOverrides.ShadowOverride;
+
             autoDetect = new AutoDetectController();
             autoDetect.IsPaused = startsWithMouseDrag;
-            autoDetect.Mode = DetectModeExtensions.FromLegacyString(_settings.AutoDetectMode);
+            autoDetect.Mode = DetectModeExtensions.FromLegacyString(CaptureOverrides.DetectModeOverride ?? _settings.AutoDetectMode);
             // 「检测元素」悬停检测参数（用户可配）
             autoDetect.ElementDwellMs = _settings.ElementDwellMs;
             autoDetect.ElementDwellDeadbandPx = _settings.ElementDwellDeadbandPx;
@@ -734,11 +748,13 @@ public sealed class CaptureSession
             {
                 if (ScriptAction == "Workflow" && CapturedImageSink != null)
                 {
+                    int radiusPx = CaptureCornerRadiusPx;
                     int strokePx = CaptureStrokePx;
+                    bool shadow = UseCaptureShadow;
                     Bitmap? image = CreateCroppedResultBitmap(frame, completion.Region, annotations, window?.TextLayers, "组合动作",
-                        strokePx: strokePx, strokeArgb: CaptureStrokeArgb);
+                        radiusPx, shadow, strokePx, CaptureStrokeArgb, _activeWindow?.CurrentWatermark);
                     if (image == null) return null;
-                    int padding = SelectionEffects.StrokeMarginOf(strokePx);
+                    int padding = SelectionEffects.MarginOf(shadow, strokePx);
                     var imageRegion = Rectangle.Inflate(completion.Region, padding, padding);
                     try { CapturedImageSink(image, imageRegion); }
                     catch { image.Dispose(); throw; }
@@ -773,10 +789,10 @@ public sealed class CaptureSession
             {
                 if (window != null)
                 {
-                    // 保存当前标注工具参数，供下次会话恢复
+                    // 保存当前标注工具参数，供下次会话恢复（带单次动作覆盖时不回写圆角/描边/阴影）
                     try
                     {
-                        window.CaptureAnnotationDefaults(_settings);
+                        window.CaptureAnnotationDefaults(_settings, includeCaptureEffects: ShouldPersistCaptureEffects);
                         _settings.Save();
                         if (AppLogger.DetailedLoggingEnabled) AppLogger.Debug("CaptureSession: 已保存标注工具参数");
                     }
@@ -1155,7 +1171,7 @@ public sealed class CaptureSession
             window.Layer.EffectRadiusPx = CaptureCornerRadiusPx;
             window.Layer.EffectStrokePx = CaptureStrokePx;
             window.Layer.EffectStrokeArgb = CaptureStrokeArgb;
-            window.Layer.EffectShadow = _settings.CaptureShadow;
+            window.Layer.EffectShadow = UseCaptureShadow;
             window.Layer.EffectsVisible = window.CaptureEffectHover;
         }
 
@@ -1902,6 +1918,13 @@ public sealed class CaptureSession
                 ScriptAction = null;
                 StartRecordFromCurrentSelection();
             }
+            else if (string.Equals(ScriptAction, "LongScroll", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(ScriptAction, "LongScrollHorizontal", StringComparison.OrdinalIgnoreCase))
+            {
+                bool horizontal = string.Equals(ScriptAction, "LongScrollHorizontal", StringComparison.OrdinalIgnoreCase);
+                ScriptAction = null;
+                StartLongScrollFromCurrentSelection(horizontal ? ScrollAxis.Horizontal : ScrollAxis.Vertical);
+            }
             else if (string.Equals(ScriptAction, "Pin", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(ScriptAction, "Sticker", StringComparison.OrdinalIgnoreCase))
             {
@@ -2180,7 +2203,7 @@ public sealed class CaptureSession
             window.Annotation.ClearPreviewShape();
             try
             {
-                window.CaptureAnnotationDefaults(_settings);
+                window.CaptureAnnotationDefaults(_settings, includeCaptureEffects: ShouldPersistCaptureEffects);
                 _settings.Save();
             }
             catch (Exception ex)
@@ -5032,7 +5055,7 @@ public sealed class CaptureSession
                     if (dragMovedPastThreshold && selection.HasSelection)
                     {
                         hasManualSelection = true;
-                        if (!string.IsNullOrEmpty(ScriptAction))
+                        if (AutoConfirmOnSelection)
                         {
                             ConfirmCurrentSelection();
                         }
@@ -5051,7 +5074,7 @@ public sealed class CaptureSession
                             hasManualSelection = true;
                             selection.SetRegion(pressedHighlight.Value);
                             StopAutoHoverAnimation();
-                            if (!string.IsNullOrEmpty(ScriptAction))
+                            if (AutoConfirmOnSelection)
                             {
                                 ConfirmCurrentSelection();
                             }
@@ -5742,13 +5765,22 @@ public sealed class CaptureSession
         // (g2) 参数条：圆角滑杆 + 描边色块与滑杆 + 阴影勾选。改一下即刻写进 _settings（成品出口读的就是这四项），
         // 落盘沿用会话收尾处既有的 _settings.Save()，与标注工具参数的记忆口径完全一致。
         long bindingsCompleted = Stopwatch.GetTimestamp();
-        window.SyncCaptureEffectState(CaptureCornerRadiusParam, _settings.CaptureShadow, CaptureStrokePx, CaptureStrokeArgb,
-            SuppressCaptureStroke);
+        window.SyncCaptureEffectState(CaptureCornerRadiusParam, UseCaptureShadow, CaptureStrokePx, CaptureStrokeArgb,
+            SuppressCaptureStroke && !_liveStrokeOverride.HasValue);
         window.CaptureEffectChanged += (_, _) =>
         {
-            _settings.CaptureCornerRadius = window.CaptureRadiusParam;
-            window.CaptureStrokeDefaults(_settings);
-            _settings.CaptureShadow = window.CaptureShadowChecked;
+            if (!ShouldPersistCaptureEffects)
+            {
+                _liveRadiusOverride = window.CaptureRadiusParam;
+                _liveStrokeOverride = window.CaptureStrokeParam;
+                _liveShadowOverride = window.CaptureShadowChecked;
+            }
+            else
+            {
+                _settings.CaptureCornerRadius = window.CaptureRadiusParam;
+                window.CaptureStrokeDefaults(_settings);
+                _settings.CaptureShadow = window.CaptureShadowChecked;
+            }
             ApplyCaptureEffectPreview();
         };
         // 悬浮闸门只改预览、不落盘，故走独立事件；两条都汇到同一个下发函数，口径不会分叉。
@@ -5866,7 +5898,7 @@ public sealed class CaptureSession
                     return;
                 }
                 hasManualSelection = true;
-                if (!string.IsNullOrEmpty(ScriptAction)) ConfirmCurrentSelection();
+                if (AutoConfirmOnSelection) ConfirmCurrentSelection();
                 else
                 {
                     EndSelectionTransform();
@@ -6108,16 +6140,19 @@ public sealed class CaptureSession
     // -------------------- 输出 --------------------
 
     /// <summary>记忆中的选区圆角参数档位（0-50 档）。</summary>
-    private int CaptureCornerRadiusParam => SelectionEffects.NormalizeParam(_settings.CaptureCornerRadius);
+    private int CaptureCornerRadiusParam => SelectionEffects.NormalizeParam(_liveRadiusOverride ?? _settings.CaptureCornerRadius);
 
-    /// <summary>记忆中的成品圆角半径（物理像素 0-200px，参数 × 4）。阴影直接读 <c>_settings.CaptureShadow</c>。</summary>
+    /// <summary>记忆中的成品圆角半径（物理像素 0-200px，参数 × 4）。</summary>
     private int CaptureCornerRadiusPx => _selectionPath == null ? SelectionEffects.ParamToRadiusPx(CaptureCornerRadiusParam) : 0;
 
     /// <summary>记忆中的成品描边宽度（物理像素 0-20，档位与像素 1:1）。钳位只在 SelectionEffects 做一次。</summary>
-    private int CaptureStrokePx => !SuppressCaptureStroke && _selectionPath == null
-        ? SelectionEffects.ParamToStrokePx(_settings.CaptureStrokeWidth) : 0;
+    private int CaptureStrokePx => _selectionPath == null
+        ? (_liveStrokeOverride.HasValue
+            ? SelectionEffects.ParamToStrokePx(_liveStrokeOverride.Value)
+            : (!SuppressCaptureStroke ? SelectionEffects.ParamToStrokePx(_settings.CaptureStrokeWidth) : 0))
+        : 0;
 
-    private bool UseCaptureShadow => _selectionPath == null && _settings.CaptureShadow;
+    private bool UseCaptureShadow => _selectionPath == null && (_liveShadowOverride ?? _settings.CaptureShadow);
 
     /// <summary>记忆中的成品描边颜色（ARGB）。预览与三个成品出口读的都是这一份。</summary>
     private int CaptureStrokeArgb => _settings.CaptureStrokeColor;

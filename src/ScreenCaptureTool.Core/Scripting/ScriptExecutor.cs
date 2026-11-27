@@ -8,6 +8,7 @@ namespace ScreenCaptureTool.Core.Scripting
     public interface IScriptEnv
     {
         void ScreenShot(string? action);
+        void ScreenShotWithOptions(ActionCaptureOptions options) => ScreenShot(null);
         void DirectScreenShot(int x, int y, int w, int h, string? action);
         void PinFromClipboard();
         void DestroyAllPin();
@@ -16,6 +17,7 @@ namespace ScreenCaptureTool.Core.Scripting
         void Translate(string? action);
         void Matting(string? action);
         void ScreenRecord(string? action = null);
+        void LongScroll(string? axis = null);
     }
 
     /// <summary>界面执行环境在操作完成或取消后结束当前步骤。</summary>
@@ -38,11 +40,13 @@ namespace ScreenCaptureTool.Core.Scripting
         public int WaitMilliseconds => IsWait && Arguments.Length == 1
             && ScriptExecutor.TryReadWaitMilliseconds(Arguments[0], out int duration) ? duration : 0;
         // 每个模块独立产出命名结果，旧无名称写法仍默认读取最近一次处理结果。
-        public bool UsesWorkflow => Method is "captureimage" or "readclipboard" or "recognizeresult" or "translateresult"
-            or "mattingresult" or "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult";
+        public bool UsesWorkflow => Method is "captureimage" or "capturescreen" or "captureregion" or "readclipboard" or "readsticker"
+            or "recognizeresult" or "translateresult" or "mattingresult"
+            or "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult";
         public bool IsOutput => Method is "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult";
-        public bool ProducesResult => Method is "captureimage" or "readclipboard" or "recognizeresult" or "translateresult" or "mattingresult";
-        public bool NeedsInput => UsesWorkflow && Method is not ("captureimage" or "readclipboard");
+        public bool ProducesResult => Method is "captureimage" or "capturescreen" or "captureregion" or "readclipboard" or "readsticker"
+            or "recognizeresult" or "translateresult" or "mattingresult";
+        public bool NeedsInput => UsesWorkflow && Method is not ("captureimage" or "capturescreen" or "captureregion" or "readclipboard" or "readsticker");
         public string? InputName => !NeedsInput ? null : Method switch
         {
             "translateresult" or "mattingresult" or "visionresult" => Arguments.Length >= 2 ? Arguments[1] : null,
@@ -50,15 +54,25 @@ namespace ScreenCaptureTool.Core.Scripting
         };
         public string? ResultName => !ProducesResult ? null : Method switch
         {
-            "captureimage" => Arguments.Length >= 1 ? Arguments[0] : null,
+            "captureimage" or "capturescreen" or "readsticker" => Arguments.Length >= 1 ? Arguments[0] : null,
+            "captureregion" => Arguments.Length >= 5 ? Arguments[4] : null,
             "readclipboard" => Arguments.Length >= 2 ? Arguments[1] : null,
             "recognizeresult" => Arguments.Length >= 2 ? Arguments[1] : null,
             _ => Arguments.Length >= 3 ? Arguments[2] : null
         };
-        public ActionCaptureOptions CaptureOptions => Method == "captureimage" && ActionCaptureOptions.TryRead(Arguments, out var options)
-            ? options : default;
+        public ActionCaptureOptions CaptureOptions => Method switch
+        {
+            "captureimage" when ActionCaptureOptions.TryRead(Arguments, out var opt, 1) => opt,
+            "captureregion" when ActionCaptureOptions.TryRead(Arguments, out var opt, 5) => opt,
+            "screenshot" when Arguments.Length > 0 && Arguments[0].Contains('=') && ActionCaptureOptions.TryRead(Arguments, out var opt, 0) => opt,
+            _ => default
+        };
+        public bool IsInteractiveScreenShot => Method == "screenshot"
+            && (Arguments.Length == 0 || string.IsNullOrEmpty(Arguments[0]) || Arguments[0].Contains('='));
         public string ResultKey(int position) => ResultName ?? $"#step{position + 1}";
-        public bool CanContinue => IsWait || UsesWorkflow || Method is "pinfromclipboard" or "destroyallpin" or "toggleallstickers" or "restorelaststicker"
+        public bool CanContinue => IsWait || UsesWorkflow
+            || Method is "pinfromclipboard" or "destroyallpin" or "toggleallstickers" or "restorelaststicker" or "screenrecord" or "longscroll"
+            || IsInteractiveScreenShot
             || Method == "screenshot" && Arguments.Length == 1 && Arguments[0].ToLowerInvariant() is "copy" or "pin" or "save"
             || Method == "directscreenshot" && (Arguments.Length == 4 || Arguments[4].ToLowerInvariant() is "" or "copy" or "pin" or "save");
     }
@@ -119,13 +133,14 @@ namespace ScreenCaptureTool.Core.Scripting
                 };
                 if (quick && args.Length == 0) args = ["Quick"];
                 // 仅归一化传统动作参数，命名引用保持原字符串与大小写。
-                if (method is not ("wait" or "captureimage" or "readclipboard" or "recognizeresult" or "translateresult"
-                    or "mattingresult" or "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult"))
+                if (method is not ("wait" or "captureimage" or "capturescreen" or "captureregion" or "readclipboard" or "readsticker"
+                    or "recognizeresult" or "translateresult" or "mattingresult"
+                    or "copyresult" or "pinresult" or "saveresult" or "showresult" or "visionresult"))
                     for (int i = 0; i < args.Length; i++) args[i] = ParseActionArg(args[i]);
                 string arg = args.Length == 0 ? "" : args[0].ToLowerInvariant();
-                if (method == "captureimage" && !ActionCaptureOptions.TryRead(args, out _))
+                if (method == "captureimage" && !ActionCaptureOptions.TryRead(args, out _, 1))
                 {
-                    error = $"第 {lineNumber} 行的截图参数无效，描边模式可选 Default 或 NoStroke。等待请使用独立的 wait(毫秒) 指令。";
+                    error = $"第 {lineNumber} 行的截图参数无效（支持 toolbar/radius/stroke/shadow/detect）。";
                     return false;
                 }
                 if (method == "wait" && (args.Length != 1 || !TryReadWaitMilliseconds(args[0], out _)))
@@ -136,18 +151,30 @@ namespace ScreenCaptureTool.Core.Scripting
                 bool valid = method switch
                 {
                     "captureimage" or "wait" => true,
-                    "copyresult" or "pinresult" or "saveresult" or "showresult" => args.Length <= 1,
-                    "recognizeresult" => args.Length <= 2,
+                    "capturescreen" => ValidateCaptureScreen(args),
+                    "readsticker" => args.Length <= 1,
+                    "captureregion" => args.Length >= 4
+                        && int.TryParse(args[0], out _) && int.TryParse(args[1], out _)
+                        && int.TryParse(args[2], out int rw) && rw > 0
+                        && int.TryParse(args[3], out int rh) && rh > 0
+                        && (args.Length <= 5 || ActionCaptureOptions.TryRead(args, out _, 5)),
+                    "copyresult" or "showresult" => args.Length <= 1,
+                    "pinresult" => ValidatePinResult(args),
+                    "saveresult" => ValidateSaveResult(args),
+                    "recognizeresult" => ValidateRecognizeResult(args),
                     "readclipboard" => args.Length is 1 or 2 && arg is "image" or "text",
-                    "translateresult" => args.Length is >= 1 and <= 3 && arg is "text" or "image",
+                    "translateresult" => ValidateTranslateResult(args, arg),
                     "mattingresult" => args.Length is >= 1 and <= 3 && arg is "default" or "general" or "portrait",
-                    "visionresult" => args.Length is 1 or 2 && arg is "default" or "prompt",
-                    "screenshot" => args.Length <= 1 && arg is "" or "copy" or "pin" or "sticker" or "save" or "ocr" or "ocrtoast"
-                        or "vision" or "visionprompt" or "matting" or "mattinggeneral" or "mattingportrait" or "translate",
+                    "visionresult" => ValidateVisionResult(args, arg),
+                    "screenshot" => (args.Length > 0 && args[0].Contains('='))
+                        ? ActionCaptureOptions.TryRead(args, out _, 0)
+                        : args.Length <= 1 && arg is "" or "copy" or "pin" or "sticker" or "save" or "ocr" or "ocrtoast"
+                            or "vision" or "visionprompt" or "matting" or "mattinggeneral" or "mattingportrait" or "translate",
                     "translate" => args.Length <= 1 && arg is "" or "screen" or "capture" or "imagetoimage" or "image" or "imagetotext"
                         or "silent" or "clipboardsilent" or "clipboard" or "text" or "sticker" or "pin",
                     "matting" => args.Length <= 1 && arg is "" or "general" or "portrait" or "mattinggeneral" or "mattingportrait" or "sticker" or "pin",
                     "screenrecord" => args.Length <= 1 && arg is "" or "quick" or "fast" or "recordquick" or "quickrecord",
+                    "longscroll" => args.Length == 0 || (args.Length == 1 && arg is "vertical" or "horizontal"),
                     "pinfromclipboard" or "destroyallpin" or "toggleallstickers" or "restorelaststicker" => args.Length == 0,
                     "directscreenshot" => args.Length is 4 or 5 && int.TryParse(args[0], out _) && int.TryParse(args[1], out _)
                         && int.TryParse(args[2], out int width) && width > 0 && int.TryParse(args[3], out int height) && height > 0
@@ -189,7 +216,7 @@ namespace ScreenCaptureTool.Core.Scripting
 
         public static ActionContentKind ContentAfter(ScriptCommand call, ActionContentKind current) => call.Method switch
         {
-            "captureimage" => ActionContentKind.Image,
+            "captureimage" or "capturescreen" or "captureregion" or "readsticker" => ActionContentKind.Image,
             "readclipboard" => call.Arguments[0].Equals("Image", StringComparison.OrdinalIgnoreCase) ? ActionContentKind.Image : ActionContentKind.Text,
             "recognizeresult" => ActionContentKind.Text,
             "translateresult" => call.Arguments[0].Equals("Image", StringComparison.OrdinalIgnoreCase) ? ActionContentKind.Image : ActionContentKind.Text,
@@ -220,8 +247,11 @@ namespace ScreenCaptureTool.Core.Scripting
                 string? problem = null;
                 if (!call.UsesWorkflow)
                 {
-                    if (!call.IsWait && call.Method is not ("toggleallstickers" or "destroyallpin" or "restorelaststicker"))
-                        problem = "此操作会单独启动一项功能，不能混入内容流程。请用步骤编辑选择处理或输出操作。";
+                    bool allowedStandalone = call.IsWait
+                        || call.Method is "toggleallstickers" or "destroyallpin" or "restorelaststicker" or "screenrecord" or "longscroll"
+                        || call.IsInteractiveScreenShot;
+                    if (!allowedStandalone)
+                        problem = "此操作会单独启动一项功能，不能混入内容流程。请用流程编排选择对应模块。";
                 }
                 else
                 {
@@ -351,8 +381,15 @@ namespace ScreenCaptureTool.Core.Scripting
             if (string.Equals(name, "screenShot", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "screenShotAndEdit", StringComparison.OrdinalIgnoreCase))
             {
-                string? action = args.Length > 0 ? ParseActionArg(args[0]) : null;
-                env.ScreenShot(action);
+                if (args.Length > 0 && args[0].Contains('=') && ActionCaptureOptions.TryRead(args, out var capOpt, 0))
+                {
+                    env.ScreenShotWithOptions(capOpt);
+                }
+                else
+                {
+                    string? action = args.Length > 0 ? ParseActionArg(args[0]) : null;
+                    env.ScreenShot(action);
+                }
             }
             else if (string.Equals(name, "directScreenShot", StringComparison.OrdinalIgnoreCase))
             {
@@ -403,6 +440,119 @@ namespace ScreenCaptureTool.Core.Scripting
             {
                 env.ScreenRecord("Quick");
             }
+            else if (string.Equals(name, "longScroll", StringComparison.OrdinalIgnoreCase))
+            {
+                string? axis = args.Length > 0 ? ParseActionArg(args[0]) : null;
+                env.LongScroll(axis);
+            }
+        }
+
+        private static bool ValidateCaptureScreen(string[] args)
+        {
+            if (args.Length <= 1) return true;
+            if (!ActionCaptureOptions.TryParseKeyValues(args, 1, out var kv)) return false;
+            foreach (var (k, v) in kv)
+            {
+                if (k.Equals("scope", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (v.ToLowerInvariant() is not ("all" or "current" or "primary")) return false;
+                }
+                else return false;
+            }
+            return true;
+        }
+
+        private static bool ValidatePinResult(string[] args)
+        {
+            if (args.Length <= 1) return true;
+            if (!ActionCaptureOptions.TryParseKeyValues(args, 1, out var kv)) return false;
+            foreach (var (k, v) in kv)
+            {
+                string vl = v.ToLowerInvariant();
+                switch (k.ToLowerInvariant())
+                {
+                    case "shadow":
+                        if (vl is not ("default" or "on" or "off")) return false;
+                        break;
+                    case "lock":
+                    case "pass":
+                        if (vl is not ("on" or "off" or "true" or "false")) return false;
+                        break;
+                    case "opacity":
+                        if (!int.TryParse(v, NumberStyles.None, CultureInfo.InvariantCulture, out int op) || op < 20 || op > 100) return false;
+                        break;
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool ValidateSaveResult(string[] args)
+        {
+            if (args.Length <= 1) return true;
+            if (!ActionCaptureOptions.TryParseKeyValues(args, 1, out var kv)) return false;
+            foreach (var (k, v) in kv)
+            {
+                string vl = v.ToLowerInvariant();
+                switch (k.ToLowerInvariant())
+                {
+                    case "mode":
+                        if (vl is not ("quick" or "dialog")) return false;
+                        break;
+                    case "format":
+                        if (vl is not ("png" or "jpg" or "jpeg")) return false;
+                        break;
+                    case "dir":
+                        break;
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool ValidateRecognizeResult(string[] args)
+        {
+            if (args.Length <= 2) return true;
+            if (!ActionCaptureOptions.TryParseKeyValues(args, 2, out var kv)) return false;
+            foreach (var (k, v) in kv)
+            {
+                if (k.Equals("cleanup", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (v.ToLowerInvariant() is not ("none" or "merge" or "compact")) return false;
+                }
+                else return false;
+            }
+            return true;
+        }
+
+        private static bool ValidateTranslateResult(string[] args, string arg0)
+        {
+            if (args.Length < 1 || arg0 is not ("text" or "image")) return false;
+            if (args.Length <= 3) return true;
+            if (!ActionCaptureOptions.TryParseKeyValues(args, 3, out var kv)) return false;
+            foreach (var (k, v) in kv)
+            {
+                if (k.Equals("to", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (v.ToLowerInvariant() is not ("auto" or "zh" or "en" or "ja" or "ko")) return false;
+                }
+                else return false;
+            }
+            return true;
+        }
+
+        private static bool ValidateVisionResult(string[] args, string arg0)
+        {
+            if (args.Length < 1 || arg0 is not ("default" or "prompt" or "custom")) return false;
+            if (args.Length <= 2) return true;
+            if (!ActionCaptureOptions.TryParseKeyValues(args, 2, out var kv)) return false;
+            foreach (var (k, _) in kv)
+            {
+                if (!k.Equals("prompt", StringComparison.OrdinalIgnoreCase)) return false;
+            }
+            return true;
         }
 
         private static string ParseActionArg(string arg)

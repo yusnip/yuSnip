@@ -8090,6 +8090,41 @@ public void TriggerTranslate()
     OnTranslateClick(null, new RoutedEventArgs());
 }
 
+/// <summary>克隆当前贴图的底图供动作流程消费；纯文本贴图返回 null。</summary>
+internal System.Drawing.Bitmap? TryCloneCurrentBitmap()
+{
+    return _bitmap != null ? new System.Drawing.Bitmap(_bitmap) : null;
+}
+
+/// <summary>按自定义动作「生成贴图」模块的进阶参数应用初始状态（不改动全局设置）。</summary>
+internal void ApplyInitialActionOptions(bool? shadow, bool lockInitially, bool clickThroughInitially, double? opacity)
+{
+    if (shadow.HasValue)
+    {
+        _shadowVisible = shadow.Value;
+        SetCaptureShadowIntent(shadow.Value);
+    }
+    if (opacity.HasValue)
+    {
+        SetStickerOpacity(opacity.Value, showToast: false);
+    }
+    if (lockInitially)
+    {
+        _isLocked = true;
+        ApplyShadow();
+        UpdateContextMenuState();
+    }
+    if (clickThroughInitially)
+    {
+        Opened += (_, _) =>
+        {
+            ApplyMousePenetration(true);
+            UpdateContextMenuState();
+            StickerFocusManager.ClearFocus(this);
+        };
+    }
+}
+
 /// <summary>右键菜单"翻译"：对贴图图片或文本执行翻译（支持 Toggle 切换原文/译文）。</summary>
 private void OnTranslateClick(object? sender, RoutedEventArgs e)
     {
